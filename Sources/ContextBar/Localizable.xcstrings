@@ -1,0 +1,436 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "API key": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chave de API"
+          }
+        }
+      }
+    },
+    "Accessibility": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acessibilidade"
+          }
+        }
+      }
+    },
+    "Add an API key in Settings.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adicione uma chave de API nos Ajustes."
+          }
+        }
+      }
+    },
+    "Anthropic": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anthropic"
+          }
+        }
+      }
+    },
+    "Base URL": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "URL base"
+          }
+        }
+      }
+    },
+    "Captures the active window when you press the shortcut. Takes effect after relaunching Context Bar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Captura a janela ativa quando você pressiona o atalho. Passa a valer depois de reabrir o Context Bar."
+          }
+        }
+      }
+    },
+    "Close": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fechar"
+          }
+        }
+      }
+    },
+    "Context": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contexto"
+          }
+        }
+      }
+    },
+    "Context Bar Settings": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajustes do Context Bar"
+          }
+        }
+      }
+    },
+    "Copied to the clipboard. Grant Accessibility access in Settings to paste automatically.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiado para a área de transferência. Conceda acesso de Acessibilidade nos Ajustes para colar automaticamente."
+          }
+        }
+      }
+    },
+    "Copy": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar"
+          }
+        }
+      }
+    },
+    "Focused text": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Texto em foco"
+          }
+        }
+      }
+    },
+    "Generate": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gerar"
+          }
+        }
+      }
+    },
+    "Generating…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gerando…"
+          }
+        }
+      }
+    },
+    "Grant…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conceder…"
+          }
+        }
+      }
+    },
+    "Include a screenshot of the active window": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incluir uma captura da janela ativa"
+          }
+        }
+      }
+    },
+    "Insert": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inserir"
+          }
+        }
+      }
+    },
+    "Model": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modelo"
+          }
+        }
+      }
+    },
+    "Model ID": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ID do modelo"
+          }
+        }
+      }
+    },
+    "No app context": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem contexto de app"
+          }
+        }
+      }
+    },
+    "Nothing is captured until you press the shortcut, and the context is discarded when the panel closes.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nada é capturado até você pressionar o atalho, e o contexto é descartado quando o painel fecha."
+          }
+        }
+      }
+    },
+    "Open Context Bar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir o Context Bar"
+          }
+        }
+      }
+    },
+    "Open Context Bar (%@)": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir o Context Bar (%@)"
+          }
+        }
+      }
+    },
+    "OpenAI-compatible": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compatível com OpenAI"
+          }
+        }
+      }
+    },
+    "Optional for local servers": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opcional para servidores locais"
+          }
+        }
+      }
+    },
+    "Permissions": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permissões"
+          }
+        }
+      }
+    },
+    "Provider": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Provedor"
+          }
+        }
+      }
+    },
+    "Quit Context Bar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sair do Context Bar"
+          }
+        }
+      }
+    },
+    "Reads the focused field and pastes the result.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lê o campo em foco e cola o resultado."
+          }
+        }
+      }
+    },
+    "Refine: shorter, more formal…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refine: mais curto, mais formal…"
+          }
+        }
+      }
+    },
+    "Request failed with status %lld.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A requisição falhou com status %lld."
+          }
+        }
+      }
+    },
+    "Retry": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refazer"
+          }
+        }
+      }
+    },
+    "Screen Recording": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gravação de Tela"
+          }
+        }
+      }
+    },
+    "Selection": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seleção"
+          }
+        }
+      }
+    },
+    "Set a model in Settings.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Defina um modelo nos Ajustes."
+          }
+        }
+      }
+    },
+    "Settings…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajustes…"
+          }
+        }
+      }
+    },
+    "Shortcut": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atalho"
+          }
+        }
+      }
+    },
+    "The base URL in Settings is not valid.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A URL base nos Ajustes não é válida."
+          }
+        }
+      }
+    },
+    "The model declined this request.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O modelo recusou esta solicitação."
+          }
+        }
+      }
+    },
+    "What do you want to write?": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O que você quer escrever?"
+          }
+        }
+      }
+    },
+    "Window": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Janela"
+          }
+        }
+      }
+    },
+    "Works with OpenAI, OpenRouter, Groq, Ollama (http://localhost:11434/v1), LM Studio, and any server that speaks /chat/completions. Pick a model that accepts images to use the window screenshot.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Funciona com OpenAI, OpenRouter, Groq, Ollama (http://localhost:11434/v1), LM Studio e qualquer servidor que fale /chat/completions. Escolha um modelo que aceite imagens para usar a captura da janela."
+          }
+        }
+      }
+    },
+    "Your key is stored in the macOS Keychain.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua chave fica guardada no Keychain do macOS."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
