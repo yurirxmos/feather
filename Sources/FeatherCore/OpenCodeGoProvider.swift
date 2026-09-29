@@ -54,10 +54,13 @@ public struct OpenCodeGoProvider: LLMProvider {
             throw ProviderTransport.streamError(from: Data(event.data.utf8))
         }
         guard let choice = (json["choices"] as? [[String: Any]])?.first else { return .ignore }
-        if let delta = choice["delta"] as? [String: Any], let text = delta["content"] as? String, !text.isEmpty {
-            return .text(text)
+        let text = (choice["delta"] as? [String: Any])?["content"] as? String ?? ""
+        // Some servers keep the connection open after the final chunk instead of sending
+        // `[DONE]`, so a finish reason ends the stream on its own.
+        if let finishReason = choice["finish_reason"] as? String, !finishReason.isEmpty {
+            if finishReason == "content_filter" { throw LLMError.refused }
+            return text.isEmpty ? .done : .finalText(text)
         }
-        if choice["finish_reason"] as? String == "content_filter" { throw LLMError.refused }
-        return .ignore
+        return text.isEmpty ? .ignore : .text(text)
     }
 }

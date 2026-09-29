@@ -19,6 +19,33 @@ final class LLMStreamPumpTests: XCTestCase {
         XCTAssertEqual(result, ["Hello"])
     }
 
+    func testPumpStopsAtFinishReasonWhenTheServerKeepsTheConnectionOpen() async throws {
+        let lines = AsyncStream<String> { continuation in
+            continuation.yield("data: {\"choices\":[{\"delta\":{\"content\":\"Hello\"}}]}")
+            continuation.yield("data: {\"choices\":[{\"delta\":{\"content\":\" world\"},\"finish_reason\":\"stop\"}]}")
+            continuation.yield(": keep-alive")
+            // Never finishes, like a server that leaves the connection open.
+        }
+        let output = LLMStreamPump.stream(lines: lines) { event in
+            try OpenCodeGoProvider(apiKey: "key").parse(event)
+        }
+        var result: [String] = []
+        for try await text in output { result.append(text) }
+        XCTAssertEqual(result, ["Hello", " world"])
+    }
+
+    func testPumpFinishesWhenTheStreamGoesIdleAfterText() async throws {
+        let lines = AsyncStream<String> { continuation in
+            continuation.yield("data: {\"choices\":[{\"delta\":{\"content\":\"Hello\"}}]}")
+        }
+        let output = LLMStreamPump.stream(lines: lines, idleTimeout: .milliseconds(100)) { event in
+            try OpenCodeGoProvider(apiKey: "key").parse(event)
+        }
+        var result: [String] = []
+        for try await text in output { result.append(text) }
+        XCTAssertEqual(result, ["Hello"])
+    }
+
     func testPumpPropagatesProviderErrors() async {
         let lines = AsyncStream<String> { continuation in
             continuation.yield("data: {\"error\":{\"message\":\"rejected\"}}")

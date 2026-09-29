@@ -14,6 +14,7 @@ final class PromptSession: ObservableObject {
     @Published var result = ""
     @Published var streamingResult = ""
     @Published var isGenerating = false
+    @Published var generationStartedAt: Date?
     @Published var errorMessage: String?
     @Published var notice: String?
     @Published var context = ScreenContext()
@@ -26,6 +27,8 @@ final class PromptSession: ObservableObject {
 
     var history: [Exchange] = []
     var lastInstruction = ""
+    /// The turn state before the running generation, restored when it is cancelled.
+    var turnBeforeGeneration: (history: [Exchange], lastInstruction: String)?
     var sessionID = UUID().uuidString
     var isSuspendedForRecapture = false
     var captureCount = 0
@@ -35,6 +38,7 @@ final class PromptSession: ObservableObject {
         result = ""
         streamingResult = ""
         isGenerating = false
+        generationStartedAt = nil
         errorMessage = nil
         notice = nil
         context = ScreenContext()
@@ -44,6 +48,7 @@ final class PromptSession: ObservableObject {
         showScreenshot = false
         history = []
         lastInstruction = ""
+        turnBeforeGeneration = nil
         sessionID = UUID().uuidString
         isSuspendedForRecapture = false
         captureCount = 0
@@ -123,9 +128,9 @@ final class PromptController: NSObject, NSWindowDelegate {
         let hosting = NSHostingController(
             rootView: PromptView(
                 session: session,
-                credentialStore: credentialStore,
                 copyResult: { [weak self] in self?.copyResult() },
-                retryResult: { [weak self] in self?.regenerate() }
+                retryResult: { [weak self] in self?.regenerate() },
+                cancelGeneration: { [weak self] in self?.cancelGeneration() }
             )
         )
         hosting.sizingOptions = [.preferredContentSize]
@@ -216,6 +221,7 @@ final class PromptController: NSObject, NSWindowDelegate {
 
     /// A new instruction after a result refines that result.
     private func generate(_ instruction: String) {
+        session.turnBeforeGeneration = (session.history, session.lastInstruction)
         session.history = PromptTurn.history(
             session.history,
             lastInstruction: session.lastInstruction,
@@ -229,7 +235,27 @@ final class PromptController: NSObject, NSWindowDelegate {
 
     private func regenerate() {
         guard !session.lastInstruction.isEmpty else { return }
+        session.turnBeforeGeneration = (session.history, session.lastInstruction)
         run()
+    }
+
+    /// Stops the stream, keeps the previous result, and puts the instruction back for editing.
+    private func cancelGeneration() {
+        guard session.isGenerating else { return }
+        generationTask?.cancel()
+        generationTask = nil
+        let instruction = session.lastInstruction
+        if let previous = session.turnBeforeGeneration {
+            session.history = previous.history
+            session.lastInstruction = previous.lastInstruction
+        }
+        session.turnBeforeGeneration = nil
+        session.streamingResult = ""
+        session.generationStartedAt = nil
+        session.isGenerating = false
+        if session.instruction.isEmpty {
+            session.instruction = instruction
+        }
     }
 
     private func run() {
@@ -238,6 +264,7 @@ final class PromptController: NSObject, NSWindowDelegate {
         session.errorMessage = nil
         session.notice = nil
         session.isGenerating = true
+        session.generationStartedAt = .now
         let settings = FeatherCore.Settings.current()
         generationTask = Task { [weak self] in
             guard let self else { return }
@@ -367,6 +394,6 @@ final class PromptController: NSObject, NSWindowDelegate {
     }
 
     func windowDidMove(_ notification: Notification) {
-        panel.anchorTop = panel.frame.maxY
+        panel.anchorBottom = panel.frame.minY
     }
 }

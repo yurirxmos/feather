@@ -22,6 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var settingsWindow: NSWindow?
     private var registeredHotkey: HotkeyPreset?
     private var hotkeyMenuItem: NSMenuItem?
+    private let splash = SplashWindow()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         HotkeyManager.shared.onPress = { [weak self] in self?.openPrompt() }
@@ -30,8 +31,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NotificationCenter.default.addObserver(
             self, selector: #selector(defaultsChanged), name: UserDefaults.didChangeNotification, object: nil
         )
-        if !AccessibilityContext.isTrusted || !WindowCapture.hasPermission || !FeatherCore.Settings.current().hasCredentials(using: credentialStore) {
-            showSettings()
+        splash.show { [weak self] in
+            guard let self else { return }
+            if !AccessibilityContext.isTrusted || !WindowCapture.hasPermission || !FeatherCore.Settings.current().hasCredentials(using: credentialStore) {
+                showSettings()
+            }
         }
     }
 
@@ -88,14 +92,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func showSettings() {
         if settingsWindow == nil {
             let window = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 680, height: 520),
-                styleMask: [.titled, .closable, .resizable],
+                contentRect: NSRect(x: 0, y: 0, width: 720, height: 520),
+                styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                 backing: .buffered,
                 defer: false
             )
             window.title = String(localized: "Feather Settings", bundle: .app)
-            window.minSize = NSSize(width: 640, height: 460)
-            window.contentViewController = NSHostingController(rootView: SettingsView(credentialStore: credentialStore))
+            window.minSize = NSSize(width: 680, height: 480)
+            window.toolbarStyle = .unified
+            let hosting = NSHostingController(rootView: SettingsView(credentialStore: credentialStore))
+            hosting.sizingOptions = [.minSize]
+            hosting.sceneBridgingOptions = [.title, .toolbars]
+            window.contentViewController = hosting
+            window.setContentSize(NSSize(width: 720, height: 520))
             window.isReleasedWhenClosed = false
             window.center()
             settingsWindow = window

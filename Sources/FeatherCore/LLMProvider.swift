@@ -44,6 +44,8 @@ public struct GenerationRequest: Equatable, Sendable {
 
 public enum StreamChunk: Equatable, Sendable {
     case text(String)
+    /// The last text of the response; the stream ends after it.
+    case finalText(String)
     case done
     case ignore
 }

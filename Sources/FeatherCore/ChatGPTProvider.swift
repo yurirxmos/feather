@@ -54,8 +54,11 @@ public struct ChatGPTProvider: LLMProvider {
         switch event.event {
         case "response.output_text.delta":
             return (json["delta"] as? String).map(StreamChunk.text) ?? .ignore
-        case "response.completed", "response.done":
+        case "response.completed", "response.done", "response.incomplete":
             return .done
+        case "response.failed":
+            let error = (json["response"] as? [String: Any])?["error"] as? [String: Any]
+            throw LLMError.api(message: error?["message"] as? String ?? "The response failed.")
         default:
             return .ignore
         }

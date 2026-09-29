@@ -86,6 +86,10 @@ final class ProviderTests: XCTestCase {
             .text("Hello")
         )
         XCTAssertEqual(try provider.parse(SSEEvent(event: "response.completed", data: "{}")), .done)
+        XCTAssertEqual(try provider.parse(SSEEvent(event: "response.incomplete", data: "{}")), .done)
+        XCTAssertThrowsError(try provider.parse(SSEEvent(event: "response.failed", data: #"{"response":{"error":{"message":"overloaded"}}}"#))) {
+            XCTAssertEqual($0 as? LLMError, .api(message: "overloaded"))
+        }
     }
 
     func testOpenCodeGoRequiresKey() {
@@ -105,6 +109,9 @@ final class ProviderTests: XCTestCase {
         XCTAssertEqual(try provider.parse(SSEEvent(data: #"{"choices":[{"delta":{"role":"assistant"}}]}"#)), .ignore)
         XCTAssertEqual(try provider.parse(SSEEvent(data: #"{"choices":[{"delta":{"content":"Hi"}}]}"#)), .text("Hi"))
         XCTAssertEqual(try provider.parse(SSEEvent(data: "[DONE]")), .done)
+        XCTAssertEqual(try provider.parse(SSEEvent(data: #"{"choices":[{"delta":{"content":"!"},"finish_reason":"stop"}]}"#)), .finalText("!"))
+        XCTAssertEqual(try provider.parse(SSEEvent(data: #"{"choices":[{"delta":{},"finish_reason":"length"}]}"#)), .done)
+        XCTAssertEqual(try provider.parse(SSEEvent(data: #"{"choices":[{"delta":{"content":"Hi"},"finish_reason":null}]}"#)), .text("Hi"))
         XCTAssertThrowsError(try provider.parse(SSEEvent(data: #"{"error":{"message":"bad model"}}"#))) {
             XCTAssertEqual($0 as? LLMError, .api(message: "bad model"))
         }

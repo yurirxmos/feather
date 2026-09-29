@@ -5,14 +5,15 @@ final class PanelPlacementTests: XCTestCase {
     private let screen = CGRect(x: 0, y: 0, width: 1440, height: 900)
     private let panel = CGSize(width: 560, height: 180)
 
-    func testPlacesBelowWindowWhenThereIsRoom() {
+    func testAnchorsToBottomCenteredOnWindow() {
         let origin = PanelPlacement.origin(panelSize: panel, windowFrame: CGRect(x: 400, y: 500, width: 600, height: 300), visibleFrame: screen)
-        XCTAssertEqual(origin, CGPoint(x: 420, y: 310))
+        XCTAssertEqual(origin, CGPoint(x: 420, y: 18))
     }
 
-    func testPlacesAboveWindowWhenBelowDoesNotFit() {
-        let origin = PanelPlacement.origin(panelSize: panel, windowFrame: CGRect(x: 400, y: 100, width: 600, height: 200), visibleFrame: screen)
-        XCTAssertEqual(origin, CGPoint(x: 420, y: 310))
+    func testAnchorsToBottomCenterWithoutWindow() {
+        let visible = CGRect(x: 0, y: 70, width: 1440, height: 805)
+        let origin = PanelPlacement.origin(panelSize: panel, windowFrame: nil, visibleFrame: visible)
+        XCTAssertEqual(origin, CGPoint(x: 440, y: 88))
     }
 
     func testClampsHorizontalPosition() {

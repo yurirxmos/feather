@@ -131,16 +131,6 @@
         }
       }
     },
-    "Change model": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Alterar modelo"
-          }
-        }
-      }
-    },
     "ChatGPT session refresh failed (%lld).": {
       "localizations": {
         "pt-BR": {
@@ -337,16 +327,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Inserir"
-          }
-        }
-      }
-    },
-    "Loading models…": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Carregando modelos…"
           }
         }
       }
@@ -737,6 +717,146 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sua chave fica guardada no Keychain do macOS."
+          }
+        }
+      }
+    },
+    "Account": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conta"
+          }
+        }
+      }
+    },
+    "Add an API key to load the available models.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adicione uma chave de API para carregar os modelos disponíveis."
+          }
+        }
+      }
+    },
+    "Connected": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conectado"
+          }
+        }
+      }
+    },
+    "Credentials are stored in the macOS Keychain.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As credenciais ficam guardadas nas Chaves do macOS."
+          }
+        }
+      }
+    },
+    "Feather needs both permissions to read the context around your cursor and paste replies.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Feather precisa das duas permissões para ler o contexto ao redor do cursor e colar as respostas."
+          }
+        }
+      }
+    },
+    "Gives the model visual context. Requires Screen Recording.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dá contexto visual ao modelo. Requer Gravação de Tela."
+          }
+        }
+      }
+    },
+    "Granted": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Concedida"
+          }
+        }
+      }
+    },
+    "Needs attention": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Requer atenção"
+          }
+        }
+      }
+    },
+    "Paste your key": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cole sua chave"
+          }
+        }
+      }
+    },
+    "Quit Feather": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Encerrar o Feather"
+          }
+        }
+      }
+    },
+    "Refresh": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atualizar"
+          }
+        }
+      }
+    },
+    "Replace…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Substituir…"
+          }
+        }
+      }
+    },
+    "Sign-in continues in your browser.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O login continua no seu navegador."
+          }
+        }
+      }
+    },
+    "Couldn't load the models. Check your key and connection.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível carregar os modelos. Verifique sua chave e a conexão."
           }
         }
       }

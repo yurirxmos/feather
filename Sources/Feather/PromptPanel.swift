@@ -4,8 +4,8 @@ import FeatherCore
 /// A floating panel that takes keyboard focus without activating Feather, so the target
 /// app stays frontmost with its caret where the user left it.
 final class PromptPanel: NSPanel {
-    /// The panel grows downward as the result streams in, keeping its top edge fixed.
-    var anchorTop: CGFloat?
+    /// The panel grows upward as the result streams in, keeping its bottom edge fixed.
+    var anchorBottom: CGFloat?
 
     static func make() -> PromptPanel {
         let panel = PromptPanel(
@@ -36,11 +36,11 @@ final class PromptPanel: NSPanel {
 
     override func setFrame(_ frameRect: NSRect, display flag: Bool) {
         var rect = frameRect
-        if let anchorTop { rect.origin.y = anchorTop - rect.height }
+        if let anchorBottom { rect.origin.y = anchorBottom }
         super.setFrame(rect, display: flag)
     }
 
-    /// Positions the panel near the target window, falling back to the upper third of the screen.
+    /// Positions the panel at the bottom of the screen, centered on the target window when known.
     func position(on screen: NSScreen, windowFrame: CGRect? = nil) {
         let visible = screen.visibleFrame
         let origin = PanelPlacement.origin(
@@ -48,8 +48,8 @@ final class PromptPanel: NSPanel {
             windowFrame: windowFrame,
             visibleFrame: visible
         )
-        anchorTop = nil
+        anchorBottom = nil
         setFrameOrigin(origin)
-        anchorTop = frame.maxY
+        anchorBottom = frame.minY
     }
 }

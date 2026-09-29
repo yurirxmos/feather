@@ -4,25 +4,22 @@ import SwiftUI
 
 struct PromptView: View {
     @ObservedObject var session: PromptSession
-    let credentialStore: any CredentialStore
     let copyResult: () -> Void
     let retryResult: () -> Void
-    @AppStorage(SettingsKey.connection) private var connection: ConnectionKind = .openCodeGo
-    @AppStorage(SettingsKey.model) private var model = OpenCodeGoProvider.defaultModel
+    let cancelGeneration: () -> Void
     @FocusState private var isFieldFocused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var insertPulse = false
     @State private var isTyping = false
     @State private var typingStopTask: Task<Void, Never>?
-    @State private var isShowingModelPicker = false
-    @State private var openCodeModels: [String] = []
-    @State private var isLoadingModels = false
 
     private var hasResult: Bool { !session.result.isEmpty || session.isGenerating }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            contextToolbar
+            if hasContextPreview {
+                contextPreview
+            }
 
             if !session.result.isEmpty {
                 responseBlock(session.result, muted: session.isGenerating)
@@ -37,13 +34,15 @@ struct PromptView: View {
                     .foregroundStyle(.white)
                     .lineLimit(1...5)
                     .focused($isFieldFocused)
+                    .disabled(session.isGenerating)
+                    .opacity(session.isGenerating ? 0.45 : 1)
+                    .animation(.easeOut(duration: 0.15), value: session.isGenerating)
             }
 
             if session.isGenerating {
                 Divider()
-                if session.streamingResult.isEmpty {
-                    GeneratingIndicator()
-                } else {
+                GeneratingIndicator(startedAt: session.generationStartedAt ?? .now, cancel: cancelGeneration)
+                if !session.streamingResult.isEmpty {
                     responseBlock(session.streamingResult, muted: true)
                 }
             }
@@ -68,12 +67,21 @@ struct PromptView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             }
 
-            HStack {
-                if canInsert {
-                    secondaryKeyHints
+            HStack(spacing: 12) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        contextChips
+                    }
                 }
-                Spacer()
-                primaryKeyHint
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                HStack(spacing: 10) {
+                    primaryKeyHint
+                    if canInsert {
+                        secondaryKeyHints
+                    }
+                }
+                .fixedSize()
             }
         }
         .padding(16)
@@ -86,8 +94,13 @@ struct PromptView: View {
             isFieldFocused = true
             updateInsertPulse(canInsert)
         }
-        .onChange(of: session.focusToken) { isFieldFocused = true }
+        .onChange(of: session.focusToken) {
+            isFieldFocused = true
+        }
         .onChange(of: canInsert) { _, value in updateInsertPulse(value) }
+        .onChange(of: session.isGenerating) { _, value in
+            if !value { isFieldFocused = true }
+        }
         .onChange(of: session.instruction) { _, value in
             updateTypingState(for: value)
         }
@@ -114,37 +127,12 @@ struct PromptView: View {
         .fixedSize(horizontal: false, vertical: true)
     }
 
-    private var contextToolbar: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 6) {
-                        contextChips
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+    private var hasContextPreview: Bool {
+        !(session.context.selectedText ?? "").isEmpty || session.context.windowTextWasTruncated
+    }
 
-                Button {
-                    // Start loading before the popover renders so it opens straight into
-                    // the spinner instead of a picker holding only the current model.
-                    if connection == .openCodeGo { loadOpenCodeModels() }
-                    isShowingModelPicker = true
-                } label: {
-                    HStack(spacing: 4) {
-                        Text(model)
-                        Image(systemName: "chevron.up.chevron.down")
-                            .font(.system(size: 8, weight: .semibold))
-                    }
-                    .font(.caption2.monospaced())
-                    .foregroundStyle(.white.opacity(0.48))
-                    .lineLimit(1)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(String(localized: "Change model", bundle: .app))
-                .popover(isPresented: $isShowingModelPicker, arrowEdge: .top) {
-                    modelPicker
-                }
-            }
+    private var contextPreview: some View {
+        VStack(alignment: .leading, spacing: 8) {
             if let selected = session.context.selectedText, !selected.isEmpty {
                 Text(selected.replacingOccurrences(of: "\n", with: " "))
                     .font(.system(size: 12, design: .serif))
@@ -224,54 +212,6 @@ struct PromptView: View {
 
     private var enterKey: String { "↩" }
     private var retryKey: String { String(localized: "R", bundle: .app) }
-
-    @ViewBuilder
-    private var modelPicker: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Model", bundle: .app)
-                .font(.headline)
-            if connection == .chatGPT {
-                Picker(String(localized: "Model", bundle: .app), selection: $model) {
-                    ForEach(ChatGPTModelCatalog.models) { availableModel in
-                        Text(availableModel.name).tag(availableModel.id)
-                    }
-                }
-                .labelsHidden()
-                .pickerStyle(.menu)
-            } else {
-                if isLoadingModels && openCodeModels.isEmpty {
-                    ProgressView(String(localized: "Loading models…", bundle: .app))
-                        .controlSize(.small)
-                } else {
-                    Picker(String(localized: "Model", bundle: .app), selection: $model) {
-                        ForEach(modelsForPicker, id: \.self) { availableModel in
-                            Text(availableModel).tag(availableModel)
-                        }
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.menu)
-                }
-            }
-        }
-        .padding(14)
-        .frame(width: 260)
-    }
-
-    private var modelsForPicker: [String] {
-        OpenCodeGoModelCatalog.sortedUniqueModels(openCodeModels, including: model)
-    }
-
-    private func loadOpenCodeModels() {
-        guard !isLoadingModels else { return }
-        isLoadingModels = true
-        Task {
-            defer { isLoadingModels = false }
-            guard let apiKey = credentialStore.apiKey(), !apiKey.isEmpty,
-                  let fetchedModels = try? await OpenCodeGoModelCatalog.fetchModels(apiKey: apiKey)
-            else { return }
-            openCodeModels = fetchedModels
-        }
-    }
 
     private var canInsert: Bool {
         !session.result.isEmpty && !session.isGenerating
@@ -370,18 +310,40 @@ private struct CaptureIndicator: View {
 }
 
 private struct GeneratingIndicator: View {
+    let startedAt: Date
+    let cancel: () -> Void
     @State private var isDimmed = true
 
     var body: some View {
-        Text("Generating…", bundle: .app)
-            .font(.system(size: 14, design: .serif))
-            .foregroundStyle(.white.opacity(isDimmed ? 0.32 : 0.68))
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .onAppear {
-                withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
-                    isDimmed = false
-                }
+        HStack(alignment: .firstTextBaseline) {
+            Text("Generating…", bundle: .app)
+                .font(.system(size: 14, design: .serif))
+                .foregroundStyle(.white.opacity(isDimmed ? 0.32 : 0.68))
+            Spacer()
+            TimelineView(.periodic(from: startedAt, by: 1)) { timeline in
+                Text(ElapsedTime.string(timeline.date.timeIntervalSince(startedAt)))
+                    .font(.system(size: 11, design: .monospaced))
+                    .monospacedDigit()
+                    .foregroundStyle(.white.opacity(0.4))
+                    .contentTransition(.identity)
             }
+            Button(action: cancel) {
+                Text("Cancel", bundle: .app)
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.75))
+                    .padding(.horizontal, 8)
+                    .frame(minHeight: 20)
+                    .background(Color.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 5, style: .continuous))
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .onAppear {
+            withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
+                isDimmed = false
+            }
+        }
     }
 }
 
