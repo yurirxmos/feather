@@ -261,6 +261,16 @@
         }
       }
     },
+    "General": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geral"
+          }
+        }
+      }
+    },
     "Generate": {
       "localizations": {
         "pt-BR": {

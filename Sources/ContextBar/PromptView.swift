@@ -328,30 +328,6 @@ private struct FeatherIcon: View {
     }
 }
 
-private struct FeatherShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: 12.67, y: 19))
-        path.addCurve(to: CGPoint(x: 14.086, y: 18.412), control1: CGPoint(x: 13.201, y: 19), control2: CGPoint(x: 13.71, y: 18.789))
-        path.addLine(to: CGPoint(x: 20.24, y: 12.24))
-        path.addCurve(to: CGPoint(x: 20.24, y: 3.75), control1: CGPoint(x: 22.583, y: 9.897), control2: CGPoint(x: 22.583, y: 6.097))
-        path.addCurve(to: CGPoint(x: 11.75, y: 3.75), control1: CGPoint(x: 17.897, y: 1.407), control2: CGPoint(x: 14.097, y: 1.407))
-        path.addLine(to: CGPoint(x: 5.586, y: 9.914))
-        path.addCurve(to: CGPoint(x: 5, y: 11.328), control1: CGPoint(x: 5.211, y: 10.289), control2: CGPoint(x: 5, y: 10.798))
-        path.addLine(to: CGPoint(x: 5, y: 18))
-        path.addCurve(to: CGPoint(x: 6, y: 19), control1: CGPoint(x: 5, y: 18.552), control2: CGPoint(x: 5.448, y: 19))
-        path.closeSubpath()
-
-        path.move(to: CGPoint(x: 16, y: 8))
-        path.addLine(to: CGPoint(x: 2, y: 22))
-
-        path.move(to: CGPoint(x: 17.5, y: 15))
-        path.addLine(to: CGPoint(x: 9, y: 15))
-
-        return path.applying(CGAffineTransform(scaleX: rect.width / 24, y: rect.height / 24))
-    }
-}
-
 private struct ContextChip: View {
     let title: String
     let systemImage: String

@@ -1,7 +1,32 @@
 import ContextBarCore
 import SwiftUI
 
+private enum SettingsSection: String, CaseIterable, Identifiable {
+    case model
+    case general
+    case permissions
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .model: String(localized: "Model", bundle: .app)
+        case .general: String(localized: "General", bundle: .app)
+        case .permissions: String(localized: "Permissions", bundle: .app)
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .model: "cpu"
+        case .general: "gearshape"
+        case .permissions: "lock.shield"
+        }
+    }
+}
+
 struct SettingsView: View {
+    @State private var selectedSection: SettingsSection = .model
     @AppStorage(SettingsKey.connection) private var connection: ConnectionKind = .openCodeGo
     @AppStorage(SettingsKey.model) private var model = OpenCodeGoProvider.defaultModel
     @AppStorage(SettingsKey.hotkey) private var hotkey: HotkeyPreset = .optionSpace
@@ -14,6 +39,75 @@ struct SettingsView: View {
     @State private var chatGPTConnected = false
 
     var body: some View {
+        HSplitView {
+            sidebar
+            VStack(alignment: .leading, spacing: 0) {
+                Text(selectedSection.title)
+                    .font(.title2.weight(.semibold))
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 16)
+                Divider()
+                detailView
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+        .frame(minWidth: 640, idealWidth: 680, minHeight: 460, idealHeight: 520)
+        .onAppear {
+            loadCredentials(for: connection)
+        }
+        .onChange(of: connection) { _, value in
+            if model == ConnectionKind.openCodeGo.defaultModel || model == ConnectionKind.chatGPT.defaultModel {
+                model = value.defaultModel
+            }
+            loadCredentials(for: value)
+        }
+    }
+
+    private var sidebar: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 8) {
+                FeatherShape()
+                    .stroke(style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                    .foregroundStyle(Color.accentColor)
+                    .frame(width: 18, height: 18)
+                Text(verbatim: "Context Bar")
+                    .font(.headline)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+
+            List(SettingsSection.allCases, selection: $selectedSection) { section in
+                Label(section.title, systemImage: section.symbol)
+                    .tag(section)
+            }
+            .listStyle(.sidebar)
+
+            Divider()
+            Button(role: .destructive) {
+                NSApp.terminate(nil)
+            } label: {
+                Label(String(localized: "Quit Context Bar", bundle: .app), systemImage: "power")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.red)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+        }
+        .frame(minWidth: 170, idealWidth: 180, maxWidth: 210)
+    }
+
+    @ViewBuilder
+    private var detailView: some View {
+        switch selectedSection {
+        case .model: modelView
+        case .general: generalView
+        case .permissions: permissionsView
+        }
+    }
+
+    private var modelView: some View {
         Form {
             Section {
                 Picker(String(localized: "Connection", bundle: .app), selection: $connection) {
@@ -25,6 +119,15 @@ struct SettingsView: View {
                 } else {
                     chatGPTEditor
                 }
+            } header: {
+                Label(String(localized: "Connection", bundle: .app), systemImage: "link")
+            } footer: {
+                Text("Your key is stored in the macOS Keychain.", bundle: .app)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
                 if connection == .chatGPT {
                     Picker(String(localized: "Model", bundle: .app), selection: $model) {
                         ForEach(ChatGPTModelCatalog.models) { model in
@@ -35,13 +138,15 @@ struct SettingsView: View {
                     TextField(String(localized: "Model", bundle: .app), text: $model)
                 }
             } header: {
-                Text("Model", bundle: .app)
-            } footer: {
-                Text("Your key is stored in the macOS Keychain.", bundle: .app)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Label(String(localized: "Model", bundle: .app), systemImage: "cpu")
             }
+        }
+        .formStyle(.grouped)
+        .padding(12)
+    }
 
+    private var generalView: some View {
+        Form {
             Section {
                 Picker(String(localized: "Open Context Bar", bundle: .app), selection: $hotkey) {
                     ForEach(HotkeyPreset.allCases) { preset in
@@ -49,36 +154,33 @@ struct SettingsView: View {
                     }
                 }
             } header: {
-                Text("Shortcut", bundle: .app)
+                Label(String(localized: "Shortcut", bundle: .app), systemImage: "command")
             }
 
             Section {
                 Toggle(String(localized: "Include a screenshot of the active window", bundle: .app), isOn: $includeScreenshot)
             } header: {
-                Text("Context", bundle: .app)
+                Label(String(localized: "Context", bundle: .app), systemImage: "macwindow")
             } footer: {
                 Text("Nothing is captured until you press the shortcut, and the context is discarded when the panel closes.", bundle: .app)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+        }
+        .formStyle(.grouped)
+        .padding(12)
+    }
 
+    private var permissionsView: some View {
+        Form {
             Section {
                 PermissionsView()
             } header: {
-                Text("Permissions", bundle: .app)
+                Label(String(localized: "Permissions", bundle: .app), systemImage: "lock.shield")
             }
         }
         .formStyle(.grouped)
-        .frame(width: 520, height: 640)
-        .onAppear {
-            loadCredentials(for: connection)
-        }
-        .onChange(of: connection) { _, value in
-            if model == ConnectionKind.openCodeGo.defaultModel || model == ConnectionKind.chatGPT.defaultModel {
-                model = value.defaultModel
-            }
-            loadCredentials(for: value)
-        }
+        .padding(12)
     }
 
     @ViewBuilder

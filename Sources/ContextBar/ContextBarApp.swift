@@ -35,7 +35,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func setUpStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        item.button?.image = NSImage(systemSymbolName: "sparkle", accessibilityDescription: "Context Bar")
+        let icon = NSImage.featherMenuBarIcon()
+        icon.accessibilityDescription = "Context Bar"
+        item.button?.image = icon
         let menu = NSMenu()
         let open = NSMenuItem(title: "", action: #selector(openPrompt), keyEquivalent: "")
         open.target = self
@@ -84,12 +86,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func showSettings() {
         if settingsWindow == nil {
             let window = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 520, height: 640),
-                styleMask: [.titled, .closable],
+                contentRect: NSRect(x: 0, y: 0, width: 680, height: 520),
+                styleMask: [.titled, .closable, .resizable],
                 backing: .buffered,
                 defer: false
             )
             window.title = String(localized: "Context Bar Settings", bundle: .app)
+            window.minSize = NSSize(width: 640, height: 460)
             window.contentViewController = NSHostingController(rootView: SettingsView())
             window.isReleasedWhenClosed = false
             window.center()
