@@ -1,16 +1,9 @@
 import Carbon.HIToolbox
+import FeatherCore
 import Foundation
 
-/// Global hotkey presets. Carbon's `RegisterEventHotKey` needs no Accessibility permission and
-/// swallows the keystroke, so the target app never sees it.
-enum HotkeyPreset: String, CaseIterable, Identifiable {
-    case optionSpace
-    case controlOptionSpace
-    case shiftCommandSpace
-    case controlOptionReturn
-
-    var id: String { rawValue }
-
+/// Carbon's `RegisterEventHotKey` needs no Accessibility permission and swallows the keystroke.
+extension HotkeyPreset {
     var keyCode: UInt32 {
         switch self {
         case .optionSpace, .controlOptionSpace, .shiftCommandSpace: UInt32(kVK_Space)

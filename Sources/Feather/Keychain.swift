@@ -1,13 +1,6 @@
 import Foundation
 import Security
-
-/// The OpenCode Go API key stored in the macOS Keychain.
-struct ChatGPTCredentials: Codable, Sendable {
-    var accessToken: String
-    var refreshToken: String
-    var expiresAt: Date
-    var accountID: String?
-}
+import FeatherCore
 
 enum Keychain {
     private static let service = "com.feather.api-keys"
@@ -106,4 +99,15 @@ enum Keychain {
         ]
         SecItemDelete(query as CFDictionary)
     }
+}
+
+struct KeychainCredentialStore: CredentialStore {
+    static let shared = KeychainCredentialStore()
+
+    func apiKey() -> String? { Keychain.apiKey() }
+    func setAPIKey(_ key: String) -> Bool { Keychain.setAPIKey(key) }
+    func deleteAPIKey() { Keychain.deleteAPIKey() }
+    func chatGPTCredentials() -> ChatGPTCredentials? { Keychain.chatGPTCredentials() }
+    func setChatGPTCredentials(_ credentials: ChatGPTCredentials) -> Bool { Keychain.setChatGPTCredentials(credentials) }
+    func deleteChatGPTCredentials() { Keychain.deleteChatGPTCredentials() }
 }

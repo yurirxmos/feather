@@ -26,6 +26,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
 }
 
 struct SettingsView: View {
+    private let credentialStore: any CredentialStore
     @State private var selectedSection: SettingsSection = .model
     @AppStorage(SettingsKey.connection) private var connection: ConnectionKind = .openCodeGo
     @AppStorage(SettingsKey.model) private var model = OpenCodeGoProvider.defaultModel
@@ -37,6 +38,10 @@ struct SettingsView: View {
     @State private var isLoggingIn = false
     @State private var authError: String?
     @State private var chatGPTConnected = false
+
+    init(credentialStore: any CredentialStore = KeychainCredentialStore.shared) {
+        self.credentialStore = credentialStore
+    }
 
     var body: some View {
         HSplitView {
@@ -57,9 +62,7 @@ struct SettingsView: View {
             loadCredentials(for: connection)
         }
         .onChange(of: connection) { _, value in
-            if model == ConnectionKind.openCodeGo.defaultModel || model == ConnectionKind.chatGPT.defaultModel {
-                model = value.defaultModel
-            }
+            model = FeatherCore.Settings.model(afterChangingTo: value, preserving: model)
             loadCredentials(for: value)
         }
     }
@@ -191,7 +194,7 @@ struct SettingsView: View {
                     .foregroundStyle(.green)
                 Spacer()
                 Button(String(localized: "Disconnect", bundle: .app)) {
-                    Keychain.deleteChatGPTCredentials()
+                    credentialStore.deleteChatGPTCredentials()
                     chatGPTConnected = false
                 }
             }
@@ -201,7 +204,7 @@ struct SettingsView: View {
                 authError = nil
                 Task {
                     do {
-                        _ = try await ChatGPTAuth.login()
+                        _ = try await ChatGPTAuth.login(store: credentialStore)
                         chatGPTConnected = true
                     } catch {
                         authError = error.localizedDescription
@@ -249,7 +252,7 @@ struct SettingsView: View {
 
     private func saveKey() {
         let trimmed = newKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, Keychain.setAPIKey(trimmed) else { return }
+        guard !trimmed.isEmpty, credentialStore.setAPIKey(trimmed) else { return }
         storedKey = trimmed
         newKey = ""
         isEditingKey = false
@@ -258,9 +261,9 @@ struct SettingsView: View {
     private func loadCredentials(for connection: ConnectionKind) {
         switch connection {
         case .openCodeGo:
-            storedKey = Keychain.apiKey() ?? ""
+            storedKey = credentialStore.apiKey() ?? ""
         case .chatGPT:
-            chatGPTConnected = Keychain.chatGPTCredentials() != nil
+            chatGPTConnected = credentialStore.chatGPTCredentials() != nil
         }
     }
 }

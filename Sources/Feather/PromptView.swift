@@ -4,6 +4,7 @@ import SwiftUI
 
 struct PromptView: View {
     @ObservedObject var session: PromptSession
+    let credentialStore: any CredentialStore
     let copyResult: () -> Void
     let retryResult: () -> Void
     @AppStorage(SettingsKey.connection) private var connection: ConnectionKind = .openCodeGo
@@ -90,10 +91,6 @@ struct PromptView: View {
         .onChange(of: session.instruction) { _, value in
             updateTypingState(for: value)
         }
-        .onChange(of: isShowingModelPicker) { _, isPresented in
-            guard isPresented, connection == .openCodeGo else { return }
-            loadOpenCodeModels()
-        }
         .onDisappear {
             typingStopTask?.cancel()
         }
@@ -127,7 +124,12 @@ struct PromptView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                Button { isShowingModelPicker = true } label: {
+                Button {
+                    // Start loading before the popover renders so it opens straight into
+                    // the spinner instead of a picker holding only the current model.
+                    if connection == .openCodeGo { loadOpenCodeModels() }
+                    isShowingModelPicker = true
+                } label: {
                     HStack(spacing: 4) {
                         Text(model)
                         Image(systemName: "chevron.up.chevron.down")
@@ -256,9 +258,7 @@ struct PromptView: View {
     }
 
     private var modelsForPicker: [String] {
-        Array(Set(openCodeModels + [model])).sorted {
-            $0.localizedCaseInsensitiveCompare($1) == .orderedAscending
-        }
+        OpenCodeGoModelCatalog.sortedUniqueModels(openCodeModels, including: model)
     }
 
     private func loadOpenCodeModels() {
@@ -266,7 +266,7 @@ struct PromptView: View {
         isLoadingModels = true
         Task {
             defer { isLoadingModels = false }
-            guard let apiKey = Keychain.apiKey(), !apiKey.isEmpty,
+            guard let apiKey = credentialStore.apiKey(), !apiKey.isEmpty,
                   let fetchedModels = try? await OpenCodeGoModelCatalog.fetchModels(apiKey: apiKey)
             else { return }
             openCodeModels = fetchedModels

@@ -1,6 +1,18 @@
 import Foundation
 
 public enum PanelPlacement {
+    /// Converts top-left global accessibility coordinates to AppKit's bottom-left coordinates.
+    public static func appKitFrame(fromAccessibilityFrame frame: CGRect, primaryScreenFrame: CGRect) -> CGRect {
+        CGRect(
+            origin: CGPoint(
+                x: frame.origin.x,
+                y: primaryScreenFrame.origin.y + primaryScreenFrame.size.height
+                    - frame.origin.y - frame.size.height
+            ),
+            size: frame.size
+        )
+    }
+
     public static func origin(
         panelSize: CGSize,
         windowFrame: CGRect?,

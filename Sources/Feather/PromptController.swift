@@ -52,6 +52,7 @@ final class PromptSession: ObservableObject {
 
 @MainActor
 final class PromptController: NSObject, NSWindowDelegate {
+    private let credentialStore: any CredentialStore
     private let session = PromptSession()
     private lazy var panel: PromptPanel = makePanel()
     private var targetApp: NSRunningApplication?
@@ -60,6 +61,11 @@ final class PromptController: NSObject, NSWindowDelegate {
     private var closingTask: Task<Void, Never>?
     private var keyMonitor: Any?
     private var isPresenting = false
+
+    init(credentialStore: any CredentialStore = KeychainCredentialStore.shared) {
+        self.credentialStore = credentialStore
+        super.init()
+    }
 
     func toggle() {
         if panel.isVisible || isPresenting {
@@ -76,7 +82,7 @@ final class PromptController: NSObject, NSWindowDelegate {
         let front = NSWorkspace.shared.frontmostApplication
         targetApp = front?.processIdentifier == ProcessInfo.processInfo.processIdentifier ? nil : front
 
-        let settings = Settings.current()
+        let settings = FeatherCore.Settings.current()
         if !session.isSuspendedForRecapture {
             session.reset(includeWindow: settings.includeScreenshot)
         } else {
@@ -117,6 +123,7 @@ final class PromptController: NSObject, NSWindowDelegate {
         let hosting = NSHostingController(
             rootView: PromptView(
                 session: session,
+                credentialStore: credentialStore,
                 copyResult: { [weak self] in self?.copyResult() },
                 retryResult: { [weak self] in self?.regenerate() }
             )
@@ -128,7 +135,11 @@ final class PromptController: NSObject, NSWindowDelegate {
     }
 
     private func startCapture(includeScreenshot: Bool) {
-        guard let app = targetApp else { return }
+        guard let app = targetApp else {
+            if let screen = screenUnderPointer() { panel.position(on: screen) }
+            presentPanel()
+            return
+        }
         session.context.appName = app.localizedName
         session.context.bundleID = app.bundleIdentifier
         session.isCapturing = true
@@ -137,28 +148,17 @@ final class PromptController: NSObject, NSWindowDelegate {
         captureTask = Task { [weak self] in
             let snapshot = await Task.detached { AccessibilityContext.capture(pid: pid) }.value
             guard let self, !Task.isCancelled else { return }
-            if let frame = snapshot.windowFrame {
-                let screenTop = NSScreen.main?.frame.maxY ?? 0
-                let appKitFrame = NSRect(
-                    x: frame.origin.x,
-                    y: screenTop - frame.origin.y - frame.size.height,
-                    width: frame.size.width,
-                    height: frame.size.height
-                )
-                let screen = NSScreen.screens.first(where: { $0.frame.intersects(appKitFrame) }) ?? NSScreen.main
-                if let screen {
-                    panel.position(on: screen, windowFrame: appKitFrame)
-                }
+            if let frame = snapshot.windowFrame, let primaryScreen {
+                let appKitFrame = PanelPlacement.appKitFrame(fromAccessibilityFrame: frame, primaryScreenFrame: primaryScreen.frame)
+                let screen = screen(intersecting: appKitFrame) ?? primaryScreen
+                panel.position(on: screen, windowFrame: appKitFrame)
             } else {
-                let mouse = NSEvent.mouseLocation
-                if let screen = NSScreen.screens.first(where: { NSMouseInRect(mouse, $0.frame, false) }) ?? NSScreen.main {
-                    panel.position(on: screen)
-                }
+                if let screen = screenUnderPointer() { panel.position(on: screen) }
             }
             session.context.windowTitle = snapshot.windowTitle ?? session.context.windowTitle
             session.context.focusedText = snapshot.focusedText ?? session.context.focusedText
             session.context.selectedText = snapshot.selectedText ?? session.context.selectedText
-            session.context.windowText = merge(snapshot.windowText, with: session.context.windowText)
+            session.context.windowText = PromptTurn.mergeWindowText(snapshot.windowText, with: session.context.windowText)
             session.context.windowTextWasTruncated = session.context.windowTextWasTruncated || snapshot.windowTextWasTruncated
             session.captureCount += 1
             presentPanel()
@@ -171,6 +171,20 @@ final class PromptController: NSObject, NSWindowDelegate {
             session.isCapturing = false
             session.captureStatus = nil
         }
+    }
+
+    private var primaryScreen: NSScreen? {
+        // NSScreen.main follows keyboard focus; AX's top-left origin is anchored to the primary display.
+        NSScreen.screens.first
+    }
+
+    private func screen(intersecting frame: CGRect) -> NSScreen? {
+        NSScreen.screens.first(where: { $0.frame.intersects(frame) })
+    }
+
+    private func screenUnderPointer() -> NSScreen? {
+        let mouse = NSEvent.mouseLocation
+        return NSScreen.screens.first(where: { NSMouseInRect(mouse, $0.frame, false) }) ?? primaryScreen
     }
 
     private func presentPanel() {
@@ -193,19 +207,21 @@ final class PromptController: NSObject, NSWindowDelegate {
     // MARK: Actions
 
     private func submit() {
-        let text = session.instruction.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !text.isEmpty {
-            generate(text)
-        } else if !session.result.isEmpty, !session.isGenerating {
-            insert()
+        switch PromptTurn.submission(instruction: session.instruction, result: session.result, isGenerating: session.isGenerating) {
+        case .generate(let text): generate(text)
+        case .insert: insert()
+        case .none: break
         }
     }
 
     /// A new instruction after a result refines that result.
     private func generate(_ instruction: String) {
-        if !session.result.isEmpty, !session.isGenerating {
-            session.history.append(Exchange(instruction: session.lastInstruction, result: session.result))
-        }
+        session.history = PromptTurn.history(
+            session.history,
+            lastInstruction: session.lastInstruction,
+            result: session.result,
+            isGenerating: session.isGenerating
+        )
         session.lastInstruction = instruction
         session.instruction = ""
         run()
@@ -222,7 +238,7 @@ final class PromptController: NSObject, NSWindowDelegate {
         session.errorMessage = nil
         session.notice = nil
         session.isGenerating = true
-        let settings = Settings.current()
+        let settings = FeatherCore.Settings.current()
         generationTask = Task { [weak self] in
             guard let self else { return }
             await captureTask?.value
@@ -230,7 +246,7 @@ final class PromptController: NSObject, NSWindowDelegate {
             let provider: LLMProvider
             if settings.connection == .chatGPT {
                 do {
-                    let credentials = try await ChatGPTAuth.validCredentials()
+                    let credentials = try await ChatGPTAuth.validCredentials(store: credentialStore)
                     provider = settings.makeProvider(accessToken: credentials.accessToken, accountID: credentials.accountID)
                 } catch {
                     session.errorMessage = error.localizedDescription
@@ -238,7 +254,7 @@ final class PromptController: NSObject, NSWindowDelegate {
                     return
                 }
             } else {
-                provider = settings.makeProvider()
+                provider = settings.makeProvider(apiKey: credentialStore.apiKey() ?? "")
             }
             let request = PromptBuilder.request(
                 instruction: session.lastInstruction,
@@ -262,14 +278,6 @@ final class PromptController: NSObject, NSWindowDelegate {
             guard !Task.isCancelled else { return }
             session.isGenerating = false
         }
-    }
-
-    private func merge(_ newText: String?, with oldText: String?) -> String? {
-        guard let newText, !newText.isEmpty else { return oldText }
-        guard let oldText, !oldText.isEmpty else { return newText }
-        let oldParts = Set(oldText.split(separator: "\n").map(String.init))
-        let additions = newText.split(separator: "\n").map(String.init).filter { !oldParts.contains($0) }
-        return additions.isEmpty ? oldText : oldText + "\n" + additions.joined(separator: "\n")
     }
 
     private func insert() {
@@ -298,7 +306,7 @@ final class PromptController: NSObject, NSWindowDelegate {
             session.notice = String(localized: "Copied to clipboard.", bundle: .app)
             try? await Task.sleep(for: .milliseconds(800))
 
-            for seconds in stride(from: 3, through: 1, by: -1) {
+            for seconds in PromptTurn.closingCountdownSeconds {
                 guard !Task.isCancelled else { return }
                 let format = String(localized: "Closing in %d…", bundle: .app)
                 self.session.notice = String(format: format, locale: .current, seconds)
@@ -329,17 +337,24 @@ final class PromptController: NSObject, NSWindowDelegate {
     /// Returns true when the event was consumed.
     private func handle(_ event: NSEvent) -> Bool {
         let modifiers = event.modifierFlags.intersection([.shift, .option, .control, .command])
-        let isReturn = event.keyCode == 36 || event.keyCode == 76
-        switch true {
-        case event.keyCode == 53:
+        let command = PromptTurn.command(for: PromptKeyInput(
+            keyCode: event.keyCode,
+            command: modifiers.contains(.command),
+            shift: modifiers.contains(.shift),
+            option: modifiers.contains(.option),
+            control: modifiers.contains(.control),
+            characters: event.charactersIgnoringModifiers
+        ))
+        switch command {
+        case .cancel:
             suspendForRecapture()
-        case isReturn && modifiers == .command:
+        case .copy:
             copyResult()
-        case isReturn && modifiers.isEmpty:
+        case .submit:
             submit()
-        case modifiers == .command && event.charactersIgnoringModifiers?.lowercased() == "r":
+        case .regenerate:
             regenerate()
-        default:
+        case nil:
             return false
         }
         return true

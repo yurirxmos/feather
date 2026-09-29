@@ -1,4 +1,5 @@
 import AppKit
+import FeatherCore
 import SwiftUI
 
 @main
@@ -16,7 +17,8 @@ enum FeatherMain {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
-    private let promptController = PromptController()
+    private let credentialStore: any CredentialStore = KeychainCredentialStore.shared
+    private lazy var promptController = PromptController(credentialStore: credentialStore)
     private var settingsWindow: NSWindow?
     private var registeredHotkey: HotkeyPreset?
     private var hotkeyMenuItem: NSMenuItem?
@@ -28,7 +30,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NotificationCenter.default.addObserver(
             self, selector: #selector(defaultsChanged), name: UserDefaults.didChangeNotification, object: nil
         )
-        if !AccessibilityContext.isTrusted || !WindowCapture.hasPermission || !Settings.current().hasCredentials {
+        if !AccessibilityContext.isTrusted || !WindowCapture.hasPermission || !FeatherCore.Settings.current().hasCredentials(using: credentialStore) {
             showSettings()
         }
     }
@@ -55,7 +57,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func registerHotkey() {
-        let preset = Settings.current().hotkey
+        let preset = FeatherCore.Settings.current().hotkey
         guard preset != registeredHotkey else { return }
         if HotkeyManager.shared.register(preset) {
             registeredHotkey = preset
@@ -67,7 +69,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func updateHotkeyMenuTitle() {
-        let symbol = Settings.current().hotkey.symbol
+        let symbol = FeatherCore.Settings.current().hotkey.symbol
         hotkeyMenuItem?.title = String(localized: "Open Feather (\(symbol))", bundle: .app)
     }
 
@@ -76,7 +78,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func openPrompt() {
-        guard Settings.current().hasCredentials else {
+        guard FeatherCore.Settings.current().hasCredentials(using: credentialStore) else {
             showSettings()
             return
         }
@@ -93,7 +95,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             )
             window.title = String(localized: "Feather Settings", bundle: .app)
             window.minSize = NSSize(width: 640, height: 460)
-            window.contentViewController = NSHostingController(rootView: SettingsView())
+            window.contentViewController = NSHostingController(rootView: SettingsView(credentialStore: credentialStore))
             window.isReleasedWhenClosed = false
             window.center()
             settingsWindow = window

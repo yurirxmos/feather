@@ -1,5 +1,5 @@
 import AppKit
-import CryptoKit
+import FeatherCore
 import Foundation
 import Network
 
@@ -29,10 +29,10 @@ enum ChatGPTAuth {
         let connection: NWConnection
     }
 
-    static func login() async throws -> ChatGPTCredentials {
-        let verifier = randomString(length: 64)
-        let challenge = base64URL(Data(SHA256.hash(data: Data(verifier.utf8))))
-        let state = randomString(length: 32)
+    static func login(store: any CredentialStore = KeychainCredentialStore.shared) async throws -> ChatGPTCredentials {
+        let verifier = ChatGPTToken.randomString(length: 64)
+        let challenge = ChatGPTToken.codeChallenge(for: verifier)
+        let state = ChatGPTToken.randomString(length: 32)
         let redirectURI = "http://localhost:\(callbackPort)/auth/callback"
         let listener = try NWListener(using: .tcp, on: NWEndpoint.Port(rawValue: callbackPort)!)
         let callbackTask = Task { try await receiveCode(listener: listener, state: state) }
@@ -62,26 +62,26 @@ enum ChatGPTAuth {
             sendPage(on: callback.connection, html: errorPage(error.localizedDescription))
             throw error
         }
-        let resolvedAccountID = tokens.idToken.flatMap { accountID(from: $0) }
-            ?? accountID(from: tokens.accessToken)
+        let resolvedAccountID = tokens.idToken.flatMap { ChatGPTToken.accountID(from: $0) }
+            ?? ChatGPTToken.accountID(from: tokens.accessToken)
         let credentials = ChatGPTCredentials(
             accessToken: tokens.accessToken,
             refreshToken: tokens.refreshToken,
             expiresAt: Date().addingTimeInterval(TimeInterval(tokens.expiresIn ?? 3600)),
             accountID: resolvedAccountID
         )
-        _ = Keychain.setChatGPTCredentials(credentials)
+        _ = store.setChatGPTCredentials(credentials)
         sendPage(on: callback.connection, html: successPage())
         return credentials
     }
 
-    static func validCredentials() async throws -> ChatGPTCredentials {
-        guard let credentials = Keychain.chatGPTCredentials() else { throw ChatGPTAuthError.invalidCallback }
+    static func validCredentials(store: any CredentialStore = KeychainCredentialStore.shared) async throws -> ChatGPTCredentials {
+        guard let credentials = store.chatGPTCredentials() else { throw ChatGPTAuthError.invalidCallback }
         guard credentials.expiresAt <= Date().addingTimeInterval(60) else { return credentials }
         var request = URLRequest(url: URL(string: "\(issuer)/oauth/token")!)
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        request.httpBody = formData([
+        request.httpBody = ChatGPTToken.formData([
             "grant_type": "refresh_token",
             "refresh_token": credentials.refreshToken,
             "client_id": clientID,
@@ -95,9 +95,9 @@ enum ChatGPTAuth {
             accessToken: tokens.accessToken,
             refreshToken: tokens.refreshToken,
             expiresAt: Date().addingTimeInterval(TimeInterval(tokens.expiresIn ?? 3600)),
-            accountID: tokens.idToken.flatMap(accountID(from:)) ?? credentials.accountID
+            accountID: tokens.idToken.flatMap(ChatGPTToken.accountID(from:)) ?? credentials.accountID
         )
-        _ = Keychain.setChatGPTCredentials(refreshed)
+        _ = store.setChatGPTCredentials(refreshed)
         return refreshed
     }
 
@@ -130,7 +130,7 @@ enum ChatGPTAuth {
         var request = URLRequest(url: URL(string: "\(issuer)/oauth/token")!)
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        request.httpBody = formData([
+        request.httpBody = ChatGPTToken.formData([
             "grant_type": "authorization_code", "code": code, "redirect_uri": redirectURI,
             "client_id": clientID, "code_verifier": verifier,
         ])
@@ -176,24 +176,4 @@ enum ChatGPTAuth {
         }
     }
 
-    private static func formData(_ values: [String: String]) -> Data {
-        values.map { "\($0.key)=\($0.value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")" }.joined(separator: "&").data(using: .utf8)!
-    }
-
-    private static func randomString(length: Int) -> String {
-        Data((0..<length).map { _ in UInt8.random(in: 0...255) }).map { String(format: "%02x", $0) }.joined()
-    }
-
-    private static func base64URL<D: DataProtocol>(_ data: D) -> String {
-        Data(data).base64EncodedString().replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
-    }
-
-    private static func accountID(from token: String) -> String? {
-        let parts = token.split(separator: ".")
-        guard parts.count == 3, let data = Data(base64Encoded: String(parts[1]) + String(repeating: "=", count: (4 - parts[1].count % 4) % 4), options: .ignoreUnknownCharacters),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
-        if let id = json["chatgpt_account_id"] as? String { return id }
-        if let auth = json["https://api.openai.com/auth"] as? [String: Any], let id = auth["chatgpt_account_id"] as? String { return id }
-        return (json["organizations"] as? [[String: Any]])?.first?["id"] as? String
-    }
 }
