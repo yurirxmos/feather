@@ -23,13 +23,22 @@ public struct GenerationRequest: Equatable, Sendable {
     public var imageJPEG: Data?
     public var model: String
     public var maxTokens: Int
+    public var sessionID: String
 
-    public init(system: String, turns: [Turn], imageJPEG: Data?, model: String, maxTokens: Int) {
+    public init(
+        system: String,
+        turns: [Turn],
+        imageJPEG: Data?,
+        model: String,
+        maxTokens: Int,
+        sessionID: String = ""
+    ) {
         self.system = system
         self.turns = turns
         self.imageJPEG = imageJPEG
         self.model = model
         self.maxTokens = maxTokens
+        self.sessionID = sessionID
     }
 }
 
@@ -48,27 +57,15 @@ public enum LLMError: Error, Equatable, Sendable {
     case refused
 }
 
-public enum ProviderKind: String, CaseIterable, Sendable {
-    case anthropic
-    case openAICompatible
-
-    public var defaultBaseURL: String {
-        switch self {
-        case .anthropic: "https://api.anthropic.com"
-        case .openAICompatible: "https://api.openai.com/v1"
-        }
-    }
+public enum ConnectionKind: String, CaseIterable, Sendable {
+    case openCodeGo
+    case chatGPT
 
     public var defaultModel: String {
         switch self {
-        case .anthropic: "claude-haiku-4-5"
-        case .openAICompatible: ""
+        case .openCodeGo: OpenCodeGoProvider.defaultModel
+        case .chatGPT: ChatGPTModelCatalog.defaultModel
         }
-    }
-
-    /// Local servers such as Ollama and LM Studio accept requests without a key.
-    public var requiresAPIKey: Bool {
-        self == .anthropic
     }
 }
 

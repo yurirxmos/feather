@@ -22,13 +22,13 @@ closes.
 
 Typing a new instruction after a result refines it ("shorter", "more casual").
 
-## Providers
+## OpenCode Go
 
-Bring your own key. Configure the provider in Settings:
+Context Bar uses OpenCode Go through its OpenAI-compatible streaming API. In Settings, paste your
+OpenCode Go API key and choose a model. The default is `deepseek-v4.1-flash`.
 
-- **Anthropic** (Messages API)
-- **OpenAI-compatible** (`/v1/chat/completions`): OpenAI, OpenRouter, Groq, Ollama
-  (`http://localhost:11434/v1`), LM Studio, and anything else speaking that protocol.
+The key is stored in the macOS Keychain. OpenCode Go models and usage limits are managed by your
+OpenCode subscription.
 
 Keys are stored in the macOS Keychain.
 

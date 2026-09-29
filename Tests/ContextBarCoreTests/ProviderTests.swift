@@ -2,6 +2,12 @@ import XCTest
 @testable import ContextBarCore
 
 final class ProviderTests: XCTestCase {
+    func testOpenCodeGoDecodesModels() throws {
+        let data = Data(#"{"data":[{"id":"zeta"},{"id":"alpha"},{"id":"zeta"}]}"#.utf8)
+
+        XCTAssertEqual(try OpenCodeGoModelCatalog.decodeModels(data), ["alpha", "zeta"])
+    }
+
     private let image = Data([0xFF, 0xD8, 0xFF])
 
     private func request(image: Data?) -> GenerationRequest {
@@ -14,73 +20,29 @@ final class ProviderTests: XCTestCase {
         )
     }
 
+    private func requestWithSession() -> GenerationRequest {
+        GenerationRequest(
+            system: "sys",
+            turns: [Turn(role: .user, text: "hi")],
+            imageJPEG: nil,
+            model: "model-x",
+            maxTokens: 100,
+            sessionID: "session-123"
+        )
+    }
+
     private func json(_ urlRequest: URLRequest) throws -> [String: Any] {
         try XCTUnwrap(JSONSerialization.jsonObject(with: XCTUnwrap(urlRequest.httpBody)) as? [String: Any])
     }
 
-    // MARK: Anthropic
-
-    func testAnthropicRequestShape() throws {
-        let urlRequest = try AnthropicProvider(apiKey: "key", baseURL: "https://api.anthropic.com/").makeURLRequest(for: request(image: image))
-        XCTAssertEqual(urlRequest.url?.absoluteString, "https://api.anthropic.com/v1/messages")
-        XCTAssertEqual(urlRequest.value(forHTTPHeaderField: "x-api-key"), "key")
-        XCTAssertEqual(urlRequest.value(forHTTPHeaderField: "anthropic-version"), "2023-06-01")
-
-        let body = try json(urlRequest)
-        XCTAssertEqual(body["model"] as? String, "model-x")
-        XCTAssertEqual(body["max_tokens"] as? Int, 100)
-        XCTAssertEqual(body["stream"] as? Bool, true)
-        XCTAssertEqual(body["system"] as? String, "sys")
-
-        let messages = try XCTUnwrap(body["messages"] as? [[String: Any]])
-        XCTAssertEqual(messages.map { $0["role"] as? String }, ["user", "assistant", "user"])
-        let first = try XCTUnwrap(messages[0]["content"] as? [[String: Any]])
-        XCTAssertEqual(first.map { $0["type"] as? String }, ["image", "text"])
-        let source = try XCTUnwrap(first[0]["source"] as? [String: Any])
-        XCTAssertEqual(source["media_type"] as? String, "image/jpeg")
-        XCTAssertEqual(source["data"] as? String, image.base64EncodedString())
-        let second = try XCTUnwrap(messages[1]["content"] as? [[String: Any]])
-        XCTAssertEqual(second.map { $0["type"] as? String }, ["text"])
+    func testOpenCodeGoDefaults() {
+        XCTAssertEqual(OpenCodeGoProvider.defaultBaseURL, "https://opencode.ai/zen/go/v1")
+        XCTAssertEqual(OpenCodeGoProvider.defaultModel, "deepseek-v4.1-flash")
     }
 
-    func testAnthropicWithoutImageSendsTextOnly() throws {
-        let body = try json(AnthropicProvider(apiKey: "key").makeURLRequest(for: request(image: nil)))
-        let messages = try XCTUnwrap(body["messages"] as? [[String: Any]])
-        let first = try XCTUnwrap(messages[0]["content"] as? [[String: Any]])
-        XCTAssertEqual(first.map { $0["type"] as? String }, ["text"])
-    }
-
-    func testAnthropicRequiresKey() {
-        XCTAssertThrowsError(try AnthropicProvider(apiKey: "").makeURLRequest(for: request(image: nil))) {
-            XCTAssertEqual($0 as? LLMError, .missingAPIKey)
-        }
-    }
-
-    func testAnthropicParsesStream() throws {
-        let provider = AnthropicProvider(apiKey: "key")
-        XCTAssertEqual(try provider.parse(SSEEvent(event: "message_start", data: #"{"type":"message_start","message":{}}"#)), .ignore)
-        XCTAssertEqual(
-            try provider.parse(SSEEvent(data: #"{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}"#)),
-            .text("Hello")
-        )
-        XCTAssertEqual(
-            try provider.parse(SSEEvent(data: #"{"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","thinking":"x"}}"#)),
-            .ignore
-        )
-        XCTAssertEqual(try provider.parse(SSEEvent(data: #"{"type":"message_stop"}"#)), .done)
-        XCTAssertThrowsError(try provider.parse(SSEEvent(data: #"{"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}"#))) {
-            XCTAssertEqual($0 as? LLMError, .api(message: "Overloaded"))
-        }
-        XCTAssertThrowsError(try provider.parse(SSEEvent(data: #"{"type":"message_delta","delta":{"stop_reason":"refusal"}}"#))) {
-            XCTAssertEqual($0 as? LLMError, .refused)
-        }
-    }
-
-    // MARK: OpenAI-compatible
-
-    func testOpenAIRequestShape() throws {
-        let urlRequest = try OpenAICompatibleProvider(apiKey: "sk", baseURL: "http://localhost:11434/v1").makeURLRequest(for: request(image: image))
-        XCTAssertEqual(urlRequest.url?.absoluteString, "http://localhost:11434/v1/chat/completions")
+    func testOpenCodeGoRequestShape() throws {
+        let urlRequest = try OpenCodeGoProvider(apiKey: "sk").makeURLRequest(for: request(image: image))
+        XCTAssertEqual(urlRequest.url?.absoluteString, "https://opencode.ai/zen/go/v1/chat/completions")
         XCTAssertEqual(urlRequest.value(forHTTPHeaderField: "Authorization"), "Bearer sk")
 
         let body = try json(urlRequest)
@@ -95,19 +57,47 @@ final class ProviderTests: XCTestCase {
         XCTAssertEqual(messages[2]["content"] as? String, "yo")
     }
 
-    func testOpenAIWithoutKeyOmitsAuthorization() throws {
-        let urlRequest = try OpenAICompatibleProvider(apiKey: "").makeURLRequest(for: request(image: nil))
-        XCTAssertNil(urlRequest.value(forHTTPHeaderField: "Authorization"))
+    func testOpenCodeGoSendsSessionAndUserAgentHeaders() throws {
+        let urlRequest = try OpenCodeGoProvider(apiKey: "sk").makeURLRequest(for: requestWithSession())
+        XCTAssertEqual(urlRequest.value(forHTTPHeaderField: "x-opencode-session"), "session-123")
+        XCTAssertEqual(urlRequest.value(forHTTPHeaderField: "User-Agent"), OpenCodeGoProvider.userAgent)
     }
 
-    func testOpenAIRejectsInvalidBaseURL() {
-        XCTAssertThrowsError(try OpenAICompatibleProvider(apiKey: "", baseURL: "localhost").makeURLRequest(for: request(image: nil))) {
+    func testChatGPTRequestShape() throws {
+        let urlRequest = try ChatGPTProvider(accessToken: "token", accountID: "acct").makeURLRequest(for: requestWithSession())
+        XCTAssertEqual(urlRequest.url?.absoluteString, ChatGPTProvider.endpoint)
+        XCTAssertEqual(urlRequest.value(forHTTPHeaderField: "Authorization"), "Bearer token")
+        XCTAssertEqual(urlRequest.value(forHTTPHeaderField: "ChatGPT-Account-Id"), "acct")
+        XCTAssertEqual(urlRequest.value(forHTTPHeaderField: "session-id"), "session-123")
+        let body = try json(urlRequest)
+        XCTAssertEqual(body["model"] as? String, "model-x")
+        XCTAssertEqual(body["stream"] as? Bool, true)
+        XCTAssertNotNil(body["input"] as? [[String: Any]])
+    }
+
+    func testChatGPTParsesResponseStream() throws {
+        let provider = ChatGPTProvider(accessToken: "token")
+        XCTAssertEqual(
+            try provider.parse(SSEEvent(event: "response.output_text.delta", data: #"{"delta":"Hello"}"#)),
+            .text("Hello")
+        )
+        XCTAssertEqual(try provider.parse(SSEEvent(event: "response.completed", data: "{}")), .done)
+    }
+
+    func testOpenCodeGoRequiresKey() {
+        XCTAssertThrowsError(try OpenCodeGoProvider(apiKey: "").makeURLRequest(for: request(image: nil))) {
+            XCTAssertEqual($0 as? LLMError, .missingAPIKey)
+        }
+    }
+
+    func testOpenCodeGoRejectsInvalidBaseURL() {
+        XCTAssertThrowsError(try OpenCodeGoProvider(apiKey: "key", baseURL: "localhost").makeURLRequest(for: request(image: nil))) {
             XCTAssertEqual($0 as? LLMError, .invalidBaseURL)
         }
     }
 
-    func testOpenAIParsesStream() throws {
-        let provider = OpenAICompatibleProvider(apiKey: "")
+    func testOpenCodeGoParsesStream() throws {
+        let provider = OpenCodeGoProvider(apiKey: "key")
         XCTAssertEqual(try provider.parse(SSEEvent(data: #"{"choices":[{"delta":{"role":"assistant"}}]}"#)), .ignore)
         XCTAssertEqual(try provider.parse(SSEEvent(data: #"{"choices":[{"delta":{"content":"Hi"}}]}"#)), .text("Hi"))
         XCTAssertEqual(try provider.parse(SSEEvent(data: "[DONE]")), .done)
@@ -117,7 +107,7 @@ final class ProviderTests: XCTestCase {
     }
 
     func testErrorMessageFromBody() {
-        let provider = AnthropicProvider(apiKey: "key")
+        let provider = OpenCodeGoProvider(apiKey: "key")
         let body = Data(#"{"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key"}}"#.utf8)
         XCTAssertEqual(provider.errorMessage(fromBody: body), "invalid x-api-key")
     }

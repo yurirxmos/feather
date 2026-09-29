@@ -5,13 +5,20 @@ import SwiftUI
 /// State shown by `PromptView` for one hotkey invocation.
 @MainActor
 final class PromptSession: ObservableObject {
+    enum CaptureStatus {
+        case readingScreen
+        case capturingWindow
+    }
+
     @Published var instruction = ""
     @Published var result = ""
+    @Published var streamingResult = ""
     @Published var isGenerating = false
     @Published var errorMessage: String?
     @Published var notice: String?
     @Published var context = ScreenContext()
     @Published var isCapturing = false
+    @Published var captureStatus: CaptureStatus?
     @Published var options = ContextOptions()
     @Published var showScreenshot = false
     /// Bumped on every show so the view re-focuses its text field.
@@ -19,19 +26,27 @@ final class PromptSession: ObservableObject {
 
     var history: [Exchange] = []
     var lastInstruction = ""
+    var sessionID = UUID().uuidString
+    var isSuspendedForRecapture = false
+    var captureCount = 0
 
     func reset(includeWindow: Bool) {
         instruction = ""
         result = ""
+        streamingResult = ""
         isGenerating = false
         errorMessage = nil
         notice = nil
         context = ScreenContext()
         isCapturing = false
+        captureStatus = nil
         options = ContextOptions(includeApp: true, includeFocusedText: true, includeWindow: includeWindow)
         showScreenshot = false
         history = []
         lastInstruction = ""
+        sessionID = UUID().uuidString
+        isSuspendedForRecapture = false
+        captureCount = 0
     }
 }
 
@@ -45,7 +60,11 @@ final class PromptController: NSObject, NSWindowDelegate {
     private var keyMonitor: Any?
 
     func toggle() {
-        panel.isVisible ? close() : show()
+        if panel.isVisible {
+            suspendForRecapture()
+        } else {
+            show()
+        }
     }
 
     // MARK: Showing
@@ -56,7 +75,11 @@ final class PromptController: NSObject, NSWindowDelegate {
         targetApp = front?.processIdentifier == ProcessInfo.processInfo.processIdentifier ? nil : front
 
         let settings = Settings.current()
-        session.reset(includeWindow: settings.includeScreenshot)
+        if !session.isSuspendedForRecapture {
+            session.reset(includeWindow: settings.includeScreenshot)
+        } else {
+            session.options.includeWindow = settings.includeScreenshot
+        }
         startCapture(includeScreenshot: settings.includeScreenshot)
 
         let mouse = NSEvent.mouseLocation
@@ -64,6 +87,7 @@ final class PromptController: NSObject, NSWindowDelegate {
             panel.position(on: screen)
         }
         panel.makeKeyAndOrderFront(nil)
+        session.isSuspendedForRecapture = false
         installKeyMonitor()
         session.focusToken += 1
     }
@@ -79,9 +103,26 @@ final class PromptController: NSObject, NSWindowDelegate {
         session.reset(includeWindow: false)
     }
 
+    /// Hides the panel without discarding the task, allowing the user to scroll and capture again.
+    private func suspendForRecapture() {
+        generationTask?.cancel()
+        captureTask?.cancel()
+        generationTask = nil
+        captureTask = nil
+        removeKeyMonitor()
+        session.isSuspendedForRecapture = true
+        panel.orderOut(nil)
+    }
+
     private func makePanel() -> PromptPanel {
         let panel = PromptPanel.make()
-        let hosting = NSHostingController(rootView: PromptView(session: session))
+        let hosting = NSHostingController(
+            rootView: PromptView(
+                session: session,
+                copyResult: { [weak self] in self?.copyResult() },
+                retryResult: { [weak self] in self?.regenerate() }
+            )
+        )
         hosting.sizingOptions = [.preferredContentSize]
         panel.contentViewController = hosting
         panel.delegate = self
@@ -93,19 +134,38 @@ final class PromptController: NSObject, NSWindowDelegate {
         session.context.appName = app.localizedName
         session.context.bundleID = app.bundleIdentifier
         session.isCapturing = true
+        session.captureStatus = .readingScreen
         let pid = app.processIdentifier
         captureTask = Task { [weak self] in
             let snapshot = await Task.detached { AccessibilityContext.capture(pid: pid) }.value
             guard let self, !Task.isCancelled else { return }
-            session.context.windowTitle = snapshot.windowTitle
-            session.context.focusedText = snapshot.focusedText
-            session.context.selectedText = snapshot.selectedText
+            if let frame = snapshot.windowFrame {
+                let screenTop = NSScreen.main?.frame.maxY ?? 0
+                let appKitFrame = NSRect(
+                    x: frame.origin.x,
+                    y: screenTop - frame.origin.y - frame.size.height,
+                    width: frame.size.width,
+                    height: frame.size.height
+                )
+                let screen = NSScreen.screens.first(where: { $0.frame.intersects(appKitFrame) }) ?? NSScreen.main
+                if let screen {
+                panel.position(on: screen, windowFrame: appKitFrame)
+                }
+            }
+            session.context.windowTitle = snapshot.windowTitle ?? session.context.windowTitle
+            session.context.focusedText = snapshot.focusedText ?? session.context.focusedText
+            session.context.selectedText = snapshot.selectedText ?? session.context.selectedText
+            session.context.windowText = merge(snapshot.windowText, with: session.context.windowText)
+            session.context.windowTextWasTruncated = session.context.windowTextWasTruncated || snapshot.windowTextWasTruncated
+            session.captureCount += 1
             if includeScreenshot {
+                session.captureStatus = .capturingWindow
                 let jpeg = await WindowCapture.captureJPEG(pid: pid, title: snapshot.windowTitle, frame: snapshot.windowFrame)
                 guard !Task.isCancelled else { return }
                 session.context.screenshotJPEG = jpeg
             }
             session.isCapturing = false
+            session.captureStatus = nil
         }
     }
 
@@ -137,7 +197,7 @@ final class PromptController: NSObject, NSWindowDelegate {
 
     private func run() {
         generationTask?.cancel()
-        session.result = ""
+        session.streamingResult = ""
         session.errorMessage = nil
         session.notice = nil
         session.isGenerating = true
@@ -146,18 +206,34 @@ final class PromptController: NSObject, NSWindowDelegate {
             guard let self else { return }
             await captureTask?.value
             guard !Task.isCancelled else { return }
+            let provider: LLMProvider
+            if settings.connection == .chatGPT {
+                do {
+                    let credentials = try await ChatGPTAuth.validCredentials()
+                    provider = settings.makeProvider(accessToken: credentials.accessToken, accountID: credentials.accountID)
+                } catch {
+                    session.errorMessage = error.localizedDescription
+                    session.isGenerating = false
+                    return
+                }
+            } else {
+                provider = settings.makeProvider()
+            }
             let request = PromptBuilder.request(
                 instruction: session.lastInstruction,
                 context: session.context,
                 options: session.options,
                 history: session.history,
-                model: settings.model
+                model: settings.model,
+                sessionID: session.sessionID,
+                includeContext: true
             )
             do {
-                for try await text in settings.makeProvider().stream(request) {
-                    session.result += text
+                for try await text in provider.stream(request) {
+                    session.streamingResult += text
                 }
-                session.result = session.result.trimmingCharacters(in: .whitespacesAndNewlines)
+                session.result = session.streamingResult.trimmingCharacters(in: .whitespacesAndNewlines)
+                session.streamingResult = ""
             } catch {
                 guard !Task.isCancelled else { return }
                 session.errorMessage = (error as? LLMError)?.localizedMessage ?? error.localizedDescription
@@ -165,6 +241,14 @@ final class PromptController: NSObject, NSWindowDelegate {
             guard !Task.isCancelled else { return }
             session.isGenerating = false
         }
+    }
+
+    private func merge(_ newText: String?, with oldText: String?) -> String? {
+        guard let newText, !newText.isEmpty else { return oldText }
+        guard let oldText, !oldText.isEmpty else { return newText }
+        let oldParts = Set(oldText.split(separator: "\n").map(String.init))
+        let additions = newText.split(separator: "\n").map(String.init).filter { !oldParts.contains($0) }
+        return additions.isEmpty ? oldText : oldText + "\n" + additions.joined(separator: "\n")
     }
 
     private func insert() {
@@ -186,7 +270,7 @@ final class PromptController: NSObject, NSWindowDelegate {
     private func copyResult() {
         guard !session.result.isEmpty else { return }
         TextInserter.copy(session.result)
-        close()
+        session.notice = String(localized: "Copied to the clipboard.", bundle: .app)
     }
 
     // MARK: Keyboard
@@ -212,7 +296,7 @@ final class PromptController: NSObject, NSWindowDelegate {
         let isReturn = event.keyCode == 36 || event.keyCode == 76
         switch true {
         case event.keyCode == 53:
-            close()
+            suspendForRecapture()
         case isReturn && modifiers == .command:
             copyResult()
         case isReturn && modifiers.isEmpty:
@@ -228,7 +312,7 @@ final class PromptController: NSObject, NSWindowDelegate {
     // MARK: NSWindowDelegate
 
     func windowDidResignKey(_ notification: Notification) {
-        if panel.isVisible { close() }
+        if panel.isVisible { suspendForRecapture() }
     }
 
     func windowDidMove(_ notification: Notification) {

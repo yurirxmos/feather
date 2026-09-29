@@ -4,44 +4,58 @@ import SwiftUI
 
 struct PromptView: View {
     @ObservedObject var session: PromptSession
+    let copyResult: () -> Void
+    let retryResult: () -> Void
+    @AppStorage(SettingsKey.connection) private var connection: ConnectionKind = .openCodeGo
+    @AppStorage(SettingsKey.model) private var model = OpenCodeGoProvider.defaultModel
     @FocusState private var isFieldFocused: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var insertPulse = false
+    @State private var isTyping = false
+    @State private var typingStopTask: Task<Void, Never>?
+    @State private var isShowingModelPicker = false
+    @State private var openCodeModels: [String] = []
+    @State private var isLoadingModels = false
 
     private var hasResult: Bool { !session.result.isEmpty || session.isGenerating }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            contextToolbar
+
+            if !session.result.isEmpty {
+                responseBlock(session.result, muted: session.isGenerating)
+            }
+
             HStack(alignment: .firstTextBaseline, spacing: 10) {
-                Image(systemName: "sparkle")
-                    .foregroundStyle(.tint)
+                FeatherIcon(isAnimating: isTyping, reduceMotion: reduceMotion)
+                    .frame(width: 20, height: 20)
                 TextField(placeholder, text: $session.instruction, axis: .vertical)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 17))
+                    .font(.system(size: 17, design: .serif))
+                    .foregroundStyle(.white)
                     .lineLimit(1...5)
                     .focused($isFieldFocused)
             }
 
-            if hasResult {
+            if session.isGenerating {
                 Divider()
-                ScrollView {
-                    Text(session.result.isEmpty ? String(localized: "Generating…", bundle: .app) : session.result)
-                        .font(.system(size: 14))
-                        .foregroundStyle(session.result.isEmpty ? Color.secondary : Color.primary)
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                if session.streamingResult.isEmpty {
+                    GeneratingIndicator()
+                } else {
+                    responseBlock(session.streamingResult, muted: true)
                 }
-                .frame(maxHeight: 320)
-                .fixedSize(horizontal: false, vertical: true)
             }
 
             if let error = session.errorMessage {
                 Label(error, systemImage: "exclamationmark.triangle.fill")
                     .font(.callout)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(.red.opacity(0.95))
             }
             if let notice = session.notice {
                 Label(notice, systemImage: "doc.on.clipboard")
                     .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.65))
             }
 
             if session.showScreenshot, session.options.includeWindow,
@@ -53,18 +67,36 @@ struct PromptView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             }
 
-            HStack(spacing: 6) {
-                contextChips
-                Spacer(minLength: 12)
-                keyHints
+            HStack {
+                if canInsert {
+                    secondaryKeyHints
+                }
+                Spacer()
+                primaryKeyHint
             }
         }
         .padding(16)
         .frame(width: 600)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.white.opacity(0.12)))
-        .onAppear { isFieldFocused = true }
+        .background(Color.black, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color.white.opacity(0.18)))
+        .environment(\.colorScheme, .dark)
+        .foregroundStyle(.white)
+        .onAppear {
+            isFieldFocused = true
+            updateInsertPulse(canInsert)
+        }
         .onChange(of: session.focusToken) { isFieldFocused = true }
+        .onChange(of: canInsert) { _, value in updateInsertPulse(value) }
+        .onChange(of: session.instruction) { _, value in
+            updateTypingState(for: value)
+        }
+        .onChange(of: isShowingModelPicker) { _, isPresented in
+            guard isPresented, connection == .openCodeGo else { return }
+            loadOpenCodeModels()
+        }
+        .onDisappear {
+            typingStopTask?.cancel()
+        }
     }
 
     private var placeholder: String {
@@ -73,67 +105,250 @@ struct PromptView: View {
             : String(localized: "What do you want to write?", bundle: .app)
     }
 
+    private func responseBlock(_ text: String, muted: Bool) -> some View {
+        ScrollView {
+            Text(text)
+                .font(.system(size: 14, design: .serif))
+                .foregroundStyle(muted ? Color.white.opacity(0.52) : Color.white)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(maxHeight: 320)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var contextToolbar: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        contextChips
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Button { isShowingModelPicker = true } label: {
+                    HStack(spacing: 4) {
+                        Text(model)
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.system(size: 8, weight: .semibold))
+                    }
+                    .font(.caption2.monospaced())
+                    .foregroundStyle(.white.opacity(0.48))
+                    .lineLimit(1)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(String(localized: "Change model", bundle: .app))
+                .popover(isPresented: $isShowingModelPicker, arrowEdge: .top) {
+                    modelPicker
+                }
+            }
+            if let selected = session.context.selectedText, !selected.isEmpty {
+                Text(selected.replacingOccurrences(of: "\n", with: " "))
+                    .font(.system(size: 12, design: .serif))
+                    .foregroundStyle(.white.opacity(0.62))
+                    .lineLimit(2)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 7)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
+            }
+            if session.context.windowTextWasTruncated {
+                Label(String(localized: "Partial context", bundle: .app), systemImage: "exclamationmark.circle")
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.5))
+            }
+        }
+    }
+
     @ViewBuilder
     private var contextChips: some View {
         if let app = session.context.appName {
             ContextChip(
-                title: [session.context.windowTitle.map(shortTitle), app].compactMap { $0 }.joined(separator: " · "),
+                title: app,
                 systemImage: "app.dashed",
                 isOn: session.options.includeApp
             ) { session.options.includeApp.toggle() }
 
-            if session.context.focusedText != nil || session.context.selectedText != nil {
-                ContextChip(
-                    title: session.context.selectedText != nil
-                        ? String(localized: "Selection", bundle: .app)
-                        : String(localized: "Focused text", bundle: .app),
-                    systemImage: "text.cursor",
-                    isOn: session.options.includeFocusedText
-                ) { session.options.includeFocusedText.toggle() }
-            }
+        }
 
-            if session.context.screenshotJPEG != nil {
-                ContextChip(
-                    title: String(localized: "Window", bundle: .app),
-                    systemImage: session.showScreenshot ? "eye.fill" : "macwindow",
-                    isOn: session.options.includeWindow
-                ) {
-                    // First click previews what will be sent; the next click excludes it.
-                    if session.options.includeWindow && !session.showScreenshot {
-                        session.showScreenshot = true
-                    } else if session.options.includeWindow {
-                        session.options.includeWindow = false
-                        session.showScreenshot = false
-                    } else {
-                        session.options.includeWindow = true
-                    }
-                }
-            }
-            if session.isCapturing {
-                ProgressView().controlSize(.small)
-            }
-        } else {
+        if session.context.selectedText != nil {
+            ContextChip(
+                title: String(localized: "Text selected", bundle: .app),
+                systemImage: "text.quote",
+                isOn: session.options.includeSelection
+            ) { session.options.includeSelection.toggle() }
+        }
+
+        if session.context.focusedText != nil {
+            ContextChip(
+                title: String(localized: "Focused text", bundle: .app),
+                systemImage: "text.cursor",
+                isOn: session.options.includeFocusedText
+            ) { session.options.includeFocusedText.toggle() }
+        }
+
+        if session.isCapturing {
+            CaptureIndicator(status: session.captureStatus)
+        }
+        if session.context.appName == nil && session.context.selectedText == nil && session.context.windowText == nil {
             Text("No app context", bundle: .app)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.white.opacity(0.6))
         }
     }
 
-    private var keyHints: some View {
+    private var secondaryKeyHints: some View {
         HStack(spacing: 10) {
-            if session.result.isEmpty || session.isGenerating {
-                KeyHint(key: "↩", label: String(localized: "Generate", bundle: .app))
-            } else {
-                KeyHint(key: "↩", label: String(localized: "Insert", bundle: .app))
-                KeyHint(key: "⌘↩", label: String(localized: "Copy", bundle: .app))
-                KeyHint(key: "⌘R", label: String(localized: "Retry", bundle: .app))
-            }
-            KeyHint(key: "esc", label: String(localized: "Close", bundle: .app))
+            KeyHint(key: "⌘ \(enterKey)", label: String(localized: "Copy", bundle: .app), action: copyResult)
+            KeyHint(key: "⌘ \(retryKey)", label: String(localized: "Retry", bundle: .app), action: retryResult)
         }
     }
 
-    private func shortTitle(_ title: String) -> String {
-        title.count > 32 ? String(title.prefix(31)) + "…" : title
+    @ViewBuilder
+    private var primaryKeyHint: some View {
+        if canInsert {
+            KeyHint(
+                key: enterKey,
+                label: String(localized: "Insert", bundle: .app),
+                isHighlighted: true,
+                pulse: insertPulse,
+                allowsAnimation: !reduceMotion
+            )
+        } else {
+            KeyHint(key: enterKey, label: String(localized: "Generate", bundle: .app))
+        }
+    }
+
+    private var enterKey: String { "↩" }
+    private var retryKey: String { String(localized: "R", bundle: .app) }
+
+    @ViewBuilder
+    private var modelPicker: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Model", bundle: .app)
+                .font(.headline)
+            if connection == .chatGPT {
+                Picker(String(localized: "Model", bundle: .app), selection: $model) {
+                    ForEach(ChatGPTModelCatalog.models) { availableModel in
+                        Text(availableModel.name).tag(availableModel.id)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+            } else {
+                if isLoadingModels && openCodeModels.isEmpty {
+                    ProgressView(String(localized: "Loading models…", bundle: .app))
+                        .controlSize(.small)
+                } else {
+                    Picker(String(localized: "Model", bundle: .app), selection: $model) {
+                        ForEach(modelsForPicker, id: \.self) { availableModel in
+                            Text(availableModel).tag(availableModel)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                }
+            }
+        }
+        .padding(14)
+        .frame(width: 260)
+    }
+
+    private var modelsForPicker: [String] {
+        Array(Set(openCodeModels + [model])).sorted {
+            $0.localizedCaseInsensitiveCompare($1) == .orderedAscending
+        }
+    }
+
+    private func loadOpenCodeModels() {
+        guard !isLoadingModels else { return }
+        isLoadingModels = true
+        Task {
+            defer { isLoadingModels = false }
+            guard let apiKey = Keychain.apiKey(), !apiKey.isEmpty,
+                  let fetchedModels = try? await OpenCodeGoModelCatalog.fetchModels(apiKey: apiKey)
+            else { return }
+            openCodeModels = fetchedModels
+        }
+    }
+
+    private var canInsert: Bool {
+        !session.result.isEmpty && !session.isGenerating
+    }
+
+    private func updateInsertPulse(_ active: Bool) {
+        insertPulse = active
+    }
+
+    private func updateTypingState(for instruction: String) {
+        typingStopTask?.cancel()
+        guard !instruction.isEmpty else {
+            withAnimation(.easeOut(duration: 0.22)) { isTyping = false }
+            return
+        }
+
+        withAnimation(.easeIn(duration: 0.12)) { isTyping = true }
+        typingStopTask = Task {
+            try? await Task.sleep(for: .milliseconds(420))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.28)) { isTyping = false }
+        }
+    }
+
+}
+
+private struct FeatherIcon: View {
+    let isAnimating: Bool
+    let reduceMotion: Bool
+    @State private var phase = false
+
+    var body: some View {
+        FeatherShape()
+            .stroke(style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+            .rotationEffect(.degrees(isAnimating && phase ? -8 : 0))
+            .offset(
+                x: isAnimating && phase ? 2 : 0,
+                y: isAnimating && phase ? -4 : 0
+            )
+            .foregroundStyle(isAnimating ? Color.accentColor : .white)
+            .onAppear { updateAnimation(isActive: isAnimating) }
+            .onChange(of: isAnimating) { _, value in updateAnimation(isActive: value) }
+            .animation(.easeOut(duration: 0.28), value: isAnimating)
+    }
+
+    private func updateAnimation(isActive: Bool) {
+        guard isActive, !reduceMotion else {
+            phase = false
+            return
+        }
+        withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
+            phase = true
+        }
+    }
+}
+
+private struct FeatherShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: 12.67, y: 19))
+        path.addCurve(to: CGPoint(x: 14.086, y: 18.412), control1: CGPoint(x: 13.201, y: 19), control2: CGPoint(x: 13.71, y: 18.789))
+        path.addLine(to: CGPoint(x: 20.24, y: 12.24))
+        path.addCurve(to: CGPoint(x: 20.24, y: 3.75), control1: CGPoint(x: 22.583, y: 9.897), control2: CGPoint(x: 22.583, y: 6.097))
+        path.addCurve(to: CGPoint(x: 11.75, y: 3.75), control1: CGPoint(x: 17.897, y: 1.407), control2: CGPoint(x: 14.097, y: 1.407))
+        path.addLine(to: CGPoint(x: 5.586, y: 9.914))
+        path.addCurve(to: CGPoint(x: 5, y: 11.328), control1: CGPoint(x: 5.211, y: 10.289), control2: CGPoint(x: 5, y: 10.798))
+        path.addLine(to: CGPoint(x: 5, y: 18))
+        path.addCurve(to: CGPoint(x: 6, y: 19), control1: CGPoint(x: 5, y: 18.552), control2: CGPoint(x: 5.448, y: 19))
+        path.closeSubpath()
+
+        path.move(to: CGPoint(x: 16, y: 8))
+        path.addLine(to: CGPoint(x: 2, y: 22))
+
+        path.move(to: CGPoint(x: 17.5, y: 15))
+        path.addLine(to: CGPoint(x: 9, y: 15))
+
+        return path.applying(CGAffineTransform(scaleX: rect.width / 24, y: rect.height / 24))
     }
 }
 
@@ -149,26 +364,92 @@ private struct ContextChip: View {
             .lineLimit(1)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(isOn ? Color.accentColor.opacity(0.18) : Color.secondary.opacity(0.1), in: Capsule())
-            .foregroundStyle(isOn ? Color.primary : Color.secondary)
+            .background(isOn ? Color.white.opacity(0.18) : Color.white.opacity(0.07), in: Capsule())
+            .foregroundStyle(isOn ? Color.white : Color.white.opacity(0.55))
             .strikethrough(!isOn)
             .contentShape(Capsule())
             .onTapGesture(perform: action)
     }
 }
 
+private struct CaptureIndicator: View {
+    let status: PromptSession.CaptureStatus?
+
+    var body: some View {
+        HStack(spacing: 5) {
+            ProgressView().controlSize(.mini).tint(.white.opacity(0.75))
+            Text(label, bundle: .app)
+                .font(.caption2)
+                .foregroundStyle(.white.opacity(0.65))
+        }
+        .transition(.opacity)
+    }
+
+    private var label: LocalizedStringKey {
+        switch status {
+        case .capturingWindow: "Capturing window…"
+        default: "Reading screen…"
+        }
+    }
+}
+
+private struct GeneratingIndicator: View {
+    @State private var isDimmed = true
+
+    var body: some View {
+        Text("Generating…", bundle: .app)
+            .font(.system(size: 14, design: .serif))
+            .foregroundStyle(.white.opacity(isDimmed ? 0.32 : 0.68))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .onAppear {
+                withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
+                    isDimmed = false
+                }
+            }
+    }
+}
+
 private struct KeyHint: View {
     let key: String
     let label: String
+    var isHighlighted = false
+    var pulse = false
+    var allowsAnimation = true
+    var action: (() -> Void)? = nil
 
     var body: some View {
-        HStack(spacing: 4) {
+        if let action {
+            Button(action: action) {
+                content
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(label)
+        } else {
+            content
+        }
+    }
+
+    private var content: some View {
+        HStack(spacing: 6) {
             Text(key)
                 .font(.caption.monospaced())
-                .padding(.horizontal, 4)
-                .background(Color.secondary.opacity(0.15), in: RoundedRectangle(cornerRadius: 4))
-            Text(label).font(.caption)
+                .padding(.horizontal, 5)
+                .frame(minWidth: 22, minHeight: 20)
+                .background(
+                    isHighlighted ? Color.blue.opacity(pulse ? 0.95 : 0.58) : Color.white.opacity(0.12),
+                    in: RoundedRectangle(cornerRadius: 5, style: .continuous)
+                )
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(
+                    isHighlighted ? Color.blue.opacity(pulse ? 0.95 : 0.58) : Color.white.opacity(0.75)
+                )
         }
-        .foregroundStyle(.secondary)
+        .foregroundStyle(.white.opacity(0.58))
+        .animation(
+            allowsAnimation ? .easeInOut(duration: 0.85).repeatForever(autoreverses: true) : nil,
+            value: pulse
+        )
     }
+
 }

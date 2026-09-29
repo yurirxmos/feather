@@ -7,6 +7,8 @@ enum AccessibilityContext {
         var windowTitle: String?
         var focusedText: String?
         var selectedText: String?
+        var windowText: String?
+        var windowTextWasTruncated = false
         /// Global coordinates with a top-left origin, matching `SCWindow.frame`.
         var windowFrame: CGRect?
     }
@@ -30,6 +32,9 @@ enum AccessibilityContext {
 
         if let window = element(app, kAXFocusedWindowAttribute) {
             snapshot.windowTitle = string(window, kAXTitleAttribute)
+            let collected = windowText(window)
+            snapshot.windowText = collected.text
+            snapshot.windowTextWasTruncated = collected.wasTruncated
             if let origin = point(window, kAXPositionAttribute), let size = size(window, kAXSizeAttribute) {
                 snapshot.windowFrame = CGRect(origin: origin, size: size)
             }
@@ -44,6 +49,38 @@ enum AccessibilityContext {
     private static func isSecure(_ element: AXUIElement) -> Bool {
         string(element, kAXSubroleAttribute) == (kAXSecureTextFieldSubrole as String)
             || string(element, kAXRoleAttribute) == "AXSecureTextField"
+    }
+
+    private static func windowText(_ window: AXUIElement) -> (text: String?, wasTruncated: Bool) {
+        let maxCharacters = 24_000
+        let maxElements = 1_200
+        var parts: [String] = []
+        var characters = 0
+        var elements = 0
+        var wasTruncated = false
+
+        func visit(_ element: AXUIElement, depth: Int) {
+            guard depth < 18, elements < maxElements, characters < maxCharacters else {
+                wasTruncated = true
+                return
+            }
+            elements += 1
+            if !isSecure(element) {
+                for attribute in [kAXTitleAttribute as String, kAXValueAttribute as String] {
+                    if let value = string(element, attribute), value.count > 1,
+                       !parts.contains(value), characters + value.count <= maxCharacters {
+                        parts.append(value)
+                        characters += value.count
+                    }
+                }
+            }
+            guard let children = copy(element, kAXChildrenAttribute as String) as? [AXUIElement] else { return }
+            for child in children { visit(child, depth: depth + 1) }
+        }
+
+        visit(window, depth: 0)
+        let text = parts.joined(separator: "\n")
+        return (text.isEmpty ? nil : text, wasTruncated || elements >= maxElements || characters >= maxCharacters)
     }
 
     private static func copy(_ element: AXUIElement, _ attribute: String) -> CFTypeRef? {

@@ -22,7 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hotkeyMenuItem: NSMenuItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        HotkeyManager.shared.onPress = { [weak self] in self?.promptController.toggle() }
+        HotkeyManager.shared.onPress = { [weak self] in self?.openPrompt() }
         registerHotkey()
         setUpStatusItem()
         NotificationCenter.default.addObserver(
@@ -74,6 +74,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func openPrompt() {
+        guard Settings.current().hasCredentials else {
+            showSettings()
+            return
+        }
         promptController.toggle()
     }
 

@@ -81,6 +81,136 @@
         }
       }
     },
+    "Connection": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conexão"
+          }
+        }
+      }
+    },
+    "ChatGPT": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ChatGPT"
+          }
+        }
+      }
+    },
+    "ChatGPT login timed out.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O login do ChatGPT expirou."
+          }
+        }
+      }
+    },
+    "ChatGPT returned an invalid login callback.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O ChatGPT retornou um callback de login inválido."
+          }
+        }
+      }
+    },
+    "ChatGPT token exchange failed (%lld).": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A troca de token do ChatGPT falhou (%lld)."
+          }
+        }
+      }
+    },
+    "Change model": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alterar modelo"
+          }
+        }
+      }
+    },
+    "ChatGPT session refresh failed (%lld).": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A renovação da sessão do ChatGPT falhou (%lld)."
+          }
+        }
+      }
+    },
+    "Sign in with ChatGPT": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entrar com ChatGPT"
+          }
+        }
+      }
+    },
+    "Connected to ChatGPT": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conectado ao ChatGPT"
+          }
+        }
+      }
+    },
+    "Disconnect": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desconectar"
+          }
+        }
+      }
+    },
+    "Signing in…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entrando…"
+          }
+        }
+      }
+    },
+    "Reading screen…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lendo a tela…"
+          }
+        }
+      }
+    },
+    "Capturing window…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Capturando janela…"
+          }
+        }
+      }
+    },
     "Context Bar Settings": {
       "localizations": {
         "pt-BR": {
@@ -97,6 +227,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Copiado para a área de transferência. Conceda acesso de Acessibilidade nos Ajustes para colar automaticamente."
+          }
+        }
+      }
+    },
+    "Copied to the clipboard.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiado para a área de transferência."
           }
         }
       }
@@ -171,6 +311,16 @@
         }
       }
     },
+    "Loading models…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carregando modelos…"
+          }
+        }
+      }
+    },
     "Model": {
       "localizations": {
         "pt-BR": {
@@ -231,6 +381,16 @@
         }
       }
     },
+    "OpenCode Go": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OpenCode Go"
+          }
+        }
+      }
+    },
     "OpenAI-compatible": {
       "localizations": {
         "pt-BR": {
@@ -257,6 +417,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Permissões"
+          }
+        }
+      }
+    },
+    "Partial context": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contexto parcial"
           }
         }
       }
@@ -311,12 +481,52 @@
         }
       }
     },
+    "Replace key…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trocar chave…"
+          }
+        }
+      }
+    },
+    "Save": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salvar"
+          }
+        }
+      }
+    },
+    "Cancel": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelar"
+          }
+        }
+      }
+    },
     "Retry": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Refazer"
+          }
+        }
+      }
+    },
+    "R": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "R"
           }
         }
       }
@@ -371,6 +581,56 @@
         }
       }
     },
+    "⌃ ⌥ ↩": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "⌃ ⌥ ↩"
+          }
+        }
+      }
+    },
+    "⌃ ⌥ Space": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "⌃ ⌥ Space"
+          }
+        }
+      }
+    },
+    "⇧ ⌘ Space": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "⇧ ⌘ Space"
+          }
+        }
+      }
+    },
+    "⌥ Space": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "⌥ Space"
+          }
+        }
+      }
+    },
+    "Text selected": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Texto selecionado"
+          }
+        }
+      }
+    },
     "The base URL in Settings is not valid.": {
       "localizations": {
         "pt-BR": {
@@ -407,6 +667,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Janela"
+          }
+        }
+      }
+    },
+    "Window text": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Texto da janela"
+          }
+        }
+      }
+    },
+    "Window text (partial)": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Texto parcial da janela"
           }
         }
       }

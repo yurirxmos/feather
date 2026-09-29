@@ -3,45 +3,39 @@ import Foundation
 
 /// `UserDefaults` keys. Preserve these when changing settings behavior.
 enum SettingsKey {
-    static let provider = "provider"
-    static let anthropicModel = "anthropicModel"
-    static let anthropicBaseURL = "anthropicBaseURL"
-    static let openAIModel = "openAIModel"
-    static let openAIBaseURL = "openAIBaseURL"
+    static let connection = "connection"
+    static let model = "model"
     static let hotkey = "hotkey"
     static let includeScreenshot = "includeScreenshot"
 }
 
 /// A read of the persisted settings, taken when needed rather than observed.
 struct Settings {
-    var provider: ProviderKind
+    var connection: ConnectionKind
     var model: String
-    var baseURL: String
     var hotkey: HotkeyPreset
     var includeScreenshot: Bool
 
     static func current(_ defaults: UserDefaults = .standard) -> Settings {
-        let provider = defaults.string(forKey: SettingsKey.provider).flatMap(ProviderKind.init(rawValue:)) ?? .anthropic
-        let modelKey = provider == .anthropic ? SettingsKey.anthropicModel : SettingsKey.openAIModel
-        let baseURLKey = provider == .anthropic ? SettingsKey.anthropicBaseURL : SettingsKey.openAIBaseURL
         return Settings(
-            provider: provider,
-            model: nonEmpty(defaults.string(forKey: modelKey)) ?? provider.defaultModel,
-            baseURL: nonEmpty(defaults.string(forKey: baseURLKey)) ?? provider.defaultBaseURL,
+            connection: defaults.string(forKey: SettingsKey.connection).flatMap(ConnectionKind.init(rawValue:)) ?? .openCodeGo,
+            model: nonEmpty(defaults.string(forKey: SettingsKey.model)) ?? OpenCodeGoProvider.defaultModel,
             hotkey: defaults.string(forKey: SettingsKey.hotkey).flatMap(HotkeyPreset.init(rawValue:)) ?? .optionSpace,
             includeScreenshot: defaults.object(forKey: SettingsKey.includeScreenshot) as? Bool ?? true
         )
     }
 
     var hasCredentials: Bool {
-        !provider.requiresAPIKey || !(Keychain.apiKey(for: provider) ?? "").isEmpty
+        switch connection {
+        case .openCodeGo: return !(Keychain.apiKey() ?? "").isEmpty
+        case .chatGPT: return Keychain.chatGPTCredentials() != nil
+        }
     }
 
-    func makeProvider() -> LLMProvider {
-        let key = Keychain.apiKey(for: provider) ?? ""
-        switch provider {
-        case .anthropic: return AnthropicProvider(apiKey: key, baseURL: baseURL)
-        case .openAICompatible: return OpenAICompatibleProvider(apiKey: key, baseURL: baseURL)
+    func makeProvider(accessToken: String? = nil, accountID: String? = nil) -> LLMProvider {
+        switch connection {
+        case .openCodeGo: return OpenCodeGoProvider(apiKey: Keychain.apiKey() ?? "")
+        case .chatGPT: return ChatGPTProvider(accessToken: accessToken ?? "", accountID: accountID)
         }
     }
 

@@ -1,23 +1,29 @@
 import Foundation
 
-/// Any backend speaking `POST {baseURL}/chat/completions` with streaming: OpenAI, OpenRouter,
-/// Groq, Ollama (`http://localhost:11434/v1`), LM Studio, and similar.
-public struct OpenAICompatibleProvider: LLMProvider {
+/// OpenCode Go's streaming OpenAI-compatible chat completions endpoint.
+public struct OpenCodeGoProvider: LLMProvider {
     public var apiKey: String
     public var baseURL: String
 
-    public init(apiKey: String, baseURL: String = ProviderKind.openAICompatible.defaultBaseURL) {
+    public static let defaultBaseURL = "https://opencode.ai/zen/go/v1"
+    public static let defaultModel = "deepseek-v4.1-flash"
+    public static let userAgent = "ContextBar/0.1.0"
+
+    public init(apiKey: String, baseURL: String = OpenCodeGoProvider.defaultBaseURL) {
         self.apiKey = apiKey
         self.baseURL = baseURL
     }
 
     public func makeURLRequest(for request: GenerationRequest) throws -> URLRequest {
+        guard !apiKey.isEmpty else { throw LLMError.missingAPIKey }
         guard !request.model.isEmpty else { throw LLMError.missingModel }
         var urlRequest = URLRequest(url: try .endpoint(base: baseURL, path: "/chat/completions"))
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        if !apiKey.isEmpty {
-            urlRequest.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        urlRequest.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        urlRequest.setValue(Self.userAgent, forHTTPHeaderField: "User-Agent")
+        if !request.sessionID.isEmpty {
+            urlRequest.setValue(request.sessionID, forHTTPHeaderField: "x-opencode-session")
         }
         urlRequest.httpBody = try JSONSerialization.data(withJSONObject: body(for: request), options: [.sortedKeys])
         return urlRequest

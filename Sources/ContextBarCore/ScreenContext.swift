@@ -8,6 +8,8 @@ public struct ScreenContext: Equatable, Sendable {
     public var windowTitle: String?
     public var focusedText: String?
     public var selectedText: String?
+    public var windowText: String?
+    public var windowTextWasTruncated: Bool
     public var screenshotJPEG: Data?
 
     public init(
@@ -16,6 +18,8 @@ public struct ScreenContext: Equatable, Sendable {
         windowTitle: String? = nil,
         focusedText: String? = nil,
         selectedText: String? = nil,
+        windowText: String? = nil,
+        windowTextWasTruncated: Bool = false,
         screenshotJPEG: Data? = nil
     ) {
         self.appName = appName
@@ -23,6 +27,8 @@ public struct ScreenContext: Equatable, Sendable {
         self.windowTitle = windowTitle
         self.focusedText = focusedText
         self.selectedText = selectedText
+        self.windowText = windowText
+        self.windowTextWasTruncated = windowTextWasTruncated
         self.screenshotJPEG = screenshotJPEG
     }
 }
@@ -31,11 +37,21 @@ public struct ScreenContext: Equatable, Sendable {
 public struct ContextOptions: Equatable, Sendable {
     public var includeApp: Bool
     public var includeFocusedText: Bool
+    public var includeSelection: Bool
+    public var includeWindowText: Bool
     public var includeWindow: Bool
 
-    public init(includeApp: Bool = true, includeFocusedText: Bool = true, includeWindow: Bool = true) {
+    public init(
+        includeApp: Bool = true,
+        includeFocusedText: Bool = true,
+        includeSelection: Bool = true,
+        includeWindowText: Bool = true,
+        includeWindow: Bool = true
+    ) {
         self.includeApp = includeApp
         self.includeFocusedText = includeFocusedText
+        self.includeSelection = includeSelection
+        self.includeWindowText = includeWindowText
         self.includeWindow = includeWindow
     }
 }

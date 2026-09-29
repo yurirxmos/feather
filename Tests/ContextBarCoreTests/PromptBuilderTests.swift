@@ -20,6 +20,11 @@ final class PromptBuilderTests: XCTestCase {
         XCTAssertTrue(text.hasSuffix("Instruction: reply formally"))
     }
 
+    func testSystemPromptRestrictsTheAppToTextGeneration() {
+        XCTAssertTrue(PromptBuilder.systemPrompt.contains("Only write, rewrite"))
+        XCTAssertTrue(PromptBuilder.systemPrompt.contains("Do not act as a general-purpose assistant"))
+    }
+
     func testDisabledContextIsOmitted() {
         let options = ContextOptions(includeApp: false, includeFocusedText: false, includeWindow: false)
         let text = PromptBuilder.firstTurn(instruction: "hi", context: context, options: options)
@@ -30,6 +35,41 @@ final class PromptBuilderTests: XCTestCase {
 
         let request = PromptBuilder.request(instruction: "hi", context: context, options: options, model: "m")
         XCTAssertNil(request.imageJPEG)
+    }
+
+    func testContextCanBeOmittedEntirely() {
+        let request = PromptBuilder.request(
+            instruction: "Write a poem",
+            context: ScreenContext(appName: "Mail", focusedText: "secret"),
+            options: ContextOptions(),
+            model: "model",
+            includeContext: false
+        )
+        XCTAssertEqual(request.turns[0].text, "Instruction: Write a poem")
+        XCTAssertNil(request.imageJPEG)
+    }
+
+    func testSelectedTextIsIncludedOnlyWhenEnabled() {
+        let context = ScreenContext(selectedText: "Important paragraph")
+        let included = PromptBuilder.firstTurn(instruction: "Reply", context: context, options: ContextOptions())
+        XCTAssertTrue(included.contains("Important paragraph"))
+
+        let excluded = PromptBuilder.firstTurn(
+            instruction: "Reply",
+            context: context,
+            options: ContextOptions(includeSelection: false)
+        )
+        XCTAssertFalse(excluded.contains("Important paragraph"))
+    }
+
+    func testWindowTextRespectsItsOption() {
+        let context = ScreenContext(windowText: "Conversation content")
+        let excluded = PromptBuilder.firstTurn(
+            instruction: "Reply",
+            context: context,
+            options: ContextOptions(includeWindowText: false)
+        )
+        XCTAssertFalse(excluded.contains("Conversation content"))
     }
 
     func testLongFieldKeepsTail() {

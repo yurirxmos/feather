@@ -1,4 +1,5 @@
 import AppKit
+import ContextBarCore
 
 /// A floating panel that takes keyboard focus without activating Context Bar, so the target
 /// app stays frontmost with its caret where the user left it.
@@ -38,11 +39,16 @@ final class PromptPanel: NSPanel {
         super.setFrame(rect, display: flag)
     }
 
-    /// Centers the panel horizontally on the screen under the mouse, in the upper third.
-    func position(on screen: NSScreen) {
+    /// Positions the panel near the target window, falling back to the upper third of the screen.
+    func position(on screen: NSScreen, windowFrame: CGRect? = nil) {
         let visible = screen.visibleFrame
-        let top = visible.maxY - visible.height * 0.2
-        anchorTop = top
-        setFrameOrigin(NSPoint(x: visible.midX - frame.width / 2, y: top - frame.height))
+        let origin = PanelPlacement.origin(
+            panelSize: frame.size,
+            windowFrame: windowFrame,
+            visibleFrame: visible
+        )
+        anchorTop = nil
+        setFrameOrigin(origin)
+        anchorTop = frame.maxY
     }
 }

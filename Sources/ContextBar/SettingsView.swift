@@ -2,52 +2,44 @@ import ContextBarCore
 import SwiftUI
 
 struct SettingsView: View {
-    @AppStorage(SettingsKey.provider) private var provider: ProviderKind = .anthropic
-    @AppStorage(SettingsKey.anthropicModel) private var anthropicModel = ""
-    @AppStorage(SettingsKey.anthropicBaseURL) private var anthropicBaseURL = ""
-    @AppStorage(SettingsKey.openAIModel) private var openAIModel = ""
-    @AppStorage(SettingsKey.openAIBaseURL) private var openAIBaseURL = ""
+    @AppStorage(SettingsKey.connection) private var connection: ConnectionKind = .openCodeGo
+    @AppStorage(SettingsKey.model) private var model = OpenCodeGoProvider.defaultModel
     @AppStorage(SettingsKey.hotkey) private var hotkey: HotkeyPreset = .optionSpace
     @AppStorage(SettingsKey.includeScreenshot) private var includeScreenshot = true
-    @State private var apiKey = ""
-
-    private var model: Binding<String> { provider == .anthropic ? $anthropicModel : $openAIModel }
-    private var baseURL: Binding<String> { provider == .anthropic ? $anthropicBaseURL : $openAIBaseURL }
+    @State private var storedKey = ""
+    @State private var newKey = ""
+    @State private var isEditingKey = false
+    @State private var isLoggingIn = false
+    @State private var authError: String?
+    @State private var chatGPTConnected = false
 
     var body: some View {
         Form {
             Section {
-                Picker(String(localized: "Provider", bundle: .app), selection: $provider) {
-                    Text("Anthropic", bundle: .app).tag(ProviderKind.anthropic)
-                    Text("OpenAI-compatible", bundle: .app).tag(ProviderKind.openAICompatible)
+                Picker(String(localized: "Connection", bundle: .app), selection: $connection) {
+                    Text("OpenCode Go", bundle: .app).tag(ConnectionKind.openCodeGo)
+                    Text("ChatGPT", bundle: .app).tag(ConnectionKind.chatGPT)
                 }
-                TextField(
-                    String(localized: "Base URL", bundle: .app),
-                    text: baseURL,
-                    prompt: Text(provider.defaultBaseURL)
-                )
-                TextField(
-                    String(localized: "Model", bundle: .app),
-                    text: model,
-                    prompt: Text(provider.defaultModel.isEmpty ? String(localized: "Model ID", bundle: .app) : provider.defaultModel)
-                )
-                SecureField(
-                    String(localized: "API key", bundle: .app),
-                    text: $apiKey,
-                    prompt: provider.requiresAPIKey ? nil : Text("Optional for local servers", bundle: .app)
-                )
+                if connection == .openCodeGo {
+                    keyEditor
+                } else {
+                    chatGPTEditor
+                }
+                if connection == .chatGPT {
+                    Picker(String(localized: "Model", bundle: .app), selection: $model) {
+                        ForEach(ChatGPTModelCatalog.models) { model in
+                            Text(model.name).tag(model.id)
+                        }
+                    }
+                } else {
+                    TextField(String(localized: "Model", bundle: .app), text: $model)
+                }
             } header: {
                 Text("Model", bundle: .app)
             } footer: {
-                if provider == .openAICompatible {
-                    Text("Works with OpenAI, OpenRouter, Groq, Ollama (http://localhost:11434/v1), LM Studio, and any server that speaks /chat/completions. Pick a model that accepts images to use the window screenshot.", bundle: .app)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text("Your key is stored in the macOS Keychain.", bundle: .app)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+                Text("Your key is stored in the macOS Keychain.", bundle: .app)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section {
@@ -78,12 +70,95 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .frame(width: 520, height: 640)
-        .onAppear { apiKey = Keychain.apiKey(for: provider) ?? "" }
-        .onChange(of: provider) { apiKey = Keychain.apiKey(for: provider) ?? "" }
-        .onChange(of: apiKey) {
-            if apiKey != (Keychain.apiKey(for: provider) ?? "") {
-                Keychain.setAPIKey(apiKey, for: provider)
+        .onAppear {
+            loadCredentials(for: connection)
+        }
+        .onChange(of: connection) { _, value in
+            if model == ConnectionKind.openCodeGo.defaultModel || model == ConnectionKind.chatGPT.defaultModel {
+                model = value.defaultModel
             }
+            loadCredentials(for: value)
+        }
+    }
+
+    @ViewBuilder
+    private var chatGPTEditor: some View {
+        if chatGPTConnected {
+            HStack {
+                Label(String(localized: "Connected to ChatGPT", bundle: .app), systemImage: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                Spacer()
+                Button(String(localized: "Disconnect", bundle: .app)) {
+                    Keychain.deleteChatGPTCredentials()
+                    chatGPTConnected = false
+                }
+            }
+        } else {
+            Button(isLoggingIn ? String(localized: "Signing in…", bundle: .app) : String(localized: "Sign in with ChatGPT", bundle: .app)) {
+                isLoggingIn = true
+                authError = nil
+                Task {
+                    do {
+                        _ = try await ChatGPTAuth.login()
+                        chatGPTConnected = true
+                    } catch {
+                        authError = error.localizedDescription
+                    }
+                    isLoggingIn = false
+                }
+            }
+            .disabled(isLoggingIn)
+            if let authError {
+                Text(authError)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var keyEditor: some View {
+        if storedKey.isEmpty || isEditingKey {
+            SecureField(String(localized: "API key", bundle: .app), text: $newKey)
+            HStack {
+                Button(String(localized: "Save", bundle: .app)) {
+                    saveKey()
+                }
+                .disabled(newKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                if !storedKey.isEmpty {
+                    Button(String(localized: "Cancel", bundle: .app)) {
+                        newKey = ""
+                        isEditingKey = false
+                    }
+                }
+            }
+        } else {
+            HStack {
+                Text(APIKey.masked(storedKey))
+                    .font(.system(.body, design: .monospaced))
+                Spacer()
+                Button(String(localized: "Replace key…", bundle: .app)) {
+                    newKey = ""
+                    isEditingKey = true
+                }
+            }
+        }
+    }
+
+    private func saveKey() {
+        let trimmed = newKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, Keychain.setAPIKey(trimmed) else { return }
+        storedKey = trimmed
+        newKey = ""
+        isEditingKey = false
+    }
+
+    private func loadCredentials(for connection: ConnectionKind) {
+        switch connection {
+        case .openCodeGo:
+            storedKey = Keychain.apiKey() ?? ""
+        case .chatGPT:
+            chatGPTConnected = Keychain.chatGPTCredentials() != nil
         }
     }
 }

@@ -29,10 +29,10 @@ enum HotkeyPreset: String, CaseIterable, Identifiable {
 
     var symbol: String {
         switch self {
-        case .optionSpace: "⌥Space"
-        case .controlOptionSpace: "⌃⌥Space"
-        case .shiftCommandSpace: "⇧⌘Space"
-        case .controlOptionReturn: "⌃⌥↩"
+        case .optionSpace: String(localized: "⌥ Space", bundle: .app)
+        case .controlOptionSpace: String(localized: "⌃ ⌥ Space", bundle: .app)
+        case .shiftCommandSpace: String(localized: "⇧ ⌘ Space", bundle: .app)
+        case .controlOptionReturn: String(localized: "⌃ ⌥ ↩", bundle: .app)
         }
     }
 }
