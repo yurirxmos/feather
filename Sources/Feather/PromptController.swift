@@ -62,6 +62,7 @@ final class PromptController: NSObject, NSWindowDelegate {
     private lazy var panel: PromptPanel = makePanel()
     private var targetApp: NSRunningApplication?
     private var captureTask: Task<Void, Never>?
+    private var screenshotTask: Task<Void, Never>?
     private var generationTask: Task<Void, Never>?
     private var closingTask: Task<Void, Never>?
     private var keyMonitor: Any?
@@ -102,9 +103,11 @@ final class PromptController: NSObject, NSWindowDelegate {
         closingTask?.cancel()
         generationTask?.cancel()
         captureTask?.cancel()
+        screenshotTask?.cancel()
         closingTask = nil
         generationTask = nil
         captureTask = nil
+        screenshotTask = nil
         removeKeyMonitor()
         isPresenting = false
         panel.orderOut(nil)
@@ -115,8 +118,10 @@ final class PromptController: NSObject, NSWindowDelegate {
     private func suspendForRecapture() {
         generationTask?.cancel()
         captureTask?.cancel()
+        screenshotTask?.cancel()
         generationTask = nil
         captureTask = nil
+        screenshotTask = nil
         removeKeyMonitor()
         session.isSuspendedForRecapture = true
         isPresenting = false
@@ -169,12 +174,19 @@ final class PromptController: NSObject, NSWindowDelegate {
             presentPanel()
             if includeScreenshot {
                 session.captureStatus = .capturingWindow
-                let jpeg = await WindowCapture.captureJPEG(pid: pid, title: snapshot.windowTitle, frame: snapshot.windowFrame)
-                guard !Task.isCancelled else { return }
-                session.context.screenshotJPEG = jpeg
+                // A screenshot improves visual context but must not delay a submitted prompt.
+                // Keep it in a separate task so `run()` only waits for the text capture above.
+                screenshotTask = Task { [weak self] in
+                    let jpeg = await WindowCapture.captureJPEG(pid: pid, title: snapshot.windowTitle, frame: snapshot.windowFrame)
+                    guard let self, !Task.isCancelled else { return }
+                    session.context.screenshotJPEG = jpeg
+                    session.isCapturing = false
+                    session.captureStatus = nil
+                }
+            } else {
+                session.isCapturing = false
+                session.captureStatus = nil
             }
-            session.isCapturing = false
-            session.captureStatus = nil
         }
     }
 

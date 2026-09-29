@@ -3,6 +3,9 @@ import ApplicationServices
 
 /// Reads the focused field and window of the target app through the Accessibility API.
 enum AccessibilityContext {
+    /// Keep the hotkey responsive when an app exposes a large accessibility tree.
+    private static let windowTextBudget: TimeInterval = 0.7
+
     struct Snapshot: Sendable {
         var windowTitle: String?
         var focusedText: String?
@@ -30,18 +33,20 @@ enum AccessibilityContext {
         // capture after launch may still come back empty; the screenshot covers that case.
         _ = AXUIElementSetAttributeValue(app, "AXManualAccessibility" as CFString, kCFBooleanTrue)
 
+        // The selected text and field draft are the most useful context. Read them before
+        // traversing the potentially large window tree.
+        if let focused = element(app, kAXFocusedUIElementAttribute), !isSecure(focused) {
+            snapshot.selectedText = string(focused, kAXSelectedTextAttribute)
+            snapshot.focusedText = string(focused, kAXValueAttribute)
+        }
         if let window = element(app, kAXFocusedWindowAttribute) {
             snapshot.windowTitle = string(window, kAXTitleAttribute)
-            let collected = windowText(window)
+            let collected = windowText(window, deadline: Date().addingTimeInterval(windowTextBudget))
             snapshot.windowText = collected.text
             snapshot.windowTextWasTruncated = collected.wasTruncated
             if let origin = point(window, kAXPositionAttribute), let size = size(window, kAXSizeAttribute) {
                 snapshot.windowFrame = CGRect(origin: origin, size: size)
             }
-        }
-        if let focused = element(app, kAXFocusedUIElementAttribute), !isSecure(focused) {
-            snapshot.selectedText = string(focused, kAXSelectedTextAttribute)
-            snapshot.focusedText = string(focused, kAXValueAttribute)
         }
         return snapshot
     }
@@ -51,7 +56,7 @@ enum AccessibilityContext {
             || string(element, kAXRoleAttribute) == "AXSecureTextField"
     }
 
-    private static func windowText(_ window: AXUIElement) -> (text: String?, wasTruncated: Bool) {
+    private static func windowText(_ window: AXUIElement, deadline: Date) -> (text: String?, wasTruncated: Bool) {
         let maxCharacters = 24_000
         let maxElements = 1_200
         var parts: [String] = []
@@ -60,7 +65,7 @@ enum AccessibilityContext {
         var wasTruncated = false
 
         func visit(_ element: AXUIElement, depth: Int) {
-            guard depth < 18, elements < maxElements, characters < maxCharacters else {
+            guard Date() < deadline, depth < 18, elements < maxElements, characters < maxCharacters else {
                 wasTruncated = true
                 return
             }
