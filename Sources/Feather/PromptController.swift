@@ -1,5 +1,5 @@
 import AppKit
-import ContextBarCore
+import FeatherCore
 import SwiftUI
 
 /// State shown by `PromptView` for one hotkey invocation.
@@ -57,6 +57,7 @@ final class PromptController: NSObject, NSWindowDelegate {
     private var targetApp: NSRunningApplication?
     private var captureTask: Task<Void, Never>?
     private var generationTask: Task<Void, Never>?
+    private var closingTask: Task<Void, Never>?
     private var keyMonitor: Any?
 
     func toggle() {
@@ -94,8 +95,10 @@ final class PromptController: NSObject, NSWindowDelegate {
 
     /// Closes the panel and discards everything captured for this invocation.
     func close() {
+        closingTask?.cancel()
         generationTask?.cancel()
         captureTask?.cancel()
+        closingTask = nil
         generationTask = nil
         captureTask = nil
         removeKeyMonitor()
@@ -256,10 +259,7 @@ final class PromptController: NSObject, NSWindowDelegate {
         guard !text.isEmpty else { return }
         guard TextInserter.canPaste else {
             TextInserter.copy(text)
-            session.notice = String(
-                localized: "Copied to the clipboard. Grant Accessibility access in Settings to paste automatically.",
-                bundle: .app
-            )
+            startClosingCountdown()
             return
         }
         let app = targetApp
@@ -270,7 +270,21 @@ final class PromptController: NSObject, NSWindowDelegate {
     private func copyResult() {
         guard !session.result.isEmpty else { return }
         TextInserter.copy(session.result)
-        session.notice = String(localized: "Copied to the clipboard.", bundle: .app)
+        startClosingCountdown()
+    }
+
+    private func startClosingCountdown() {
+        closingTask?.cancel()
+        closingTask = Task { [weak self] in
+            for seconds in stride(from: 5, through: 1, by: -1) {
+                guard !Task.isCancelled, let self else { return }
+                let format = String(localized: "Closing in %d…", bundle: .app)
+                session.notice = String(format: format, locale: .current, seconds)
+                try? await Task.sleep(for: .seconds(1))
+            }
+            guard !Task.isCancelled else { return }
+            self?.close()
+        }
     }
 
     // MARK: Keyboard

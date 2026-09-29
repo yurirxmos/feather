@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 @main
-enum ContextBarMain {
+enum FeatherMain {
     @MainActor private static let delegate = AppDelegate()
 
     @MainActor static func main() {
@@ -36,7 +36,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func setUpStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         let icon = NSImage.featherMenuBarIcon()
-        icon.accessibilityDescription = "Context Bar"
+        icon.accessibilityDescription = String(localized: "Feather", bundle: .app)
         item.button?.image = icon
         let menu = NSMenu()
         let open = NSMenuItem(title: "", action: #selector(openPrompt), keyEquivalent: "")
@@ -48,7 +48,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settings.target = self
         menu.addItem(settings)
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: String(localized: "Quit Context Bar", bundle: .app), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        menu.addItem(NSMenuItem(title: String(localized: "Quit", bundle: .app), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         item.menu = menu
         statusItem = item
         updateHotkeyMenuTitle()
@@ -61,14 +61,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             registeredHotkey = preset
         } else {
             registeredHotkey = nil
-            NSLog("Context Bar: could not register hotkey \(preset.symbol); another app may own it.")
+            NSLog("Feather: could not register hotkey \(preset.symbol); another app may own it.")
         }
         updateHotkeyMenuTitle()
     }
 
     private func updateHotkeyMenuTitle() {
         let symbol = Settings.current().hotkey.symbol
-        hotkeyMenuItem?.title = String(localized: "Open Context Bar (\(symbol))", bundle: .app)
+        hotkeyMenuItem?.title = String(localized: "Open Feather (\(symbol))", bundle: .app)
     }
 
     @objc private func defaultsChanged() {
@@ -91,7 +91,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 backing: .buffered,
                 defer: false
             )
-            window.title = String(localized: "Context Bar Settings", bundle: .app)
+            window.title = String(localized: "Feather Settings", bundle: .app)
             window.minSize = NSSize(width: 640, height: 460)
             window.contentViewController = NSHostingController(rootView: SettingsView())
             window.isReleasedWhenClosed = false

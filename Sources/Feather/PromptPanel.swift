@@ -1,7 +1,7 @@
 import AppKit
-import ContextBarCore
+import FeatherCore
 
-/// A floating panel that takes keyboard focus without activating Context Bar, so the target
+/// A floating panel that takes keyboard focus without activating Feather, so the target
 /// app stays frontmost with its caret where the user left it.
 final class PromptPanel: NSPanel {
     /// The panel grows downward as the result streams in, keeping its top edge fixed.

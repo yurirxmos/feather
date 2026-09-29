@@ -1,4 +1,4 @@
-import ContextBarCore
+import FeatherCore
 import Foundation
 
 /// `UserDefaults` keys. Preserve these when changing settings behavior.

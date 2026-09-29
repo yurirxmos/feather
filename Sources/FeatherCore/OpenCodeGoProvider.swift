@@ -7,7 +7,7 @@ public struct OpenCodeGoProvider: LLMProvider {
 
     public static let defaultBaseURL = "https://opencode.ai/zen/go/v1"
     public static let defaultModel = "deepseek-v4.1-flash"
-    public static let userAgent = "ContextBar/0.1.0"
+    public static let userAgent = "Feather/0.1.0"
 
     public init(apiKey: String, baseURL: String = OpenCodeGoProvider.defaultBaseURL) {
         self.apiKey = apiKey

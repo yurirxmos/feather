@@ -2,22 +2,22 @@
 import PackageDescription
 
 let package = Package(
-    name: "ContextBar",
+    name: "Feather",
     defaultLocalization: "en",
     platforms: [.macOS(.v14)],
-    products: [.executable(name: "ContextBar", targets: ["ContextBar"])],
+    products: [.executable(name: "Feather", targets: ["Feather"])],
     targets: [
-        .target(name: "ContextBarCore", path: "Sources/ContextBarCore"),
+        .target(name: "FeatherCore", path: "Sources/FeatherCore"),
         .executableTarget(
-            name: "ContextBar",
-            dependencies: ["ContextBarCore"],
-            path: "Sources/ContextBar",
+            name: "Feather",
+            dependencies: ["FeatherCore"],
+            path: "Sources/Feather",
             resources: [.process("Localizable.xcstrings")]
         ),
         .testTarget(
-            name: "ContextBarCoreTests",
-            dependencies: ["ContextBarCore"],
-            path: "Tests/ContextBarCoreTests"
+            name: "FeatherCoreTests",
+            dependencies: ["FeatherCore"],
+            path: "Tests/FeatherCoreTests"
         ),
     ]
 )

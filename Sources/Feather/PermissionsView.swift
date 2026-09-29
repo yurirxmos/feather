@@ -18,7 +18,7 @@ struct PermissionsView: View {
         }
         PermissionRow(
             title: String(localized: "Screen Recording", bundle: .app),
-            detail: String(localized: "Captures the active window when you press the shortcut. Takes effect after relaunching Context Bar.", bundle: .app),
+            detail: String(localized: "Captures the active window when you press the shortcut. Takes effect after relaunching Feather.", bundle: .app),
             isGranted: screenRecordingGranted
         ) {
             WindowCapture.requestPermission()

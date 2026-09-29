@@ -1,8 +1,8 @@
-# Context Bar
+# Feather
 
 Press a shortcut. Tell your Mac what to write.
 
-Context Bar is a macOS menu-bar app. Press the hotkey (default `⌥Space`) while you are in any
+Feather is a macOS menu-bar app. Press the hotkey (default `⌥Space`) while you are in any
 app, type an instruction such as "reply accepting tomorrow at 2 pm, formal tone", and press
 `Return`. The model receives your instruction plus the context on screen (app, window title,
 focused field, selected text, and a screenshot of the active window), streams a reply, and
@@ -24,7 +24,7 @@ Typing a new instruction after a result refines it ("shorter", "more casual").
 
 ## OpenCode Go
 
-Context Bar uses OpenCode Go through its OpenAI-compatible streaming API. In Settings, paste your
+Feather uses OpenCode Go through its OpenAI-compatible streaming API. In Settings, paste your
 OpenCode Go API key and choose a model. The default is `deepseek-v4.1-flash`.
 
 The key is stored in the macOS Keychain. OpenCode Go models and usage limits are managed by your
@@ -39,8 +39,8 @@ Requires macOS 14+ and Xcode 15+.
 ```sh
 swift build
 swift test
-scripts/bundle.sh          # produces dist/ContextBar.app
-open dist/ContextBar.app
+scripts/bundle.sh          # produces dist/Feather.app
+open dist/Feather.app
 ```
 
 On first launch, grant **Accessibility** (read the focused field, paste) and **Screen

@@ -51,12 +51,12 @@
         }
       }
     },
-    "Captures the active window when you press the shortcut. Takes effect after relaunching Context Bar.": {
+    "Captures the active window when you press the shortcut. Takes effect after relaunching Feather.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Captura a janela ativa quando você pressiona o atalho. Passa a valer depois de reabrir o Context Bar."
+            "value": "Captura a janela ativa quando você pressiona o atalho. Passa a valer depois de reabrir o Feather."
           }
         }
       }
@@ -211,12 +211,12 @@
         }
       }
     },
-    "Context Bar Settings": {
+    "Feather Settings": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ajustes do Context Bar"
+            "value": "Ajustes do Feather"
           }
         }
       }
@@ -231,12 +231,12 @@
         }
       }
     },
-    "Copied to the clipboard.": {
+    "Closing in %d…": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Copiado para a área de transferência."
+            "value": "Fechando em %d…"
           }
         }
       }
@@ -257,6 +257,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Texto em foco"
+          }
+        }
+      }
+    },
+    "Feather": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feather"
           }
         }
       }
@@ -371,22 +381,22 @@
         }
       }
     },
-    "Open Context Bar": {
+    "Open Feather": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Abrir o Context Bar"
+            "value": "Abrir o Feather"
           }
         }
       }
     },
-    "Open Context Bar (%@)": {
+    "Open Feather (%@)": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Abrir o Context Bar (%@)"
+            "value": "Abrir o Feather (%@)"
           }
         }
       }
@@ -451,12 +461,12 @@
         }
       }
     },
-    "Quit Context Bar": {
+    "Quit": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sair do Context Bar"
+            "value": "Sair do Feather"
           }
         }
       }

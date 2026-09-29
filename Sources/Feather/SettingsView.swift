@@ -1,4 +1,4 @@
-import ContextBarCore
+import FeatherCore
 import SwiftUI
 
 private enum SettingsSection: String, CaseIterable, Identifiable {
@@ -71,7 +71,7 @@ struct SettingsView: View {
                     .stroke(style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
                     .foregroundStyle(Color.accentColor)
                     .frame(width: 18, height: 18)
-                Text(verbatim: "Context Bar")
+                Text("Feather", bundle: .app)
                     .font(.headline)
             }
             .padding(.horizontal, 14)
@@ -87,7 +87,7 @@ struct SettingsView: View {
             Button(role: .destructive) {
                 NSApp.terminate(nil)
             } label: {
-                Label(String(localized: "Quit Context Bar", bundle: .app), systemImage: "power")
+                Label(String(localized: "Quit", bundle: .app), systemImage: "power")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.plain)
@@ -148,7 +148,7 @@ struct SettingsView: View {
     private var generalView: some View {
         Form {
             Section {
-                Picker(String(localized: "Open Context Bar", bundle: .app), selection: $hotkey) {
+                Picker(String(localized: "Open Feather", bundle: .app), selection: $hotkey) {
                     ForEach(HotkeyPreset.allCases) { preset in
                         Text(preset.symbol).tag(preset)
                     }

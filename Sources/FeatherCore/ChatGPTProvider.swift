@@ -6,7 +6,7 @@ public struct ChatGPTProvider: LLMProvider {
     public var accountID: String?
 
     public static let endpoint = "https://chatgpt.com/backend-api/codex/responses"
-    public static let userAgent = "ContextBar/0.1.0"
+    public static let userAgent = "Feather/0.1.0"
 
     public init(accessToken: String, accountID: String? = nil) {
         self.accessToken = accessToken

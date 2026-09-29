@@ -1,5 +1,5 @@
 import XCTest
-@testable import ContextBarCore
+@testable import FeatherCore
 
 final class PromptBuilderTests: XCTestCase {
     private let context = ScreenContext(

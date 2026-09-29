@@ -152,7 +152,7 @@ enum ChatGPTAuth {
         .card{width:min(420px,calc(100% - 40px));box-sizing:border-box;padding:42px 36px;border:1px solid #2a2a2a;border-radius:22px;background:#101010;text-align:center;box-shadow:0 24px 70px #000}
         .mark{width:54px;height:54px;margin:0 auto 22px;border-radius:50%;display:grid;place-items:center;background:#173d2b;color:#62e6a0;font-size:28px}
         h1{margin:0 0 12px;font:32px Georgia,serif;letter-spacing:-.03em}p{margin:0;color:#a7a7a7;line-height:1.55;font-size:15px}
-        </style></head><body><main class="card"><div class="mark">✓</div><h1>Connected to ChatGPT</h1><p>You can close this window and return to Context Bar.</p></main></body></html>
+        </style></head><body><main class="card"><div class="mark">✓</div><h1>Connected to ChatGPT</h1><p>You can close this window and return to Feather.</p></main></body></html>
         """
     }
 

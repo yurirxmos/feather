@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds dist/ContextBar.app from the SwiftPM executable.
+# Builds dist/Feather.app from the SwiftPM executable.
 #
 # Accessibility and Screen Recording grants are tied to the code signature. Set
 # CODESIGN_IDENTITY to a stable identity (e.g. "Apple Development: Name (TEAMID)"); with the
@@ -10,25 +10,25 @@ cd "$(dirname "$0")/.."
 
 IDENTITY="${CODESIGN_IDENTITY:--}"
 VERSION="${VERSION:-0.1.0}"
-APP="dist/ContextBar.app"
+APP="dist/Feather.app"
 
 swift build -c release
 BIN_DIR="$(swift build -c release --show-bin-path)"
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cp "$BIN_DIR/ContextBar" "$APP/Contents/MacOS/ContextBar"
-cp -R "$BIN_DIR/ContextBar_ContextBar.bundle" "$APP/Contents/Resources/"
+cp "$BIN_DIR/Feather" "$APP/Contents/MacOS/Feather"
+cp -R "$BIN_DIR/Feather_Feather.bundle" "$APP/Contents/Resources/"
 
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CFBundleIdentifier</key><string>com.contextbar.app</string>
-    <key>CFBundleName</key><string>Context Bar</string>
-    <key>CFBundleDisplayName</key><string>Context Bar</string>
-    <key>CFBundleExecutable</key><string>ContextBar</string>
+    <key>CFBundleIdentifier</key><string>com.feather.app</string>
+    <key>CFBundleName</key><string>Feather</string>
+    <key>CFBundleDisplayName</key><string>Feather</string>
+    <key>CFBundleExecutable</key><string>Feather</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>${VERSION}</string>
     <key>CFBundleVersion</key><string>1</string>

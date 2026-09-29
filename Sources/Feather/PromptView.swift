@@ -1,5 +1,5 @@
 import AppKit
-import ContextBarCore
+import FeatherCore
 import SwiftUI
 
 struct PromptView: View {
@@ -53,7 +53,7 @@ struct PromptView: View {
                     .foregroundStyle(.red.opacity(0.95))
             }
             if let notice = session.notice {
-                Label(notice, systemImage: "doc.on.clipboard")
+                Label(notice, systemImage: "xmark.circle")
                     .font(.callout)
                     .foregroundStyle(.white.opacity(0.65))
             }

@@ -35,7 +35,7 @@ enum WindowCapture {
             let image = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: configuration)
             return NSBitmapImageRep(cgImage: image).representation(using: .jpeg, properties: [.compressionFactor: 0.7])
         } catch {
-            NSLog("Context Bar: window capture failed: \(error.localizedDescription)")
+            NSLog("Feather: window capture failed: \(error.localizedDescription)")
             return nil
         }
     }

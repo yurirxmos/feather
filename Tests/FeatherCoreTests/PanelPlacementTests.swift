@@ -1,5 +1,5 @@
 import XCTest
-@testable import ContextBarCore
+@testable import FeatherCore
 
 final class PanelPlacementTests: XCTestCase {
     private let screen = CGRect(x: 0, y: 0, width: 1440, height: 900)
