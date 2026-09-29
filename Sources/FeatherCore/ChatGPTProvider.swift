@@ -6,7 +6,7 @@ public struct ChatGPTProvider: LLMProvider {
     public var accountID: String?
 
     public static let endpoint = "https://chatgpt.com/backend-api/codex/responses"
-    public static let userAgent = "Feather/0.1.0"
+    public static let userAgent = ProviderTransport.userAgent
 
     public init(accessToken: String, accountID: String? = nil) {
         self.accessToken = accessToken
@@ -16,19 +16,15 @@ public struct ChatGPTProvider: LLMProvider {
     public func makeURLRequest(for request: GenerationRequest) throws -> URLRequest {
         guard !accessToken.isEmpty else { throw LLMError.missingAPIKey }
         guard !request.model.isEmpty else { throw LLMError.missingModel }
-        var urlRequest = URLRequest(url: URL(string: Self.endpoint)!)
-        urlRequest.httpMethod = "POST"
-        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        urlRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-        urlRequest.setValue(Self.userAgent, forHTTPHeaderField: "User-Agent")
-        if let accountID, !accountID.isEmpty {
-            urlRequest.setValue(accountID, forHTTPHeaderField: "ChatGPT-Account-Id")
-        }
-        if !request.sessionID.isEmpty {
-            urlRequest.setValue(request.sessionID, forHTTPHeaderField: "session-id")
-        }
-        urlRequest.httpBody = try JSONSerialization.data(withJSONObject: body(for: request), options: [.sortedKeys])
-        return urlRequest
+        var headers: [String: String] = [:]
+        if let accountID, !accountID.isEmpty { headers["ChatGPT-Account-Id"] = accountID }
+        return try ProviderTransport.request(
+            endpoint: URL(string: Self.endpoint)!,
+            token: accessToken,
+            sessionHeader: ("session-id", request.sessionID),
+            extraHeaders: headers,
+            body: body(for: request)
+        )
     }
 
     func body(for request: GenerationRequest) -> [String: Any] {
@@ -52,9 +48,8 @@ public struct ChatGPTProvider: LLMProvider {
         guard let data = event.data.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
         else { return .ignore }
-        if let error = json["error"] {
-            let message = (error as? [String: Any])?["message"] as? String ?? (error as? String)
-            throw LLMError.api(message: message ?? "Unknown error")
+        if json["error"] != nil {
+            throw ProviderTransport.streamError(from: Data(event.data.utf8))
         }
         switch event.event {
         case "response.output_text.delta":

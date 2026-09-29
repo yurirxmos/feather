@@ -2,6 +2,12 @@ import Foundation
 
 /// Fetches the models available to the current OpenCode Go API key.
 public enum OpenCodeGoModelCatalog {
+    public static func sortedUniqueModels(_ models: [String], including selectedModel: String? = nil) -> [String] {
+        Array(Set(models + [selectedModel].compactMap { $0 })).sorted {
+            $0.localizedCaseInsensitiveCompare($1) == .orderedAscending
+        }
+    }
+
     public static func fetchModels(
         apiKey: String,
         baseURL: String = OpenCodeGoProvider.defaultBaseURL
@@ -22,7 +28,7 @@ public enum OpenCodeGoModelCatalog {
 
     static func decodeModels(_ data: Data) throws -> [String] {
         let response = try JSONDecoder().decode(Response.self, from: data)
-        return Array(Set(response.data.map(\.id))).sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+        return sortedUniqueModels(response.data.map(\.id))
     }
 
     private struct Response: Decodable {

@@ -78,14 +78,7 @@ public protocol LLMProvider: Sendable {
 
 extension LLMProvider {
     public func errorMessage(fromBody body: Data) -> String? {
-        guard let json = try? JSONSerialization.jsonObject(with: body) as? [String: Any] else {
-            return String(data: body, encoding: .utf8).flatMap { $0.isEmpty ? nil : $0 }
-        }
-        if let error = json["error"] as? [String: Any], let message = error["message"] as? String {
-            return message
-        }
-        if let message = json["error"] as? String { return message }
-        return json["message"] as? String
+        ProviderTransport.errorMessage(from: body)
     }
 
     /// Streams text deltas. Cancelling the consuming task cancels the HTTP request.
@@ -100,22 +93,11 @@ extension LLMProvider {
                     let (bytes, response) = try await session.bytes(for: urlRequest)
                     let status = (response as? HTTPURLResponse)?.statusCode ?? 0
                     guard (200..<300).contains(status) else {
-                        var body = Data()
-                        for try await byte in bytes {
-                            body.append(byte)
-                            if body.count > 64_000 { break }
-                        }
-                        throw LLMError.http(status: status, message: errorMessage(fromBody: body))
+                        let body = try await LLMStreamPump.readErrorBody(from: bytes)
+                        throw LLMStreamPump.httpError(statusCode: status, body: body, provider: self)
                     }
-                    var parser = SSEParser()
-                    lineLoop: for try await line in bytes.lines {
-                        for event in parser.push(line + "\n") {
-                            switch try parse(event) {
-                            case .text(let text): continuation.yield(text)
-                            case .done: break lineLoop
-                            case .ignore: continue
-                            }
-                        }
+                    for try await text in LLMStreamPump.stream(lines: bytes.lines, parse: { try self.parse($0) }) {
+                        continuation.yield(text)
                     }
                     continuation.finish()
                 } catch {

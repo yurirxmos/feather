@@ -8,6 +8,10 @@ final class ProviderTests: XCTestCase {
         XCTAssertEqual(try OpenCodeGoModelCatalog.decodeModels(data), ["alpha", "zeta"])
     }
 
+    func testOpenCodeGoCatalogIncludesSelectedModelAndSortsUniquely() {
+        XCTAssertEqual(OpenCodeGoModelCatalog.sortedUniqueModels(["zeta", "alpha", "zeta"], including: "custom"), ["alpha", "custom", "zeta"])
+    }
+
     private let image = Data([0xFF, 0xD8, 0xFF])
 
     private func request(image: Data?) -> GenerationRequest {
