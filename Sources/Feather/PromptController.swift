@@ -59,9 +59,10 @@ final class PromptController: NSObject, NSWindowDelegate {
     private var generationTask: Task<Void, Never>?
     private var closingTask: Task<Void, Never>?
     private var keyMonitor: Any?
+    private var isPresenting = false
 
     func toggle() {
-        if panel.isVisible {
+        if panel.isVisible || isPresenting {
             suspendForRecapture()
         } else {
             show()
@@ -81,16 +82,8 @@ final class PromptController: NSObject, NSWindowDelegate {
         } else {
             session.options.includeWindow = settings.includeScreenshot
         }
+        isPresenting = true
         startCapture(includeScreenshot: settings.includeScreenshot)
-
-        let mouse = NSEvent.mouseLocation
-        if let screen = NSScreen.screens.first(where: { NSMouseInRect(mouse, $0.frame, false) }) ?? NSScreen.main {
-            panel.position(on: screen)
-        }
-        panel.makeKeyAndOrderFront(nil)
-        session.isSuspendedForRecapture = false
-        installKeyMonitor()
-        session.focusToken += 1
     }
 
     /// Closes the panel and discards everything captured for this invocation.
@@ -102,6 +95,7 @@ final class PromptController: NSObject, NSWindowDelegate {
         generationTask = nil
         captureTask = nil
         removeKeyMonitor()
+        isPresenting = false
         panel.orderOut(nil)
         session.reset(includeWindow: false)
     }
@@ -114,6 +108,7 @@ final class PromptController: NSObject, NSWindowDelegate {
         captureTask = nil
         removeKeyMonitor()
         session.isSuspendedForRecapture = true
+        isPresenting = false
         panel.orderOut(nil)
     }
 
@@ -152,7 +147,12 @@ final class PromptController: NSObject, NSWindowDelegate {
                 )
                 let screen = NSScreen.screens.first(where: { $0.frame.intersects(appKitFrame) }) ?? NSScreen.main
                 if let screen {
-                panel.position(on: screen, windowFrame: appKitFrame)
+                    panel.position(on: screen, windowFrame: appKitFrame)
+                }
+            } else {
+                let mouse = NSEvent.mouseLocation
+                if let screen = NSScreen.screens.first(where: { NSMouseInRect(mouse, $0.frame, false) }) ?? NSScreen.main {
+                    panel.position(on: screen)
                 }
             }
             session.context.windowTitle = snapshot.windowTitle ?? session.context.windowTitle
@@ -161,6 +161,7 @@ final class PromptController: NSObject, NSWindowDelegate {
             session.context.windowText = merge(snapshot.windowText, with: session.context.windowText)
             session.context.windowTextWasTruncated = session.context.windowTextWasTruncated || snapshot.windowTextWasTruncated
             session.captureCount += 1
+            presentPanel()
             if includeScreenshot {
                 session.captureStatus = .capturingWindow
                 let jpeg = await WindowCapture.captureJPEG(pid: pid, title: snapshot.windowTitle, frame: snapshot.windowFrame)
@@ -169,6 +170,23 @@ final class PromptController: NSObject, NSWindowDelegate {
             }
             session.isCapturing = false
             session.captureStatus = nil
+        }
+    }
+
+    private func presentPanel() {
+        guard isPresenting else { return }
+        isPresenting = false
+        panel.alphaValue = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? 1 : 0
+        panel.makeKeyAndOrderFront(nil)
+        session.isSuspendedForRecapture = false
+        installKeyMonitor()
+        session.focusToken += 1
+
+        guard panel.alphaValue == 0 else { return }
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.18
+            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            panel.animator().alphaValue = 1
         }
     }
 
@@ -276,14 +294,18 @@ final class PromptController: NSObject, NSWindowDelegate {
     private func startClosingCountdown() {
         closingTask?.cancel()
         closingTask = Task { [weak self] in
-            for seconds in stride(from: 5, through: 1, by: -1) {
-                guard !Task.isCancelled, let self else { return }
+            guard let self else { return }
+            session.notice = String(localized: "Copied to clipboard.", bundle: .app)
+            try? await Task.sleep(for: .milliseconds(800))
+
+            for seconds in stride(from: 3, through: 1, by: -1) {
+                guard !Task.isCancelled else { return }
                 let format = String(localized: "Closing in %d…", bundle: .app)
-                session.notice = String(format: format, locale: .current, seconds)
+                self.session.notice = String(format: format, locale: .current, seconds)
                 try? await Task.sleep(for: .seconds(1))
             }
             guard !Task.isCancelled else { return }
-            self?.close()
+            self.close()
         }
     }
 

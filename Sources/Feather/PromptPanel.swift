@@ -24,6 +24,7 @@ final class PromptPanel: NSPanel {
         isOpaque = false
         backgroundColor = .clear
         hasShadow = true
+        animationBehavior = .utilityWindow
         hidesOnDeactivate = false
         isMovableByWindowBackground = true
         isReleasedWhenClosed = false

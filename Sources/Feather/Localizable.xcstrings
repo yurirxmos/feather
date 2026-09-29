@@ -231,6 +231,16 @@
         }
       }
     },
+    "Copied to clipboard.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiado para a área de transferência."
+          }
+        }
+      }
+    },
     "Closing in %d…": {
       "localizations": {
         "pt-BR": {
