@@ -1,5 +1,6 @@
 import AppKit
 import FeatherCore
+import os
 import SwiftUI
 
 /// State shown by `PromptView` for one hotkey invocation.
@@ -57,6 +58,9 @@ final class PromptSession: ObservableObject {
 
 @MainActor
 final class PromptController: NSObject, NSWindowDelegate {
+    /// Timings only; screen content, instructions, and responses are never logged.
+    private static let timingLogger = Logger(subsystem: "com.feather.app", category: "generation")
+
     private let credentialStore: any CredentialStore
     private let session = PromptSession()
     private lazy var panel: PromptPanel = makePanel()
@@ -95,6 +99,9 @@ final class PromptController: NSObject, NSWindowDelegate {
             session.options.includeWindow = settings.includeScreenshot
         }
         isPresenting = true
+        // Connecting can take seconds on a cold or flaky network; do it while the user types.
+        let provider = settings.makeProvider()
+        Task.detached(priority: .utility) { await provider.preconnect() }
         startCapture(includeScreenshot: settings.includeScreenshot)
     }
 
@@ -302,21 +309,51 @@ final class PromptController: NSObject, NSWindowDelegate {
                 history: session.history,
                 model: settings.model,
                 sessionID: session.sessionID,
-                includeContext: true
+                includeContext: true,
+                customInstructions: settings.customInstructions
             )
+            let requestStartedAt = ContinuousClock.now
+            var firstTextAfter: Duration?
+            var text = ""
+            var publishedAt = requestStartedAt
+            var outcome = "completed"
             do {
-                for try await text in provider.stream(request) {
-                    session.streamingResult += text
+                for try await chunk in provider.stream(request) {
+                    text += chunk
+                    if firstTextAfter == nil { firstTextAfter = requestStartedAt.duration(to: .now) }
+                    // Every published delta re-lays out the panel; a few updates per second
+                    // still read as live typing.
+                    if publishedAt.duration(to: .now) >= .milliseconds(80) {
+                        session.streamingResult = text
+                        publishedAt = .now
+                    }
                 }
-                session.result = session.streamingResult.trimmingCharacters(in: .whitespacesAndNewlines)
-                session.streamingResult = ""
+                guard !Task.isCancelled else { return }
+                session.result = text.trimmingCharacters(in: .whitespacesAndNewlines)
             } catch {
                 guard !Task.isCancelled else { return }
-                session.errorMessage = (error as? LLMError)?.localizedMessage ?? error.localizedDescription
+                let partial = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                if error as? LLMError == .timedOut, !partial.isEmpty {
+                    outcome = "timed_out_with_text"
+                    session.result = partial
+                    session.notice = String(localized: "Stopped after 1 minute. Review the text before inserting it.", bundle: .app)
+                } else {
+                    outcome = "failed"
+                    session.errorMessage = (error as? LLMError)?.localizedMessage ?? error.localizedDescription
+                }
             }
-            guard !Task.isCancelled else { return }
+            session.streamingResult = ""
             session.isGenerating = false
+            logTiming(outcome: outcome, firstTextAfter: firstTextAfter, total: requestStartedAt.duration(to: .now))
         }
+    }
+
+    private func logTiming(outcome: String, firstTextAfter: Duration?, total: Duration) {
+        func seconds(_ duration: Duration) -> String {
+            String(format: "%.2fs", Double(duration.components.seconds) + Double(duration.components.attoseconds) / 1e18)
+        }
+        let firstText = firstTextAfter.map(seconds) ?? "none"
+        Self.timingLogger.notice("generation \(outcome, privacy: .public): first_text=\(firstText, privacy: .public) total=\(seconds(total), privacy: .public)")
     }
 
     private func insert() {

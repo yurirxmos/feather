@@ -42,8 +42,14 @@ public struct OpenCodeGoProvider: LLMProvider {
                 messages.append(["role": turn.role.rawValue, "content": turn.text])
             }
         }
-        return ["model": request.model, "stream": true, "messages": messages]
+        var body: [String: Any] = ["model": request.model, "stream": true, "messages": messages]
+        if request.reasoning == .minimal { body["reasoning_effort"] = "none" }
+        return body
     }
+
+    public var controlsReasoning: Bool { true }
+
+    public var preconnectURL: URL? { try? .endpoint(base: baseURL, path: "/models") }
 
     public func parse(_ event: SSEEvent) throws -> StreamChunk {
         if event.data == "[DONE]" { return .done }

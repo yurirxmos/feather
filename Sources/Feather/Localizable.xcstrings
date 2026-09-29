@@ -321,6 +321,16 @@
         }
       }
     },
+    "Instructions": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Instruções"
+          }
+        }
+      }
+    },
     "Insert": {
       "localizations": {
         "pt-BR": {
@@ -571,6 +581,16 @@
         }
       }
     },
+    "Set writing preferences for every response, such as “Do not use emojis or em dashes.”": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Defina preferências de escrita para todas as respostas, como “Não use emojis nem travessões.”"
+          }
+        }
+      }
+    },
     "Settings…": {
       "localizations": {
         "pt-BR": {
@@ -587,6 +607,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Atalho"
+          }
+        }
+      }
+    },
+    "Stopped after 1 minute. Review the text before inserting it.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interrompido após 1 minuto. Revise o texto antes de inseri-lo."
+          }
+        }
+      }
+    },
+    "The model took more than 1 minute to respond. Try again or choose a faster model in Settings.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O modelo levou mais de 1 minuto para responder. Tente novamente ou escolha um modelo mais rápido nos Ajustes."
           }
         }
       }

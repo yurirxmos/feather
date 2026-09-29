@@ -21,7 +21,38 @@ public enum LLMStreamPump {
 
     /// How long the stream may stay silent after its first text before it is treated as
     /// finished. Guards against servers that never close the connection.
-    public static let defaultIdleTimeout: Duration = .seconds(20)
+    public static let defaultIdleTimeout: Duration = .seconds(10)
+
+    /// The longest one generation may take, from sending the request to its last text. A typing
+    /// assistant that needs longer is stuck, not thinking.
+    public static let responseDeadline: Duration = .seconds(60)
+
+    /// Ends `stream` with `LLMError.timedOut` once `deadline` passes. Text yielded before the
+    /// deadline is delivered, so the caller can keep a partial response.
+    public static func limit(
+        _ stream: AsyncThrowingStream<String, Error>,
+        to deadline: Duration
+    ) -> AsyncThrowingStream<String, Error> {
+        AsyncThrowingStream { continuation in
+            let reader = Task {
+                do {
+                    for try await text in stream { continuation.yield(text) }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            let timer = Task {
+                try await Task.sleep(for: deadline)
+                continuation.finish(throwing: LLMError.timedOut)
+                reader.cancel()
+            }
+            continuation.onTermination = { _ in
+                reader.cancel()
+                timer.cancel()
+            }
+        }
+    }
 
     public static func stream<Lines: AsyncSequence & Sendable>(
         lines: Lines,

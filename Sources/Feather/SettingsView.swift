@@ -41,6 +41,7 @@ struct SettingsView: View {
     @AppStorage(SettingsKey.model) private var model = OpenCodeGoProvider.defaultModel
     @AppStorage(SettingsKey.hotkey) private var hotkey: HotkeyPreset = .optionSpace
     @AppStorage(SettingsKey.includeScreenshot) private var includeScreenshot = true
+    @AppStorage(SettingsKey.customInstructions) private var customInstructions = ""
     @State private var storedKey = ""
     @State private var newKey = ""
     @State private var isEditingKey = false
@@ -321,6 +322,18 @@ struct SettingsView: View {
                 }
                 .font(.callout)
                 .foregroundStyle(.secondary)
+            }
+
+            Section {
+                TextEditor(text: $customInstructions)
+                    .font(.body)
+                    .frame(minHeight: 88)
+            } header: {
+                Text("Instructions", bundle: .app)
+            } footer: {
+                Text("Set writing preferences for every response, such as “Do not use emojis or em dashes.”", bundle: .app)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)

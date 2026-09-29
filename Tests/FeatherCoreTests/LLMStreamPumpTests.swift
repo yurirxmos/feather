@@ -63,6 +63,31 @@ final class LLMStreamPumpTests: XCTestCase {
         }
     }
 
+    func testLimitKeepsTextAndFailsWithTimeoutAtTheDeadline() async {
+        let source = AsyncThrowingStream<String, Error> { continuation in
+            continuation.yield("Hello")
+            // Never finishes, like a model that keeps the request open.
+        }
+        var result: [String] = []
+        do {
+            for try await text in LLMStreamPump.limit(source, to: .milliseconds(100)) { result.append(text) }
+            XCTFail("Expected a timeout")
+        } catch {
+            XCTAssertEqual(error as? LLMError, .timedOut)
+        }
+        XCTAssertEqual(result, ["Hello"])
+    }
+
+    func testLimitPassesThroughAStreamThatFinishesInTime() async throws {
+        let source = AsyncThrowingStream<String, Error> { continuation in
+            continuation.yield("Hello")
+            continuation.finish()
+        }
+        var result: [String] = []
+        for try await text in LLMStreamPump.limit(source, to: .seconds(5)) { result.append(text) }
+        XCTAssertEqual(result, ["Hello"])
+    }
+
     func testErrorBodyReaderEnforcesByteLimit() async throws {
         let bytes = AsyncStream<UInt8> { continuation in
             for _ in 0..<100 { continuation.yield(0x78) }

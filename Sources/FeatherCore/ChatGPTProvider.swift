@@ -44,6 +44,8 @@ public struct ChatGPTProvider: LLMProvider {
         ]
     }
 
+    public var preconnectURL: URL? { URL(string: Self.endpoint) }
+
     public func parse(_ event: SSEEvent) throws -> StreamChunk {
         guard let data = event.data.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]

@@ -22,10 +22,12 @@ final class SettingsTests: XCTestCase {
         values.set("  custom-model  ", forKey: SettingsKey.model)
         values.set(HotkeyPreset.shiftCommandSpace.rawValue, forKey: SettingsKey.hotkey)
         values.set(false, forKey: SettingsKey.includeScreenshot)
+        values.set("  Do not use emojis.  ", forKey: SettingsKey.customInstructions)
         let settings = Settings.current(values)
         XCTAssertEqual(settings.model, "custom-model")
         XCTAssertEqual(settings.hotkey, .shiftCommandSpace)
         XCTAssertFalse(settings.includeScreenshot)
+        XCTAssertEqual(settings.customInstructions, "Do not use emojis.")
     }
 
     func testConnectionChangeOnlyReplacesKnownDefaultModels() {

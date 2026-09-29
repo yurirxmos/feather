@@ -5,6 +5,7 @@ public enum SettingsKey {
     public static let model = "model"
     public static let hotkey = "hotkey"
     public static let includeScreenshot = "includeScreenshot"
+    public static let customInstructions = "customInstructions"
 }
 
 public enum HotkeyPreset: String, CaseIterable, Identifiable, Sendable {
@@ -22,12 +23,20 @@ public struct Settings: Equatable, Sendable {
     public var model: String
     public var hotkey: HotkeyPreset
     public var includeScreenshot: Bool
+    public var customInstructions: String
 
-    public init(connection: ConnectionKind, model: String, hotkey: HotkeyPreset, includeScreenshot: Bool) {
+    public init(
+        connection: ConnectionKind,
+        model: String,
+        hotkey: HotkeyPreset,
+        includeScreenshot: Bool,
+        customInstructions: String = ""
+    ) {
         self.connection = connection
         self.model = model
         self.hotkey = hotkey
         self.includeScreenshot = includeScreenshot
+        self.customInstructions = customInstructions
     }
 
     public static func current(_ defaults: UserDefaults = .standard) -> Settings {
@@ -39,7 +48,9 @@ public struct Settings: Equatable, Sendable {
             connection: connection,
             model: model.flatMap { $0.isEmpty ? nil : $0 } ?? connection.defaultModel,
             hotkey: defaults.string(forKey: SettingsKey.hotkey).flatMap(HotkeyPreset.init(rawValue:)) ?? .optionSpace,
-            includeScreenshot: defaults.object(forKey: SettingsKey.includeScreenshot) as? Bool ?? true
+            includeScreenshot: defaults.object(forKey: SettingsKey.includeScreenshot) as? Bool ?? true,
+            customInstructions: defaults.string(forKey: SettingsKey.customInstructions)?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         )
     }
 

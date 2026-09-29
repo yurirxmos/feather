@@ -9,7 +9,6 @@ struct PromptView: View {
     let cancelGeneration: () -> Void
     @FocusState private var isFieldFocused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var insertPulse = false
     @State private var isTyping = false
     @State private var typingStopTask: Task<Void, Never>?
 
@@ -92,12 +91,10 @@ struct PromptView: View {
         .foregroundStyle(.white)
         .onAppear {
             isFieldFocused = true
-            updateInsertPulse(canInsert)
         }
         .onChange(of: session.focusToken) {
             isFieldFocused = true
         }
-        .onChange(of: canInsert) { _, value in updateInsertPulse(value) }
         .onChange(of: session.isGenerating) { _, value in
             if !value { isFieldFocused = true }
         }
@@ -201,9 +198,7 @@ struct PromptView: View {
             KeyHint(
                 key: enterKey,
                 label: String(localized: "Insert", bundle: .app),
-                isHighlighted: true,
-                pulse: insertPulse,
-                allowsAnimation: !reduceMotion
+                isHighlighted: true
             )
         } else {
             KeyHint(key: enterKey, label: String(localized: "Generate", bundle: .app))
@@ -215,10 +210,6 @@ struct PromptView: View {
 
     private var canInsert: Bool {
         !session.result.isEmpty && !session.isGenerating
-    }
-
-    private func updateInsertPulse(_ active: Bool) {
-        insertPulse = active
     }
 
     private func updateTypingState(for instruction: String) {
@@ -238,33 +229,22 @@ struct PromptView: View {
 
 }
 
+/// Tilts once while the user types. Nothing in the panel may animate forever: Feather is never
+/// the active app, so every frame's commit blocks the main thread on the window server and
+/// delays streaming, Insert, and key handling by seconds.
 private struct FeatherIcon: View {
     let isAnimating: Bool
     let reduceMotion: Bool
-    @State private var phase = false
+
+    private var isTilted: Bool { isAnimating && !reduceMotion }
 
     var body: some View {
         FeatherShape()
             .stroke(style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
-            .rotationEffect(.degrees(isAnimating && phase ? -8 : 0))
-            .offset(
-                x: isAnimating && phase ? 2 : 0,
-                y: isAnimating && phase ? -4 : 0
-            )
+            .rotationEffect(.degrees(isTilted ? -8 : 0))
+            .offset(x: isTilted ? 2 : 0, y: isTilted ? -4 : 0)
             .foregroundStyle(isAnimating ? Color.accentColor : .white)
-            .onAppear { updateAnimation(isActive: isAnimating) }
-            .onChange(of: isAnimating) { _, value in updateAnimation(isActive: value) }
             .animation(.easeOut(duration: 0.28), value: isAnimating)
-    }
-
-    private func updateAnimation(isActive: Bool) {
-        guard isActive, !reduceMotion else {
-            phase = false
-            return
-        }
-        withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
-            phase = true
-        }
     }
 }
 
@@ -309,16 +289,16 @@ private struct CaptureIndicator: View {
     }
 }
 
+/// Static on purpose; see `FeatherIcon`. The elapsed time already shows progress.
 private struct GeneratingIndicator: View {
     let startedAt: Date
     let cancel: () -> Void
-    @State private var isDimmed = true
 
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
             Text("Generating…", bundle: .app)
                 .font(.system(size: 14, design: .serif))
-                .foregroundStyle(.white.opacity(isDimmed ? 0.32 : 0.68))
+                .foregroundStyle(.white.opacity(0.6))
             Spacer()
             TimelineView(.periodic(from: startedAt, by: 1)) { timeline in
                 Text(ElapsedTime.string(timeline.date.timeIntervalSince(startedAt)))
@@ -339,11 +319,6 @@ private struct GeneratingIndicator: View {
             .buttonStyle(.plain)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .onAppear {
-            withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
-                isDimmed = false
-            }
-        }
     }
 }
 
@@ -351,8 +326,6 @@ private struct KeyHint: View {
     let key: String
     let label: String
     var isHighlighted = false
-    var pulse = false
-    var allowsAnimation = true
     var action: (() -> Void)? = nil
 
     var body: some View {
@@ -374,20 +347,16 @@ private struct KeyHint: View {
                 .padding(.horizontal, 5)
                 .frame(minWidth: 22, minHeight: 20)
                 .background(
-                    isHighlighted ? Color.blue.opacity(pulse ? 0.95 : 0.58) : Color.white.opacity(0.12),
+                    isHighlighted ? Color.blue.opacity(0.9) : Color.white.opacity(0.12),
                     in: RoundedRectangle(cornerRadius: 5, style: .continuous)
                 )
             Text(label)
                 .font(.caption)
                 .foregroundStyle(
-                    isHighlighted ? Color.blue.opacity(pulse ? 0.95 : 0.58) : Color.white.opacity(0.75)
+                    isHighlighted ? Color.blue.opacity(0.9) : Color.white.opacity(0.75)
                 )
         }
         .foregroundStyle(.white.opacity(0.58))
-        .animation(
-            allowsAnimation ? .easeInOut(duration: 0.85).repeatForever(autoreverses: true) : nil,
-            value: pulse
-        )
     }
 
 }

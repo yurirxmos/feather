@@ -16,6 +16,14 @@ public struct Turn: Equatable, Sendable {
 }
 
 public struct GenerationRequest: Equatable, Sendable {
+    public enum Reasoning: Equatable, Sendable {
+        /// Asks the model to skip extended reasoning. Writing short text rarely needs it, and it
+        /// can delay the first word by tens of seconds.
+        case minimal
+        /// Leaves reasoning to the model's own default.
+        case providerDefault
+    }
+
     public var system: String
     /// Alternating user/assistant turns, starting and ending with a user turn.
     public var turns: [Turn]
@@ -24,6 +32,7 @@ public struct GenerationRequest: Equatable, Sendable {
     public var model: String
     public var maxTokens: Int
     public var sessionID: String
+    public var reasoning: Reasoning
 
     public init(
         system: String,
@@ -31,7 +40,8 @@ public struct GenerationRequest: Equatable, Sendable {
         imageJPEG: Data?,
         model: String,
         maxTokens: Int,
-        sessionID: String = ""
+        sessionID: String = "",
+        reasoning: Reasoning = .minimal
     ) {
         self.system = system
         self.turns = turns
@@ -39,6 +49,7 @@ public struct GenerationRequest: Equatable, Sendable {
         self.model = model
         self.maxTokens = maxTokens
         self.sessionID = sessionID
+        self.reasoning = reasoning
     }
 }
 
@@ -57,6 +68,7 @@ public enum LLMError: Error, Equatable, Sendable {
     case http(status: Int, message: String?)
     case api(message: String)
     case refused
+    case timedOut
 }
 
 public enum ConnectionKind: String, CaseIterable, Sendable {
@@ -76,6 +88,10 @@ public protocol LLMProvider: Sendable {
     func makeURLRequest(for request: GenerationRequest) throws -> URLRequest
     func parse(_ event: SSEEvent) throws -> StreamChunk
     func errorMessage(fromBody body: Data) -> String?
+    /// Whether `GenerationRequest.reasoning` changes the request body.
+    var controlsReasoning: Bool { get }
+    /// A URL on the provider's host that is cheap to request without credentials.
+    var preconnectURL: URL? { get }
 }
 
 extension LLMProvider {
@@ -83,17 +99,43 @@ extension LLMProvider {
         ProviderTransport.errorMessage(from: body)
     }
 
-    /// Streams text deltas. Cancelling the consuming task cancels the HTTP request.
+    public var controlsReasoning: Bool { false }
+    public var preconnectURL: URL? { nil }
+
+    /// Opens the connection to the provider before the prompt is ready, so DNS, TCP, and TLS
+    /// are done when the user submits. Sends no credentials, prompt, or screen content.
+    public func preconnect(session: URLSession = .shared) async {
+        guard let url = preconnectURL else { return }
+        var request = URLRequest(url: url, timeoutInterval: 10)
+        request.httpMethod = "HEAD"
+        request.setValue(ProviderTransport.userAgent, forHTTPHeaderField: "User-Agent")
+        _ = try? await session.data(for: request)
+    }
+
+    /// Streams text deltas. Cancelling the consuming task cancels the HTTP request. The stream
+    /// fails with `LLMError.timedOut` once `deadline` passes.
     public func stream(
         _ request: GenerationRequest,
-        session: URLSession = .shared
+        session: URLSession = .shared,
+        deadline: Duration = LLMStreamPump.responseDeadline
     ) -> AsyncThrowingStream<String, Error> {
-        AsyncThrowingStream { continuation in
+        let stream = AsyncThrowingStream<String, Error> { continuation in
             let task = Task {
                 do {
-                    let urlRequest = try makeURLRequest(for: request)
-                    let (bytes, response) = try await session.bytes(for: urlRequest)
-                    let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+                    var request = request
+                    if !controlsReasoning || ReasoningSupport.shared.rejectsMinimal(request.model) {
+                        request.reasoning = .providerDefault
+                    }
+                    var (bytes, status) = try await open(request, session: session)
+                    // Some models reject the reasoning control. Ask again with the model's
+                    // default and remember it, so later requests skip the failed attempt.
+                    if status == 400, request.reasoning == .minimal {
+                        request.reasoning = .providerDefault
+                        (bytes, status) = try await open(request, session: session)
+                        if (200..<300).contains(status) {
+                            ReasoningSupport.shared.markMinimalRejected(request.model)
+                        }
+                    }
                     guard (200..<300).contains(status) else {
                         let body = try await LLMStreamPump.readErrorBody(from: bytes)
                         throw LLMStreamPump.httpError(statusCode: status, body: body, provider: self)
@@ -108,6 +150,33 @@ extension LLMProvider {
             }
             continuation.onTermination = { _ in task.cancel() }
         }
+        return LLMStreamPump.limit(stream, to: deadline)
+    }
+
+    private func open(
+        _ request: GenerationRequest,
+        session: URLSession
+    ) async throws -> (URLSession.AsyncBytes, Int) {
+        let (bytes, response) = try await session.bytes(for: makeURLRequest(for: request))
+        return (bytes, (response as? HTTPURLResponse)?.statusCode ?? 0)
+    }
+}
+
+/// Models that returned HTTP 400 for `GenerationRequest.Reasoning.minimal` during this launch.
+public final class ReasoningSupport: @unchecked Sendable {
+    public static let shared = ReasoningSupport()
+
+    private let lock = NSLock()
+    private var rejectingModels: Set<String> = []
+
+    public init() {}
+
+    public func rejectsMinimal(_ model: String) -> Bool {
+        lock.withLock { rejectingModels.contains(model) }
+    }
+
+    public func markMinimalRejected(_ model: String) {
+        lock.withLock { _ = rejectingModels.insert(model) }
     }
 }
 
