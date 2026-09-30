@@ -77,6 +77,7 @@ function render(probe: Probe, shortcutState: string, credentialState: string): v
         <textarea id="instruction" name="instruction" rows="4" placeholder="Reply that tomorrow at 2 pm works for me."></textarea>
         <button type="submit">Generate</button>
         <pre class="result" id="result" aria-live="polite"></pre>
+        <button class="copy" id="copy-result" type="button" disabled>Copy result</button>
       </form>
     </section>`;
 }
@@ -107,15 +108,28 @@ function wirePromptForm(): void {
   const form = document.querySelector<HTMLFormElement>("#prompt-form");
   const instruction = document.querySelector<HTMLTextAreaElement>("#instruction");
   const result = document.querySelector<HTMLElement>("#result");
-  if (!form || !instruction || !result) {
+  const copyButton = document.querySelector<HTMLButtonElement>("#copy-result");
+  if (!form || !instruction || !result || !copyButton) {
     return;
   }
+
+  copyButton.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(result.textContent ?? "");
+      copyButton.textContent = "Copied";
+    } catch {
+      copyButton.textContent = "Copy unavailable";
+    }
+  });
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     result.textContent = "Writing…";
+    copyButton.disabled = true;
+    copyButton.textContent = "Copy result";
     try {
       result.textContent = await invoke<string>("generate_opencode", { instruction: instruction.value });
+      copyButton.disabled = !result.textContent.trim();
     } catch (error) {
       result.textContent = `Generation failed: ${String(error)}`;
     }
