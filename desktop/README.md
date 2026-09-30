@@ -7,7 +7,7 @@ The prototype validates the desktop features Feather needs before provider,
 capture, or text-insertion code is added:
 
 - A global shortcut
-- A tray-resident app window
+- A tray-resident app window with a show, hide, and quit menu
 - Capability reporting for the current platform
 - A small, explicit IPC boundary between the frontend and Rust
 

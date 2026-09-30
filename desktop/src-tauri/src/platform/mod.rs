@@ -31,8 +31,8 @@ pub fn probe_status() -> ProbeStatus {
             Capability {
                 id: "tray",
                 title: "Tray integration",
-                available: false,
-                detail: "The tray is the next system integration to validate.",
+                available: true,
+                detail: "Use the tray menu to show, hide, or quit Feather. Linux click behavior depends on the desktop environment.",
             },
             Capability {
                 id: "focused-context",
