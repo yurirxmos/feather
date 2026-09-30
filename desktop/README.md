@@ -3,15 +3,17 @@
 This directory contains the Windows and Linux prototype. The macOS app remains
 in the repository root and is not built from here.
 
-The prototype validates the desktop features Feather needs before provider,
-capture, or text-insertion code is added:
+The prototype validates the desktop features Feather needs before capture and
+text-insertion code is added:
 
 - A global shortcut
 - A tray-resident app window with a show, hide, and quit menu
 - Capability reporting for the current platform
 - A small, explicit IPC boundary between the frontend and Rust
+- OpenCode Go generation with an API key stored in the system credential store
 
-It deliberately does not capture screen content or send anything to an LLM.
+It deliberately does not capture screen content. The current UI can generate
+and copy text, but it cannot yet insert it into another application.
 
 ## Run
 
