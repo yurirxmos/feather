@@ -12,8 +12,11 @@ IDENTITY="${CODESIGN_IDENTITY:--}"
 VERSION="${VERSION:-0.1.0}"
 APP="dist/Feather.app"
 
-swift build -c release
-BIN_DIR="$(swift build -c release --show-bin-path)"
+# Swift 6.3's default cross-module optimization can crash while compiling this
+# SwiftPM package. The release build remains optimized; this disables only that
+# compiler optimization until the toolchain issue is resolved.
+swift build -c release -Xswiftc -disable-cmo
+BIN_DIR="$(swift build -c release -Xswiftc -disable-cmo --show-bin-path)"
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"

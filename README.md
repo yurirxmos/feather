@@ -67,6 +67,30 @@ availability depend on your ChatGPT account.
 Screen Recording is required by the current permissions flow even when the
 screenshot option is disabled. Relaunch Feather after granting it.
 
+## Download
+
+Preview builds are published on the [GitHub Releases](https://github.com/yurirxmos/feather/releases)
+page for macOS 14 or later:
+
+- `Feather-arm64.zip` for Apple Silicon Macs
+- `Feather-x86_64.zip` for Intel Macs
+
+The preview builds are ad-hoc signed and are not notarized yet. macOS may block
+the first launch. To open Feather anyway:
+
+1. In Finder, Control-click `Feather.app` and choose **Open**.
+2. If macOS still blocks it, open **System Settings > Privacy & Security**.
+3. Scroll to the Security section and choose **Open Anyway** beside Feather.
+4. Confirm **Open** in the dialog.
+
+After Feather opens, grant **Accessibility** and **Screen Recording** in its
+Settings page. You can also grant them manually in **System Settings > Privacy
+& Security > Accessibility** and **Screen Recording**. Quit and reopen Feather
+after granting Screen Recording.
+
+A future stable release will use a Developer ID signature and Apple
+notarization.
+
 ## Keyboard shortcuts
 
 ### Global shortcut

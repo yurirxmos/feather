@@ -1,0 +1,65 @@
+name: Release macOS
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.architecture }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-13
+            architecture: x86_64
+          - runner: macos-14
+            architecture: arm64
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build app bundle
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          VERSION="${VERSION#v}" scripts/bundle.sh
+
+      - name: Package app
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent dist/Feather.app "dist/Feather-${{ matrix.architecture }}.zip"
+
+      - name: Upload release asset
+        uses: actions/upload-artifact@v4
+        with:
+          name: Feather-${{ matrix.architecture }}
+          path: dist/Feather-${{ matrix.architecture }}.zip
+          if-no-files-found: error
+
+  publish:
+    name: Publish preview release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download release assets
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG" release-assets/*.zip \
+            --title "Feather ${TAG#v}" \
+            --generate-notes \
+            --prerelease
