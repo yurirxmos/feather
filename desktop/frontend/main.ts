@@ -68,6 +68,16 @@ function render(probe: Probe, shortcutState: string, credentialState: string): v
         </div>
         <p class="credential-state" id="credential-state" role="status">${escapeHTML(credentialState)}</p>
       </form>
+      <form class="prompt" id="prompt-form">
+        <div>
+          <p class="eyebrow">Write with Feather</p>
+          <h2>What do you want to type?</h2>
+        </div>
+        <label for="instruction">Instruction</label>
+        <textarea id="instruction" name="instruction" rows="4" placeholder="Reply that tomorrow at 2 pm works for me."></textarea>
+        <button type="submit">Generate</button>
+        <pre class="result" id="result" aria-live="polite"></pre>
+      </form>
     </section>`;
 }
 
@@ -93,6 +103,25 @@ function wireCredentialForm(probe: Probe, shortcutState: string): void {
   });
 }
 
+function wirePromptForm(): void {
+  const form = document.querySelector<HTMLFormElement>("#prompt-form");
+  const instruction = document.querySelector<HTMLTextAreaElement>("#instruction");
+  const result = document.querySelector<HTMLElement>("#result");
+  if (!form || !instruction || !result) {
+    return;
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    result.textContent = "Writing…";
+    try {
+      result.textContent = await invoke<string>("generate_opencode", { instruction: instruction.value });
+    } catch (error) {
+      result.textContent = `Generation failed: ${String(error)}`;
+    }
+  });
+}
+
 async function configureShortcut(): Promise<string> {
   if (await isRegistered(shortcut)) {
     await unregister(shortcut);
@@ -114,6 +143,7 @@ async function start(): Promise<void> {
   }
   render(probe, shortcutState, hasKey ? "An API key is already stored securely." : "No API key is stored yet.");
   wireCredentialForm(probe, shortcutState);
+  wirePromptForm();
 }
 
 void start();

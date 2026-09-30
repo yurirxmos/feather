@@ -1,6 +1,7 @@
 mod core;
 mod credentials;
 mod platform;
+mod providers;
 
 use platform::ProbeStatus;
 use tauri::{
@@ -27,6 +28,12 @@ fn save_opencode_api_key(api_key: String) -> Result<(), String> {
 #[tauri::command]
 fn delete_opencode_api_key() -> Result<(), String> {
     credentials::delete_opencode_api_key()
+}
+
+#[tauri::command]
+async fn generate_opencode(instruction: String) -> Result<String, String> {
+    let api_key = credentials::opencode_api_key()?;
+    providers::opencode_go::generate(&api_key, &instruction).await
 }
 
 #[tauri::command]
@@ -82,7 +89,8 @@ pub fn run() {
             toggle_probe_window,
             has_opencode_api_key,
             save_opencode_api_key,
-            delete_opencode_api_key
+            delete_opencode_api_key,
+            generate_opencode
         ])
         .run(tauri::generate_context!())
         .expect("Feather desktop failed to run");

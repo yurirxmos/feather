@@ -17,6 +17,12 @@ pub fn has_opencode_api_key() -> Result<bool, String> {
     }
 }
 
+pub fn opencode_api_key() -> Result<String, String> {
+    opencode_entry()?
+        .get_password()
+        .map_err(|_| "Feather could not read the OpenCode Go API key from secure storage.".to_owned())
+}
+
 pub fn save_opencode_api_key(api_key: &str) -> Result<(), String> {
     let api_key = api_key.trim();
     if api_key.is_empty() {
