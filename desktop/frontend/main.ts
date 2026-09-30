@@ -30,7 +30,7 @@ function escapeHTML(value: string): string {
   return element.innerHTML;
 }
 
-function render(probe: Probe, shortcutState: string): void {
+function render(probe: Probe, shortcutState: string, credentialState: string): void {
   const capabilities = probe.capabilities
     .map(
       (capability) => `
@@ -55,7 +55,42 @@ function render(probe: Probe, shortcutState: string): void {
       </div>
       <p class="shortcut-state" role="status">${escapeHTML(shortcutState)}</p>
       <ul class="capabilities" aria-label="Platform capabilities">${capabilities}</ul>
+      <form class="credentials" id="opencode-key-form">
+        <div>
+          <p class="eyebrow">OpenCode Go</p>
+          <h2>Connect your API key</h2>
+          <p>Your key is stored by the operating system. Feather does not return it to this window after saving.</p>
+        </div>
+        <label for="opencode-api-key">API key</label>
+        <div class="key-row">
+          <input id="opencode-api-key" name="apiKey" type="password" autocomplete="off" spellcheck="false" required />
+          <button type="submit">Save key</button>
+        </div>
+        <p class="credential-state" id="credential-state" role="status">${escapeHTML(credentialState)}</p>
+      </form>
     </section>`;
+}
+
+function wireCredentialForm(probe: Probe, shortcutState: string): void {
+  const form = document.querySelector<HTMLFormElement>("#opencode-key-form");
+  const input = document.querySelector<HTMLInputElement>("#opencode-api-key");
+  if (!form || !input) {
+    return;
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const apiKey = input.value;
+    input.value = "";
+    try {
+      await invoke("save_opencode_api_key", { apiKey });
+      render(probe, shortcutState, "API key saved in secure storage.");
+      wireCredentialForm(probe, shortcutState);
+    } catch (error) {
+      render(probe, shortcutState, `The API key was not saved: ${String(error)}`);
+      wireCredentialForm(probe, shortcutState);
+    }
+  });
 }
 
 async function configureShortcut(): Promise<string> {
@@ -70,11 +105,15 @@ async function configureShortcut(): Promise<string> {
 
 async function start(): Promise<void> {
   const probe = await invoke<Probe>("probe_status");
+  const hasKey = await invoke<boolean>("has_opencode_api_key");
+  let shortcutState: string;
   try {
-    render(probe, await configureShortcut());
+    shortcutState = await configureShortcut();
   } catch (error) {
-    render(probe, `The global shortcut could not be registered: ${String(error)}`);
+    shortcutState = `The global shortcut could not be registered: ${String(error)}`;
   }
+  render(probe, shortcutState, hasKey ? "An API key is already stored securely." : "No API key is stored yet.");
+  wireCredentialForm(probe, shortcutState);
 }
 
 void start();

@@ -21,5 +21,15 @@ kbd { padding: 5px 8px; border: 1px solid #62818c; border-radius: 4px; color: #b
 .ready .status { background: #70d0a2; }
 .capability strong { font-size: 15px; }
 .capability p { margin: 3px 0 0; color: #9eacbb; font-size: 14px; line-height: 1.4; }
+.credentials { display: grid; gap: 10px; margin-top: 28px; padding: 22px; border: 1px solid #40515f; background: #17212b; }
+.credentials .eyebrow { margin-bottom: 8px; }
+.credentials h2 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: 28px; font-weight: 400; letter-spacing: -.03em; }
+.credentials p:not(.eyebrow) { margin: 8px 0 4px; color: #9eacbb; line-height: 1.45; }
+.credentials label { margin-top: 8px; font-size: 13px; font-weight: 700; }
+.key-row { display: flex; gap: 8px; }
+.key-row input { min-width: 0; flex: 1; padding: 10px 12px; border: 1px solid #62818c; border-radius: 4px; color: #e7edf5; background: #10151c; font: inherit; }
+button { padding: 10px 14px; border: 0; border-radius: 4px; color: #102027; background: #87d8df; font: 700 14px inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.credential-state { min-height: 21px; color: #87d8df !important; font-size: 14px; }
 
-@media (max-width: 540px) { .probe { padding: 28px 22px; } .shortcut { align-items: flex-start; flex-direction: column; } }
+@media (max-width: 540px) { .probe { padding: 28px 22px; } .shortcut, .key-row { align-items: flex-start; flex-direction: column; } .key-row input, .key-row button { width: 100%; } }
