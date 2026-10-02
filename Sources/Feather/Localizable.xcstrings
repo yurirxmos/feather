@@ -900,6 +900,386 @@
           }
         }
       }
+    },
+    "Sign-in timed out. Try again.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O login expirou. Tente novamente."
+          }
+        }
+      }
+    },
+    "Your session expired. Sign in again.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua sessão expirou. Entre novamente."
+          }
+        }
+      }
+    },
+    "Feather Plus returned an error (%lld).": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Feather Plus retornou um erro (%lld)."
+          }
+        }
+      }
+    },
+    "Couldn't save your session in the Keychain.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível salvar sua sessão nas Chaves."
+          }
+        }
+      }
+    },
+    "Couldn't reach Feather Plus. Check your connection.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível acessar o Feather Plus. Verifique sua conexão."
+          }
+        }
+      }
+    },
+    "Signed in to Feather Plus": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você entrou no Feather Plus"
+          }
+        }
+      }
+    },
+    "You can close this window and return to Feather.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você pode fechar esta janela e voltar ao Feather."
+          }
+        }
+      }
+    },
+    "Sign-in failed": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Falha ao entrar"
+          }
+        }
+      }
+    },
+    "Use Feather without your own API key. Prompts, screen context, and replies are never stored.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use o Feather sem sua própria chave de API. Instruções, contexto da tela e respostas nunca são armazenados."
+          }
+        }
+      }
+    },
+    "Starter": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Starter"
+          }
+        }
+      }
+    },
+    "$5/month": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "US$ 5/mês"
+          }
+        }
+      }
+    },
+    "Everyday replies with a fast model.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Respostas do dia a dia com um modelo rápido."
+          }
+        }
+      }
+    },
+    "Max": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Max"
+          }
+        }
+      }
+    },
+    "$20/month": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "US$ 20/mês"
+          }
+        }
+      }
+    },
+    "Higher limits and premium models.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Limites maiores e modelos premium."
+          }
+        }
+      }
+    },
+    "Feather Plus": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feather Plus"
+          }
+        }
+      }
+    },
+    "Sign in": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entrar"
+          }
+        }
+      }
+    },
+    "Email": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "E-mail"
+          }
+        }
+      }
+    },
+    "Plan": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plano"
+          }
+        }
+      }
+    },
+    "No plan": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem plano"
+          }
+        }
+      }
+    },
+    "Choose a plan…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolher um plano…"
+          }
+        }
+      }
+    },
+    "Manage subscription…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gerenciar assinatura…"
+          }
+        }
+      }
+    },
+    "Sign out": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sair"
+          }
+        }
+      }
+    },
+    "Usage this period": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uso neste período"
+          }
+        }
+      }
+    },
+    "Resets on %@.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Renova em %@."
+          }
+        }
+      }
+    },
+    "%lld of %lld": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld de %2$lld"
+          }
+        }
+      }
+    },
+    "Fast requests": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Requisições rápidas"
+          }
+        }
+      }
+    },
+    "Premium requests": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Requisições premium"
+          }
+        }
+      }
+    },
+    "Sign in to Feather Plus in Settings.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entre no Feather Plus nos Ajustes."
+          }
+        }
+      }
+    },
+    "Premium is included in the Max plan.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Premium está incluído no plano Max."
+          }
+        }
+      }
+    },
+    "Signed in": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conectado"
+          }
+        }
+      }
+    },
+    "Manage…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gerenciar…"
+          }
+        }
+      }
+    },
+    "Sign in…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entrar…"
+          }
+        }
+      }
+    },
+    "Fast": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rápido"
+          }
+        }
+      }
+    },
+    "Premium": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Premium"
+          }
+        }
+      }
+    },
+    "Replies": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Respostas"
+          }
+        }
+      }
+    },
+    "Using Feather Plus": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usando o Feather Plus"
+          }
+        }
+      }
+    },
+    "Use Feather Plus": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar o Feather Plus"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

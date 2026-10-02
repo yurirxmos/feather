@@ -290,7 +290,8 @@ final class PromptController: NSObject, NSWindowDelegate {
             await captureTask?.value
             guard !Task.isCancelled else { return }
             let provider: LLMProvider
-            if settings.connection == .chatGPT {
+            switch settings.connection {
+            case .chatGPT:
                 do {
                     let credentials = try await ChatGPTAuth.validCredentials(store: credentialStore)
                     provider = settings.makeProvider(accessToken: credentials.accessToken, accountID: credentials.accountID)
@@ -299,7 +300,14 @@ final class PromptController: NSObject, NSWindowDelegate {
                     session.isGenerating = false
                     return
                 }
-            } else {
+            case .featherPlus:
+                guard let token = credentialStore.plusToken() else {
+                    session.errorMessage = String(localized: "Sign in to Feather Plus in Settings.", bundle: .app)
+                    session.isGenerating = false
+                    return
+                }
+                provider = settings.makeProvider(plusToken: token)
+            case .openCodeGo:
                 provider = settings.makeProvider(apiKey: credentialStore.apiKey() ?? "")
             }
             let request = PromptBuilder.request(

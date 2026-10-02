@@ -4,6 +4,7 @@ import SwiftUI
 private enum SettingsSection: String, CaseIterable, Identifiable {
     case general
     case connection
+    case plus
     case permissions
 
     var id: String { rawValue }
@@ -12,6 +13,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
         switch self {
         case .connection: String(localized: "Connection", bundle: .app)
         case .general: String(localized: "General", bundle: .app)
+        case .plus: String(localized: "Feather Plus", bundle: .app)
         case .permissions: String(localized: "Permissions", bundle: .app)
         }
     }
@@ -20,6 +22,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
         switch self {
         case .connection: "network"
         case .general: "gearshape"
+        case .plus: "sparkles"
         case .permissions: "lock.shield"
         }
     }
@@ -28,6 +31,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
         switch self {
         case .connection: .blue
         case .general: .gray
+        case .plus: .orange
         case .permissions: .indigo
         }
     }
@@ -48,6 +52,7 @@ struct SettingsView: View {
     @State private var isLoggingIn = false
     @State private var authError: String?
     @State private var chatGPTConnected = false
+    @State private var plusSignedIn = false
     @State private var openCodeModels: [String] = []
     @State private var isLoadingModels = false
     @State private var modelsFailed = false
@@ -72,6 +77,10 @@ struct SettingsView: View {
             } else if !permissions.allGranted {
                 selectedSection = .permissions
             }
+        }
+        .onChange(of: selectedSection) { _, _ in
+            // Feather Plus sign-in happens in its own pane; refresh when coming back.
+            loadCredentials(for: connection)
         }
         .onChange(of: connection) { _, value in
             model = FeatherCore.Settings.model(afterChangingTo: value, preserving: model)
@@ -121,7 +130,7 @@ struct SettingsView: View {
     private func needsAttention(_ section: SettingsSection) -> Bool {
         switch section {
         case .connection: !isConnected
-        case .general: false
+        case .general, .plus: false
         case .permissions: !permissions.allGranted
         }
     }
@@ -130,6 +139,7 @@ struct SettingsView: View {
         switch connection {
         case .openCodeGo: !storedKey.isEmpty
         case .chatGPT: chatGPTConnected
+        case .featherPlus: plusSignedIn
         }
     }
 
@@ -138,6 +148,7 @@ struct SettingsView: View {
         switch selectedSection ?? .general {
         case .connection: connectionView
         case .general: generalView
+        case .plus: PlusSettingsView(credentialStore: credentialStore)
         case .permissions: permissionsView
         }
     }
@@ -150,13 +161,14 @@ struct SettingsView: View {
                 Picker(String(localized: "Provider", bundle: .app), selection: $connection) {
                     Text("OpenCode Go", bundle: .app).tag(ConnectionKind.openCodeGo)
                     Text("ChatGPT", bundle: .app).tag(ConnectionKind.chatGPT)
+                    Text("Feather Plus", bundle: .app).tag(ConnectionKind.featherPlus)
                 }
                 .pickerStyle(.segmented)
 
-                if connection == .openCodeGo {
-                    keyEditor
-                } else {
-                    chatGPTEditor
+                switch connection {
+                case .openCodeGo: keyEditor
+                case .chatGPT: chatGPTEditor
+                case .featherPlus: plusEditor
                 }
             } header: {
                 Text("Account", bundle: .app)
@@ -173,6 +185,10 @@ struct SettingsView: View {
             } footer: {
                 if connection == .openCodeGo, storedKey.isEmpty {
                     Text("Add an API key to load the available models.", bundle: .app)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                } else if connection == .featherPlus {
+                    Text("Premium is included in the Max plan.", bundle: .app)
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 } else if connection == .openCodeGo, modelsFailed {
@@ -261,8 +277,27 @@ struct SettingsView: View {
     }
 
     @ViewBuilder
+    private var plusEditor: some View {
+        LabeledContent(String(localized: "Account", bundle: .app)) {
+            HStack(spacing: 10) {
+                if plusSignedIn {
+                    StatusBadge(text: String(localized: "Signed in", bundle: .app), color: .green)
+                }
+                Button(plusSignedIn ? String(localized: "Manage…", bundle: .app) : String(localized: "Sign in…", bundle: .app)) {
+                    selectedSection = .plus
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
     private var modelEditor: some View {
         switch connection {
+        case .featherPlus:
+            Picker(String(localized: "Model", bundle: .app), selection: $model) {
+                Text("Fast", bundle: .app).tag(FeatherPlusProvider.Tier.fast.rawValue)
+                Text("Premium", bundle: .app).tag(FeatherPlusProvider.Tier.premium.rawValue)
+            }
         case .chatGPT:
             Picker(String(localized: "Model", bundle: .app), selection: $model) {
                 ForEach(ChatGPTModelCatalog.models) { model in
@@ -391,6 +426,8 @@ struct SettingsView: View {
             if openCodeModels.isEmpty { loadOpenCodeModels() }
         case .chatGPT:
             chatGPTConnected = credentialStore.chatGPTCredentials() != nil
+        case .featherPlus:
+            plusSignedIn = credentialStore.plusToken() != nil
         }
     }
 
@@ -423,7 +460,7 @@ private struct SectionIcon: View {
     }
 }
 
-private struct StatusBadge: View {
+struct StatusBadge: View {
     let text: String
     let color: Color
 

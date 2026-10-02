@@ -22,6 +22,9 @@ public protocol CredentialStore: Sendable {
     func chatGPTCredentials() -> ChatGPTCredentials?
     func setChatGPTCredentials(_ credentials: ChatGPTCredentials) -> Bool
     func deleteChatGPTCredentials()
+    func plusToken() -> String?
+    func setPlusToken(_ token: String) -> Bool
+    func deletePlusToken()
 }
 
 /// In-memory adapter for tests and previews.
@@ -29,10 +32,12 @@ public final class MemoryCredentialStore: CredentialStore, @unchecked Sendable {
     private let lock = NSLock()
     private var storedAPIKey: String?
     private var storedChatGPTCredentials: ChatGPTCredentials?
+    private var storedPlusToken: String?
 
-    public init(apiKey: String? = nil, chatGPTCredentials: ChatGPTCredentials? = nil) {
+    public init(apiKey: String? = nil, chatGPTCredentials: ChatGPTCredentials? = nil, plusToken: String? = nil) {
         storedAPIKey = apiKey
         storedChatGPTCredentials = chatGPTCredentials
+        storedPlusToken = plusToken
     }
 
     public func apiKey() -> String? {
@@ -62,5 +67,18 @@ public final class MemoryCredentialStore: CredentialStore, @unchecked Sendable {
 
     public func deleteChatGPTCredentials() {
         lock.withLock { storedChatGPTCredentials = nil }
+    }
+
+    public func plusToken() -> String? {
+        lock.withLock { storedPlusToken }
+    }
+
+    public func setPlusToken(_ token: String) -> Bool {
+        lock.withLock { storedPlusToken = token }
+        return true
+    }
+
+    public func deletePlusToken() {
+        lock.withLock { storedPlusToken = nil }
     }
 }

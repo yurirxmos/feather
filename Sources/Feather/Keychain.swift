@@ -7,6 +7,7 @@ enum Keychain {
     private static let legacyService = "com.contextbar.api-keys"
     private static let account = "opencode-go"
     private static let chatGPTAccount = "chatgpt-oauth"
+    private static let plusAccount = "feather-plus"
 
     static func apiKey() -> String? {
         guard let data = readOrMigrate(account: account) else { return nil }
@@ -45,6 +46,19 @@ enum Keychain {
 
     static func deleteChatGPTCredentials() {
         delete(account: chatGPTAccount)
+    }
+
+    static func plusToken() -> String? {
+        read(account: plusAccount).flatMap { String(data: $0, encoding: .utf8) }
+    }
+
+    @discardableResult
+    static func setPlusToken(_ token: String) -> Bool {
+        write(Data(token.utf8), account: plusAccount)
+    }
+
+    static func deletePlusToken() {
+        delete(account: plusAccount)
     }
 
     private static func read(account: String) -> Data? {
@@ -110,4 +124,7 @@ struct KeychainCredentialStore: CredentialStore {
     func chatGPTCredentials() -> ChatGPTCredentials? { Keychain.chatGPTCredentials() }
     func setChatGPTCredentials(_ credentials: ChatGPTCredentials) -> Bool { Keychain.setChatGPTCredentials(credentials) }
     func deleteChatGPTCredentials() { Keychain.deleteChatGPTCredentials() }
+    func plusToken() -> String? { Keychain.plusToken() }
+    func setPlusToken(_ token: String) -> Bool { Keychain.setPlusToken(token) }
+    func deletePlusToken() { Keychain.deletePlusToken() }
 }
