@@ -14,6 +14,18 @@ public enum FeatherPlus {
     #endif
     public static let callbackPath = "/callback"
 
+    /// Whether Settings offers Feather Plus. Debug builds always do; release builds only after
+    /// launch, or with `defaults write com.feather.app plusEnabled -bool true` for beta testers.
+    public static let isLaunched = false
+
+    public static func isEnabled(_ defaults: UserDefaults = .standard) -> Bool {
+        #if DEBUG
+        return true
+        #else
+        return isLaunched || defaults.bool(forKey: SettingsKey.plusEnabled)
+        #endif
+    }
+
     /// Reads the `plusBaseURL` override, so development builds can point at another server.
     public static func baseURL(_ defaults: UserDefaults = .standard) -> String {
         let override = defaults.string(forKey: SettingsKey.plusBaseURL)?

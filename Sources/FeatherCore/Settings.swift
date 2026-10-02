@@ -8,6 +8,8 @@ public enum SettingsKey {
     public static let customInstructions = "customInstructions"
     /// Development override for the Feather Plus server. Not shown in Settings.
     public static let plusBaseURL = "plusBaseURL"
+    /// Shows Feather Plus in release builds before launch. Not shown in Settings.
+    public static let plusEnabled = "plusEnabled"
 }
 
 public enum HotkeyPreset: String, CaseIterable, Identifiable, Sendable {

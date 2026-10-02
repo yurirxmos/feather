@@ -92,7 +92,7 @@ struct SettingsView: View {
     // MARK: - Sidebar
 
     private var sidebar: some View {
-        List(SettingsSection.allCases, selection: $selectedSection) { section in
+        List(visibleSections, selection: $selectedSection) { section in
             HStack(spacing: 8) {
                 SectionIcon(symbol: section.symbol, tint: section.tint)
                 Text(section.title)
@@ -125,6 +125,10 @@ struct SettingsView: View {
             }
         }
         .navigationSplitViewColumnWidth(min: 190, ideal: 200, max: 240)
+    }
+
+    private var visibleSections: [SettingsSection] {
+        SettingsSection.allCases.filter { $0 != .plus || FeatherPlus.isEnabled() }
     }
 
     private func needsAttention(_ section: SettingsSection) -> Bool {
@@ -161,7 +165,9 @@ struct SettingsView: View {
                 Picker(String(localized: "Provider", bundle: .app), selection: $connection) {
                     Text("OpenCode Go", bundle: .app).tag(ConnectionKind.openCodeGo)
                     Text("ChatGPT", bundle: .app).tag(ConnectionKind.chatGPT)
-                    Text("Feather Plus", bundle: .app).tag(ConnectionKind.featherPlus)
+                    if FeatherPlus.isEnabled() {
+                        Text("Feather Plus", bundle: .app).tag(ConnectionKind.featherPlus)
+                    }
                 }
                 .pickerStyle(.segmented)
 
