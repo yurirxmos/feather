@@ -10,6 +10,8 @@ public enum SettingsKey {
     public static let plusBaseURL = "plusBaseURL"
     /// Shows Feather Plus in release builds before launch. Not shown in Settings.
     public static let plusEnabled = "plusEnabled"
+    /// Lets Feather Plus generate replies before that stage launches. Not shown in Settings.
+    public static let plusProviderEnabled = "plusProviderEnabled"
 }
 
 public enum HotkeyPreset: String, CaseIterable, Identifiable, Sendable {
@@ -47,10 +49,14 @@ public struct Settings: Equatable, Sendable {
     }
 
     public static func current(_ defaults: UserDefaults = .standard) -> Settings {
-        let connection = defaults.string(forKey: SettingsKey.connection)
+        var connection = defaults.string(forKey: SettingsKey.connection)
             .flatMap(ConnectionKind.init(rawValue:)) ?? .openCodeGo
-        let model = defaults.string(forKey: SettingsKey.model)?
+        // A stored Feather Plus choice is ignored while that stage is off.
+        if connection == .featherPlus, !FeatherPlus.isProviderEnabled(defaults) { connection = .openCodeGo }
+        var model = defaults.string(forKey: SettingsKey.model)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
+        // Tier names only mean something to Feather Plus.
+        if let stored = model, FeatherPlusProvider.isTier(stored), connection != .featherPlus { model = nil }
         return Settings(
             connection: connection,
             model: model.flatMap { $0.isEmpty ? nil : $0 } ?? connection.defaultModel,

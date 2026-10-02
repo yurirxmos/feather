@@ -14,16 +14,25 @@ public enum FeatherPlus {
     #endif
     public static let callbackPath = "/callback"
 
-    /// Whether Settings offers Feather Plus. Debug builds always do; release builds only after
-    /// launch, or with `defaults write com.feather.app plusEnabled -bool true` for beta testers.
-    public static let isLaunched = false
+    // Feather Plus rolls out in two stages. Accounts (sign-in, plan, usage) come first and
+    // leave generation on the provider the user configured. Generating through Feather Plus
+    // follows once the hosted upstream is set up. Beta testers turn each stage on early with
+    // `defaults write com.feather.app plusEnabled -bool true` and `plusProviderEnabled`.
+    public static let accountsLaunched = false
+    public static let providerLaunched = false
 
+    /// Whether Settings shows the Feather Plus pane. Debug builds always do.
     public static func isEnabled(_ defaults: UserDefaults = .standard) -> Bool {
         #if DEBUG
         return true
         #else
-        return isLaunched || defaults.bool(forKey: SettingsKey.plusEnabled)
+        return accountsLaunched || defaults.bool(forKey: SettingsKey.plusEnabled)
         #endif
+    }
+
+    /// Whether Feather Plus can be chosen as the provider that generates replies.
+    public static func isProviderEnabled(_ defaults: UserDefaults = .standard) -> Bool {
+        isEnabled(defaults) && (providerLaunched || defaults.bool(forKey: SettingsKey.plusProviderEnabled))
     }
 
     /// Reads the `plusBaseURL` override, so development builds can point at another server.

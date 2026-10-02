@@ -165,7 +165,7 @@ struct SettingsView: View {
                 Picker(String(localized: "Provider", bundle: .app), selection: $connection) {
                     Text("OpenCode Go", bundle: .app).tag(ConnectionKind.openCodeGo)
                     Text("ChatGPT", bundle: .app).tag(ConnectionKind.chatGPT)
-                    if FeatherPlus.isEnabled() {
+                    if FeatherPlus.isProviderEnabled() {
                         Text("Feather Plus", bundle: .app).tag(ConnectionKind.featherPlus)
                     }
                 }

@@ -64,6 +64,23 @@ final class FeatherPlusProviderTests: XCTestCase {
         XCTAssertEqual((provider as? FeatherPlusProvider)?.baseURL, "https://plus.example.com")
     }
 
+    func testStoredPlusConnectionNeedsTheProviderStage() throws {
+        let name = "FeatherPlusProviderTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: name))
+        defer { defaults.removePersistentDomain(forName: name) }
+        defaults.set(ConnectionKind.featherPlus.rawValue, forKey: SettingsKey.connection)
+        defaults.set("premium", forKey: SettingsKey.model)
+
+        XCTAssertFalse(FeatherPlus.isProviderEnabled(defaults))
+        XCTAssertEqual(Settings.current(defaults).connection, .openCodeGo)
+        XCTAssertEqual(Settings.current(defaults).model, OpenCodeGoProvider.defaultModel)
+
+        defaults.set(true, forKey: SettingsKey.plusProviderEnabled)
+        XCTAssertTrue(FeatherPlus.isProviderEnabled(defaults))
+        XCTAssertEqual(Settings.current(defaults).connection, .featherPlus)
+        XCTAssertEqual(Settings.current(defaults).model, "premium")
+    }
+
     func testModelSwitchesKeepTiersOnlyOnPlus() {
         XCTAssertEqual(Settings.model(afterChangingTo: .featherPlus, preserving: OpenCodeGoProvider.defaultModel), "fast")
         XCTAssertEqual(Settings.model(afterChangingTo: .featherPlus, preserving: "custom-model"), "fast")

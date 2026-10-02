@@ -97,7 +97,7 @@ struct PlusSettingsView: View {
                     }
                 }
             }
-            if account?.plan != nil {
+            if account?.plan != nil, FeatherPlus.isProviderEnabled() {
                 LabeledContent(String(localized: "Replies", bundle: .app)) {
                     if connection == .featherPlus {
                         StatusBadge(text: String(localized: "Using Feather Plus", bundle: .app), color: .green)
