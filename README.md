@@ -47,9 +47,10 @@ with a one-time email link, pick a plan, and select **Feather Plus** as the prov
 | Starter | $5/month | 500 requests per billing period |
 | Max | $20/month | 4,000 requests per billing period |
 
-Both plans use the same model; they differ only in how many requests they include. Requests
-are sent to models with a Zero Data Retention policy, and instructions, screen context, and replies are
-never stored. Only your email, plan, and request and token counts are kept.
+Both plans use the same model; they differ only in how many requests they include. Feather
+never stores your instructions, screen context, or replies; they pass through its server to
+the model provider, which handles them under its own data policy. Only your email, plan, and
+request and token counts are kept.
 
 Bringing your own OpenCode Go key or ChatGPT account stays free.
 

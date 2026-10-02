@@ -41,7 +41,7 @@ struct PlusSettingsView: View {
     @ViewBuilder
     private var signedOutContent: some View {
         Section {
-            Text("Use Feather without your own API key. Prompts, screen context, and replies are never stored.", bundle: .app)
+            Text("Use Feather without your own API key. Feather never stores your prompts, screen context, or replies.", bundle: .app)
                 .foregroundStyle(.secondary)
             PlanRow(
                 name: String(localized: "Starter", bundle: .app),

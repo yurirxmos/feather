@@ -991,12 +991,12 @@
         }
       }
     },
-    "Use Feather without your own API key. Prompts, screen context, and replies are never stored.": {
+    "Use Feather without your own API key. Feather never stores your prompts, screen context, or replies.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Use o Feather sem sua própria chave de API. Instruções, contexto da tela e respostas nunca são armazenados."
+            "value": "Use o Feather sem sua própria chave de API. O Feather nunca armazena suas instruções, o contexto da tela nem as respostas."
           }
         }
       }
