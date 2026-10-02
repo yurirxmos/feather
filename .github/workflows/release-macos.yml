@@ -45,13 +45,18 @@ jobs:
 
       - name: Package app
         run: |
-          ditto -c -k --sequesterRsrc --keepParent dist/Feather.app "dist/Feather-${{ matrix.architecture }}.zip"
+          # A disk image with an Applications shortcut so users can drag Feather into place.
+          STAGING="$(mktemp -d)"
+          cp -R dist/Feather.app "$STAGING/"
+          ln -s /Applications "$STAGING/Applications"
+          hdiutil create -volname Feather -srcfolder "$STAGING" -ov -format UDZO \
+            "dist/Feather-${{ matrix.architecture }}.dmg"
 
       - name: Upload release asset
         uses: actions/upload-artifact@v4
         with:
           name: Feather-${{ matrix.architecture }}
-          path: dist/Feather-${{ matrix.architecture }}.zip
+          path: dist/Feather-${{ matrix.architecture }}.dmg
           if-no-files-found: error
 
   publish:
@@ -74,11 +79,11 @@ jobs:
           # This job has no checkout, so name the repository. A full release (not a prerelease)
           # is what /releases/latest, the website's download link, resolves to.
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$TAG" release-assets/*.zip --clobber --repo "$GITHUB_REPOSITORY"
+            gh release upload "$TAG" release-assets/*.dmg --clobber --repo "$GITHUB_REPOSITORY"
           else
-            gh release create "$TAG" release-assets/*.zip \
+            gh release create "$TAG" release-assets/*.dmg \
               --repo "$GITHUB_REPOSITORY" \
               --title "Feather ${TAG#v}" \
-              --notes "Download Feather-arm64.zip for Apple silicon or Feather-x86_64.zip for Intel. Feather is not notarized yet: the first time you open it, go to System Settings > Privacy & Security and choose Open Anyway." \
+              --notes "Download Feather-arm64.dmg for Apple silicon or Feather-x86_64.dmg for Intel, then drag Feather into Applications. Feather is not notarized yet: the first time you open it, go to System Settings > Privacy & Security and choose Open Anyway." \
               --generate-notes
           fi

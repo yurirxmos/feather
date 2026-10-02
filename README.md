@@ -89,8 +89,8 @@ screenshot option is disabled. Relaunch Feather after granting it.
 Preview builds are published on the [GitHub Releases](https://github.com/yurirxmos/feather/releases)
 page for macOS 14 or later:
 
-- `Feather-arm64.zip` for Apple Silicon Macs
-- `Feather-x86_64.zip` for Intel Macs
+- `Feather-arm64.dmg` for Apple Silicon Macs
+- `Feather-x86_64.dmg` for Intel Macs
 
 The preview builds are ad-hoc signed and are not notarized yet. macOS may block
 the first launch. To open Feather anyway:
