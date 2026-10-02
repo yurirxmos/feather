@@ -160,3 +160,7 @@ swift test
 
 AppKit, Accessibility, and ScreenCaptureKit behavior should also be verified by
 running the bundled app.
+
+## License
+
+Feather is released under the [MIT License](LICENSE).
