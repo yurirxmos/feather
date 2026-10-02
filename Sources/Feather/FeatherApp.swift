@@ -22,6 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var settingsWindow: NSWindow?
     private var registeredHotkey: HotkeyPreset?
     private var hotkeyMenuItem: NSMenuItem?
+    private let updater = AppUpdater()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         HotkeyManager.shared.onPress = { [weak self] in self?.openPrompt() }
@@ -33,6 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !AccessibilityContext.isTrusted || !WindowCapture.hasPermission || !FeatherCore.Settings.current().hasCredentials(using: credentialStore) {
             showSettings()
         }
+        updater.checkForUpdatesInBackground()
     }
 
     private func setUpStatusItem() {
@@ -49,6 +51,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let settings = NSMenuItem(title: String(localized: "Settings…", bundle: .app), action: #selector(showSettings), keyEquivalent: ",")
         settings.target = self
         menu.addItem(settings)
+        if updater.isConfigured {
+            let updates = NSMenuItem(title: String(localized: "Check for Updates…", bundle: .app), action: #selector(AppUpdater.checkForUpdates(_:)), keyEquivalent: "")
+            updates.target = updater
+            menu.addItem(updates)
+        }
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: String(localized: "Quit", bundle: .app), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         item.menu = menu

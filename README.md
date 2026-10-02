@@ -92,8 +92,8 @@ page for macOS 14 or later:
 - `Feather-arm64.dmg` for Apple Silicon Macs
 - `Feather-x86_64.dmg` for Intel Macs
 
-The preview builds are ad-hoc signed and are not notarized yet. macOS may block
-the first launch. To open Feather anyway:
+The preview builds are signed with Feather's own certificate and are not notarized
+yet. macOS may block the first launch. To open Feather anyway:
 
 1. In Finder, Control-click `Feather.app` and choose **Open**.
 2. If macOS still blocks it, open **System Settings > Privacy & Security**.
@@ -104,6 +104,10 @@ After Feather opens, grant **Accessibility** and **Screen Recording** in its
 Settings page. You can also grant them manually in **System Settings > Privacy
 & Security > Accessibility** and **Screen Recording**. Quit and reopen Feather
 after granting Screen Recording.
+
+Feather checks for updates on launch and every hour. When a new version is out it
+asks before installing, and the permissions carry over. You can also choose
+**Check for Updates…** from the menu-bar icon.
 
 A future stable release will use a Developer ID signature and Apple
 notarization.
@@ -160,6 +164,14 @@ Set `VERSION` to override the app version embedded in the bundle:
 
 ```sh
 VERSION=1.0.0 scripts/bundle.sh
+```
+
+Local builds leave the updater off. To publish a release, push a version tag; the
+`Release macOS` workflow builds both architectures, signs them, and publishes the
+disk images with a signed Sparkle feed per architecture:
+
+```sh
+git tag v0.1.7 && git push origin v0.1.7
 ```
 
 ## Development

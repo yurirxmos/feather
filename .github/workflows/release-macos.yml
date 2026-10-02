@@ -1,11 +1,11 @@
 name: Release macOS
 
+# Every published release reaches installed apps through Sparkle, so release only from a version
+# tag: `git tag v0.1.7 && git push origin v0.1.7`.
 on:
   push:
-    branches: [main]
     tags:
       - "v*"
-  workflow_dispatch:
 
 permissions:
   contents: write
@@ -15,7 +15,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('v0.1.{0}', github.run_number) }}
+  RELEASE_TAG: ${{ github.ref_name }}
+  # Public half of the EdDSA key that signs updates; the private half is the
+  # SPARKLE_PRIVATE_ED_KEY secret.
+  SPARKLE_PUBLIC_ED_KEY: dTvHI52c2/Ykj+t9pMxH4pjOchlhLj093RGRXbwCU6c=
 
 jobs:
   build:
@@ -36,12 +39,38 @@ jobs:
       - name: Run tests
         run: swift test
 
+      - name: Import signing certificate
+        env:
+          RELEASE_CERTIFICATE_BASE64: ${{ secrets.RELEASE_CERTIFICATE_BASE64 }}
+          RELEASE_CERTIFICATE_PASSWORD: ${{ secrets.RELEASE_CERTIFICATE_PASSWORD }}
+        run: |
+          # A self-signed certificate that never changes: macOS ties the Accessibility and Screen
+          # Recording grants to it, so they survive updates. Every release must use it.
+          test -n "$RELEASE_CERTIFICATE_BASE64"
+          keychain="$RUNNER_TEMP/release.keychain-db"
+          keychain_password="$(openssl rand -hex 16)"
+          printf '%s' "$RELEASE_CERTIFICATE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.p12"
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          security import "$RUNNER_TEMP/release.p12" -k "$keychain" -P "$RELEASE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$keychain_password" "$keychain" >/dev/null
+          # codesign only finds identities in keychains on the search list.
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          rm "$RUNNER_TEMP/release.p12"
+
       - name: Build app bundle
         env:
           VERSION: ${{ env.RELEASE_TAG }}
           BUILD_NUMBER: ${{ github.run_number }}
+          CODESIGN_IDENTITY: Feather Release Signing
+          # Each architecture has its own feed: generate_appcast refuses two archives that share
+          # one bundle version.
+          SPARKLE_FEED_URL: https://github.com/${{ github.repository }}/releases/latest/download/appcast-${{ matrix.architecture }}.xml
         run: |
           VERSION="${VERSION#v}" scripts/bundle.sh
+          codesign -d -r- dist/Feather.app 2>&1 | grep -q "certificate leaf"
+          lipo -archs dist/Feather.app/Contents/MacOS/Feather | grep -qx "${{ matrix.architecture }}"
 
       - name: Package app
         run: |
@@ -62,28 +91,56 @@ jobs:
   publish:
     name: Publish release
     needs: build
-    runs-on: ubuntu-latest
+    # Sparkle's appcast tools are macOS binaries.
+    runs-on: macos-15
 
     steps:
+      - uses: actions/checkout@v4
+
       - name: Download release assets
         uses: actions/download-artifact@v4
         with:
           path: release-assets
           merge-multiple: true
 
+      - name: Generate signed appcasts
+        env:
+          SPARKLE_PRIVATE_ED_KEY: ${{ secrets.SPARKLE_PRIVATE_ED_KEY }}
+        run: |
+          test -n "$SPARKLE_PRIVATE_ED_KEY"
+          swift package resolve
+          bin=".build/artifacts/sparkle/Sparkle/bin"
+          key="$RUNNER_TEMP/sparkle.key"
+          printf '%s' "$SPARKLE_PRIVATE_ED_KEY" > "$key"
+          for arch in arm64 x86_64; do
+            dir="appcast/$arch"
+            feed="release-assets/appcast-$arch.xml"
+            mkdir -p "$dir"
+            cp "release-assets/Feather-$arch.dmg" "$dir/"
+            "$bin/generate_appcast" --ed-key-file "$key" \
+              --download-url-prefix "https://github.com/$GITHUB_REPOSITORY/releases/download/$RELEASE_TAG/" \
+              --link "https://github.com/$GITHUB_REPOSITORY/releases/tag/$RELEASE_TAG" \
+              -o "$feed" "$dir"
+            # Installed apps require a signed feed (SURequireSignedFeed); sign it explicitly
+            # and check that both the update and the feed carry signatures.
+            "$bin/sign_update" --ed-key-file "$key" "$feed"
+            grep -q "sparkle:edSignature" "$feed"
+            grep -q "sparkle-signatures" "$feed"
+          done
+          rm "$key"
+
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ env.RELEASE_TAG }}
         run: |
-          # This job has no checkout, so name the repository. A full release (not a prerelease)
-          # is what /releases/latest, the website's download link, resolves to.
-          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$TAG" release-assets/*.dmg --clobber --repo "$GITHUB_REPOSITORY"
+          # A full release (not a prerelease) is what /releases/latest resolves to: both the
+          # website's download link and the update feeds installed apps read.
+          assets="release-assets/*.dmg release-assets/appcast-*.xml"
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" $assets --clobber
           else
-            gh release create "$TAG" release-assets/*.dmg \
-              --repo "$GITHUB_REPOSITORY" \
-              --title "Feather ${TAG#v}" \
-              --notes "Download Feather-arm64.dmg for Apple silicon or Feather-x86_64.dmg for Intel, then drag Feather into Applications. Feather is not notarized yet: the first time you open it, go to System Settings > Privacy & Security and choose Open Anyway." \
+            gh release create "$RELEASE_TAG" $assets \
+              --title "Feather ${RELEASE_TAG#v}" \
+              --notes "Download Feather-arm64.dmg for Apple silicon or Feather-x86_64.dmg for Intel, then drag Feather into Applications. Feather is not notarized yet: the first time you open it, go to System Settings > Privacy & Security and choose Open Anyway. Later versions install from Feather itself." \
               --generate-notes
           fi

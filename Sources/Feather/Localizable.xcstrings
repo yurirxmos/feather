@@ -61,6 +61,16 @@
         }
       }
     },
+    "Check for Updates…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Procurar Atualizações…"
+          }
+        }
+      }
+    },
     "Close": {
       "localizations": {
         "pt-BR": {

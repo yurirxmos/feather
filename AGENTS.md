@@ -8,6 +8,15 @@ screen context on a hotkey, streams a reply from an LLM, and pastes it into the 
 - Build and test from the repository root: `swift build`, `swift test`.
 - Single test: `swift test --filter SSEParserTests` (or `--filter SSEParserTests/testParsesEventAndData`).
 - `scripts/bundle.sh` builds `dist/Feather.app`; set `CODESIGN_IDENTITY` before running it.
+- Releases come only from `v*` tags (`.github/workflows/release-macos.yml`); every published
+  release reaches installed apps through Sparkle, which reads
+  `releases/latest/download/appcast-<arch>.xml`. Keep publishing full releases (not
+  prereleases) with both `appcast-arm64.xml` and `appcast-x86_64.xml`, or installs stop updating.
+- Release builds are signed with the self-signed "Feather Release Signing" certificate
+  (`RELEASE_CERTIFICATE_*` secrets) and updates with the Sparkle EdDSA key
+  (`SPARKLE_PRIVATE_ED_KEY`). Never replace either: a new certificate resets users' Accessibility
+  and Screen Recording grants, and a new EdDSA key makes installed apps reject every update.
+  No hardened runtime: its library validation refuses Sparkle without a Team ID.
 - Only `FeatherCore` has unit tests. AppKit, Accessibility, and ScreenCaptureKit changes must be
   verified manually by running the bundled app.
 - `swift build` prints known Swift 6 `Sendable` warnings (e.g. `NSEvent` in `PromptController`); the
