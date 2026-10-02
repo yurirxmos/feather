@@ -86,7 +86,7 @@ enum PlusAuth {
         store.deletePlusToken()
         guard var request = try? FeatherPlus.revokeRequest(base: base, token: token) else { return }
         request.timeoutInterval = 10
-        Task.detached { _ = try? await URLSession.shared.data(for: request) }
+        Task.detached { [request] in _ = try? await URLSession.shared.data(for: request) }
     }
 
     private static func exchange(base: String, code: String, verifier: String, redirectURI: String) async throws -> String {
