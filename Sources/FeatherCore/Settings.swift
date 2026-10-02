@@ -55,8 +55,8 @@ public struct Settings: Equatable, Sendable {
         if connection == .featherPlus, !FeatherPlus.isProviderEnabled(defaults) { connection = .openCodeGo }
         var model = defaults.string(forKey: SettingsKey.model)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        // Tier names only mean something to Feather Plus.
-        if let stored = model, FeatherPlusProvider.isTier(stored), connection != .featherPlus { model = nil }
+        // Feather Plus picks its own model, and its placeholder names mean nothing elsewhere.
+        if connection == .featherPlus || model.map(FeatherPlusProvider.isPlusModel) == true { model = nil }
         return Settings(
             connection: connection,
             model: model.flatMap { $0.isEmpty ? nil : $0 } ?? connection.defaultModel,
@@ -89,13 +89,11 @@ public struct Settings: Equatable, Sendable {
         }
     }
 
-    /// Feather Plus only accepts its tier names, and they mean nothing to other providers, so a
-    /// tier never survives a switch in either direction. Other custom models are kept.
+    /// Feather Plus always uses its own model, and its placeholder names mean nothing to other
+    /// providers, so no model survives a switch to or from it. Other custom models are kept.
     public static func model(afterChangingTo connection: ConnectionKind, preserving model: String) -> String {
-        if connection == .featherPlus {
-            return FeatherPlusProvider.isTier(model) ? model : connection.defaultModel
-        }
-        if FeatherPlusProvider.isTier(model) || ConnectionKind.allCases.contains(where: { $0.defaultModel == model }) {
+        if connection == .featherPlus { return connection.defaultModel }
+        if FeatherPlusProvider.isPlusModel(model) || ConnectionKind.allCases.contains(where: { $0.defaultModel == model }) {
             return connection.defaultModel
         }
         return model

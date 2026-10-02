@@ -134,13 +134,8 @@ public struct PlusAccount: Decodable, Equatable, Sendable {
         case max
     }
 
-    public enum Tier: String, Decodable, Sendable {
-        case fast
-        case premium
-    }
-
+    /// Requests used and allowed this period. The server sends one entry while a plan is active.
     public struct Usage: Decodable, Equatable, Sendable {
-        public var tier: Tier
         public var used: Int
         public var limit: Int
     }
@@ -169,11 +164,11 @@ public struct PlusAccount: Decodable, Equatable, Sendable {
         email = try container.decode(String.self, forKey: .email)
         // An unknown plan id from a newer server is shown as no plan instead of failing.
         plan = (try? container.decodeIfPresent(String.self, forKey: .plan)).flatMap { $0.flatMap(Plan.init(rawValue:)) }
-        usage = (try container.decodeIfPresent([LossyUsage].self, forKey: .usage) ?? []).compactMap(\.value)
+        usage = (try container.decodeIfPresent([LossyUsage].self, forKey: .usage) ?? []).compactMap(\.value).prefix(1).map { $0 }
         periodEnd = try container.decodeIfPresent(Date.self, forKey: .periodEnd)
     }
 
-    /// Skips usage rows for tiers this client does not know.
+    /// Skips malformed usage rows instead of failing the whole account.
     private struct LossyUsage: Decodable {
         let value: Usage?
 

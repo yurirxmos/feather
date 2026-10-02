@@ -2,7 +2,7 @@ import XCTest
 @testable import FeatherCore
 
 final class FeatherPlusProviderTests: XCTestCase {
-    private func request(model: String = "premium", image: Data? = Data([0xFF, 0xD8])) -> GenerationRequest {
+    private func request(model: String = "fast", image: Data? = Data([0xFF, 0xD8])) -> GenerationRequest {
         GenerationRequest(
             system: "sys",
             turns: [Turn(role: .user, text: "hi")],
@@ -14,7 +14,7 @@ final class FeatherPlusProviderTests: XCTestCase {
         )
     }
 
-    func testRequestTargetsPlusWithTokenAndTier() throws {
+    func testRequestTargetsPlusWithToken() throws {
         let provider = FeatherPlusProvider(token: "fth_x", baseURL: "https://plus.example.com/")
         let urlRequest = try provider.makeURLRequest(for: request())
         XCTAssertEqual(urlRequest.url?.absoluteString, "https://plus.example.com/v1/chat/completions")
@@ -22,7 +22,7 @@ final class FeatherPlusProviderTests: XCTestCase {
         XCTAssertNil(urlRequest.value(forHTTPHeaderField: "x-opencode-session"))
 
         let body = try XCTUnwrap(JSONSerialization.jsonObject(with: XCTUnwrap(urlRequest.httpBody)) as? [String: Any])
-        XCTAssertEqual(body["model"] as? String, "premium")
+        XCTAssertEqual(body["model"] as? String, "fast")
         XCTAssertEqual(body["stream"] as? Bool, true)
         XCTAssertNil(body["reasoning_effort"])
         let messages = try XCTUnwrap(body["messages"] as? [[String: Any]])
@@ -78,13 +78,13 @@ final class FeatherPlusProviderTests: XCTestCase {
         defaults.set(true, forKey: SettingsKey.plusProviderEnabled)
         XCTAssertTrue(FeatherPlus.isProviderEnabled(defaults))
         XCTAssertEqual(Settings.current(defaults).connection, .featherPlus)
-        XCTAssertEqual(Settings.current(defaults).model, "premium")
+        XCTAssertEqual(Settings.current(defaults).model, FeatherPlusProvider.defaultModel, "Plus always uses its own model")
     }
 
-    func testModelSwitchesKeepTiersOnlyOnPlus() {
+    func testModelSwitchesNeverCarryPlusModels() {
         XCTAssertEqual(Settings.model(afterChangingTo: .featherPlus, preserving: OpenCodeGoProvider.defaultModel), "fast")
         XCTAssertEqual(Settings.model(afterChangingTo: .featherPlus, preserving: "custom-model"), "fast")
-        XCTAssertEqual(Settings.model(afterChangingTo: .featherPlus, preserving: "premium"), "premium")
+        XCTAssertEqual(Settings.model(afterChangingTo: .featherPlus, preserving: "premium"), "fast")
         XCTAssertEqual(Settings.model(afterChangingTo: .openCodeGo, preserving: "premium"), OpenCodeGoProvider.defaultModel)
         XCTAssertEqual(Settings.model(afterChangingTo: .chatGPT, preserving: "fast"), ChatGPTModelCatalog.defaultModel)
     }

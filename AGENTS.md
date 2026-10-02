@@ -40,8 +40,8 @@ screen context on a hotkey, streams a reply from an LLM, and pastes it into the 
   account) live in the private `feather-web` repository (`https://feather.rxmos.dev`, cloned
   next to this one); the API redirects `/auth/authorize` and `/account` there, so the app only
   needs the API base URL.
-  - `FeatherPlus.swift` (requests, account decoding) and `FeatherPlusProvider.swift` (sends the
-    `fast` or `premium` tier as the model) live in `FeatherCore`; `PlusAuth.swift` (browser
+  - `FeatherPlus.swift` (requests, account decoding) and `FeatherPlusProvider.swift` (every plan
+    uses the server's model, so the model it sends is a placeholder) live in `FeatherCore`; `PlusAuth.swift` (browser
     sign-in with PKCE over a 127.0.0.1 loopback redirect) and `PlusSettingsView.swift` in the app.
   - It rolls out in stages: `FeatherPlus.accountsLaunched` shows the pane (sign-in, plan, usage)
     and `providerLaunched` lets it generate replies. Release builds hide both until launch;

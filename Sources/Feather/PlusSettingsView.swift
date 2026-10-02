@@ -46,12 +46,12 @@ struct PlusSettingsView: View {
             PlanRow(
                 name: String(localized: "Starter", bundle: .app),
                 price: String(localized: "$5/month", bundle: .app),
-                detail: String(localized: "Everyday replies with a fast model.", bundle: .app)
+                detail: String(localized: "500 requests a month, enough for everyday replies.", bundle: .app)
             )
             PlanRow(
                 name: String(localized: "Max", bundle: .app),
                 price: String(localized: "$20/month", bundle: .app),
-                detail: String(localized: "Higher limits and premium models.", bundle: .app)
+                detail: String(localized: "4,000 requests a month, for writing all day.", bundle: .app)
             )
         } header: {
             Text("Feather Plus", bundle: .app)
@@ -124,7 +124,7 @@ struct PlusSettingsView: View {
 
         if let account, account.plan != nil, !account.usage.isEmpty {
             Section {
-                ForEach(account.usage, id: \.tier) { usage in
+                ForEach(account.usage, id: \.limit) { usage in
                     UsageRow(usage: usage)
                 }
             } header: {
@@ -234,7 +234,7 @@ private struct UsageRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text(usage.tier.displayName)
+                Text("Requests", bundle: .app)
                 Spacer()
                 Text("\(usage.used) of \(usage.limit)", bundle: .app)
                     .monospacedDigit()
@@ -252,15 +252,6 @@ private extension PlusAccount.Plan {
         switch self {
         case .starter: String(localized: "Starter", bundle: .app)
         case .max: String(localized: "Max", bundle: .app)
-        }
-    }
-}
-
-private extension PlusAccount.Tier {
-    var displayName: String {
-        switch self {
-        case .fast: String(localized: "Fast requests", bundle: .app)
-        case .premium: String(localized: "Premium requests", bundle: .app)
         }
     }
 }

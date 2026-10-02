@@ -60,24 +60,23 @@ final class FeatherPlusTests: XCTestCase {
     func testDecodeAccountReadsPlanUsageAndJavaScriptDates() throws {
         let json = """
         {"email":"a@example.com","plan":"max","period_end":"2026-11-01T00:00:00.000Z",
-         "usage":[{"tier":"fast","used":12,"limit":4000},{"tier":"premium","used":3,"limit":150}]}
+         "usage":[{"tier":"fast","used":12,"limit":4000}]}
         """
         let account = try FeatherPlus.decodeAccount(Data(json.utf8))
         XCTAssertEqual(account.email, "a@example.com")
         XCTAssertEqual(account.plan, .max)
-        XCTAssertEqual(account.usage.map(\.tier), [.fast, .premium])
-        XCTAssertEqual(account.usage.first?.used, 12)
+        XCTAssertEqual(account.usage, [PlusAccount.Usage(used: 12, limit: 4000)])
         XCTAssertEqual(account.periodEnd, ISO8601DateFormatter().date(from: "2026-11-01T00:00:00Z"))
     }
 
     func testDecodeAccountToleratesMissingAndUnknownValues() throws {
         let json = """
         {"email":"a@example.com","plan":"enterprise","period_end":"2026-11-01T00:00:00Z",
-         "usage":[{"tier":"ultra","used":1,"limit":2},{"tier":"fast","used":0,"limit":500}]}
+         "usage":[{"tier":"fast","used":"x"},{"tier":"fast","used":0,"limit":500},{"tier":"premium","used":3,"limit":150}]}
         """
         let account = try FeatherPlus.decodeAccount(Data(json.utf8))
         XCTAssertNil(account.plan)
-        XCTAssertEqual(account.usage.map(\.tier), [.fast])
+        XCTAssertEqual(account.usage, [PlusAccount.Usage(used: 0, limit: 500)], "skips malformed rows and keeps one")
         XCTAssertNotNil(account.periodEnd)
 
         let minimal = try FeatherPlus.decodeAccount(Data(#"{"email":"b@example.com","plan":null}"#.utf8))

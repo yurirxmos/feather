@@ -1,25 +1,22 @@
 import Foundation
 
-/// Feather Plus's OpenAI-compatible endpoint. The model is a tier name (`fast` or `premium`)
-/// that the server maps to a real model, so the request body is otherwise OpenCode Go's.
+/// Feather Plus's OpenAI-compatible endpoint. Every plan uses the same model, chosen by the
+/// server, so the model sent is a placeholder and the request body is otherwise OpenCode Go's.
 public struct FeatherPlusProvider: LLMProvider {
-    public enum Tier: String, CaseIterable, Sendable {
-        case fast
-        case premium
-    }
-
     public var token: String
     public var baseURL: String
 
-    public static let defaultModel = Tier.fast.rawValue
+    public static let defaultModel = "fast"
+    /// Model names only Feather Plus used. `premium` was a tier that plans no longer have.
+    private static let modelNames: Set<String> = ["fast", "premium"]
 
     public init(token: String, baseURL: String = FeatherPlus.defaultBaseURL) {
         self.token = token
         self.baseURL = baseURL
     }
 
-    public static func isTier(_ model: String) -> Bool {
-        Tier(rawValue: model) != nil
+    public static func isPlusModel(_ model: String) -> Bool {
+        modelNames.contains(model)
     }
 
     public func makeURLRequest(for request: GenerationRequest) throws -> URLRequest {

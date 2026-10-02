@@ -184,31 +184,35 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
-            Section {
-                modelEditor
-            } header: {
-                Text("Model", bundle: .app)
-            } footer: {
-                if connection == .openCodeGo, storedKey.isEmpty {
-                    Text("Add an API key to load the available models.", bundle: .app)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                } else if connection == .featherPlus {
-                    Text("Premium is included in the Max plan.", bundle: .app)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                } else if connection == .openCodeGo, modelsFailed {
-                    Label {
-                        Text("Couldn't load the models. Check your key and connection.", bundle: .app)
-                    } icon: {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                    }
-                    .font(.callout)
-                    .foregroundStyle(.red)
+            // Feather Plus picks its own model, so there is nothing to choose.
+            if connection != .featherPlus {
+                Section {
+                    modelEditor
+                } header: {
+                    Text("Model", bundle: .app)
+                } footer: {
+                    modelFooter
                 }
             }
         }
         .formStyle(.grouped)
+    }
+
+    @ViewBuilder
+    private var modelFooter: some View {
+        if connection == .openCodeGo, storedKey.isEmpty {
+            Text("Add an API key to load the available models.", bundle: .app)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+        } else if connection == .openCodeGo, modelsFailed {
+            Label {
+                Text("Couldn't load the models. Check your key and connection.", bundle: .app)
+            } icon: {
+                Image(systemName: "exclamationmark.triangle.fill")
+            }
+            .font(.callout)
+            .foregroundStyle(.red)
+        }
     }
 
     @ViewBuilder
@@ -300,10 +304,7 @@ struct SettingsView: View {
     private var modelEditor: some View {
         switch connection {
         case .featherPlus:
-            Picker(String(localized: "Model", bundle: .app), selection: $model) {
-                Text("Fast", bundle: .app).tag(FeatherPlusProvider.Tier.fast.rawValue)
-                Text("Premium", bundle: .app).tag(FeatherPlusProvider.Tier.premium.rawValue)
-            }
+            EmptyView()
         case .chatGPT:
             Picker(String(localized: "Model", bundle: .app), selection: $model) {
                 ForEach(ChatGPTModelCatalog.models) { model in

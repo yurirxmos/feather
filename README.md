@@ -44,11 +44,11 @@ with a one-time email link, pick a plan, and select **Feather Plus** as the prov
 
 | Plan | Price | Includes |
 | --- | --- | --- |
-| Starter | $5/month | 500 fast requests per billing period |
-| Max | $20/month | 4,000 fast and 150 premium requests per billing period |
+| Starter | $5/month | 500 requests per billing period |
+| Max | $20/month | 4,000 requests per billing period |
 
-Choose **Fast** or **Premium** as the model; Premium is included in Max. Requests are sent to
-models with a Zero Data Retention policy, and instructions, screen context, and replies are
+Both plans use the same model; they differ only in how many requests they include. Requests
+are sent to models with a Zero Data Retention policy, and instructions, screen context, and replies are
 never stored. Only your email, plan, and request and token counts are kept.
 
 Bringing your own OpenCode Go key or ChatGPT account stays free.
