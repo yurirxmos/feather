@@ -22,7 +22,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var settingsWindow: NSWindow?
     private var registeredHotkey: HotkeyPreset?
     private var hotkeyMenuItem: NSMenuItem?
-    private let splash = SplashWindow()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         HotkeyManager.shared.onPress = { [weak self] in self?.openPrompt() }
@@ -31,11 +30,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NotificationCenter.default.addObserver(
             self, selector: #selector(defaultsChanged), name: UserDefaults.didChangeNotification, object: nil
         )
-        splash.show { [weak self] in
-            guard let self else { return }
-            if !AccessibilityContext.isTrusted || !WindowCapture.hasPermission || !FeatherCore.Settings.current().hasCredentials(using: credentialStore) {
-                showSettings()
-            }
+        if !AccessibilityContext.isTrusted || !WindowCapture.hasPermission || !FeatherCore.Settings.current().hasCredentials(using: credentialStore) {
+            showSettings()
         }
     }
 

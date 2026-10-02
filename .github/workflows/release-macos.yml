@@ -2,12 +2,20 @@ name: Release macOS
 
 on:
   push:
+    branches: [main]
     tags:
       - "v*"
   workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: release-macos-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('v0.1.{0}', github.run_number) }}
 
 jobs:
   build:
@@ -25,9 +33,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Run tests
+        run: swift test
+
       - name: Build app bundle
         env:
-          VERSION: ${{ github.ref_name }}
+          VERSION: ${{ env.RELEASE_TAG }}
+          BUILD_NUMBER: ${{ github.run_number }}
         run: |
           VERSION="${VERSION#v}" scripts/bundle.sh
 
@@ -57,12 +69,16 @@ jobs:
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ env.RELEASE_TAG }}
         run: |
           # This job has no checkout, so name the repository. A full release (not a prerelease)
           # is what /releases/latest, the website's download link, resolves to.
-          gh release create "$TAG" release-assets/*.zip \
-            --repo "$GITHUB_REPOSITORY" \
-            --title "Feather ${TAG#v}" \
-            --notes "Download Feather-arm64.zip for Apple silicon or Feather-x86_64.zip for Intel. Feather is not notarized yet: the first time you open it, go to System Settings > Privacy & Security and choose Open Anyway." \
-            --generate-notes
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" release-assets/*.zip --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" release-assets/*.zip \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "Feather ${TAG#v}" \
+              --notes "Download Feather-arm64.zip for Apple silicon or Feather-x86_64.zip for Intel. Feather is not notarized yet: the first time you open it, go to System Settings > Privacy & Security and choose Open Anyway." \
+              --generate-notes
+          fi

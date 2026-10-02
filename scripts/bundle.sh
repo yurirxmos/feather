@@ -10,6 +10,7 @@ cd "$(dirname "$0")/.."
 
 IDENTITY="${CODESIGN_IDENTITY:--}"
 VERSION="${VERSION:-0.1.0}"
+BUILD_NUMBER="${BUILD_NUMBER:-1}"
 APP="dist/Feather.app"
 
 # Swift 6.3's default cross-module optimization can crash while compiling this
@@ -34,7 +35,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleExecutable</key><string>Feather</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>${VERSION}</string>
-    <key>CFBundleVersion</key><string>1</string>
+    <key>CFBundleVersion</key><string>${BUILD_NUMBER}</string>
     <key>CFBundleDevelopmentRegion</key><string>en</string>
     <key>CFBundleLocalizations</key><array><string>en</string><string>pt-BR</string></array>
     <key>LSMinimumSystemVersion</key><string>14.0</string>
