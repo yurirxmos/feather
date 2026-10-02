@@ -3,6 +3,20 @@
 Feather is a macOS menu-bar app (macOS 14+, SwiftPM `swift-tools-version: 5.9`) that captures
 screen context on a hotkey, streams a reply from an LLM, and pastes it into the focused field.
 
+## Parity between macOS and desktop
+
+Feather ships as two apps: the macOS app in the repository root and the Windows and Linux app in
+`desktop/`. They must stay identical. Every change to one, whether a feature, fix, prompt,
+provider request, setting, UI string, translation, or behavior, must land in the other in the same
+piece of work, unless the user explicitly says otherwise. Mirror the structure as well:
+`FeatherCore` maps to `desktop/src-tauri/src/core/`, `PromptController` to `controller.rs`,
+`AppDelegate` to `shell.rs`, and the SwiftUI views to `desktop/frontend/`.
+
+The only exceptions are things that depend on the operating system: platform APIs (Accessibility,
+ScreenCaptureKit, UI Automation, AT-SPI, X11), permissions, signing, packaging, update mechanics,
+platform conventions such as Ctrl versus ⌘ shortcuts, and fixes for bugs that only occur on one
+platform. When a change cannot be mirrored, say so and explain why.
+
 ## Commands
 
 - Build and test from the repository root: `swift build`, `swift test`.

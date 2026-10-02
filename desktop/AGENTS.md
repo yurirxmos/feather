@@ -1,8 +1,10 @@
 # Desktop app instructions
 
 `desktop/` is the Windows and Linux app, built with Tauri. Do not move or
-rewrite the macOS Swift app while working here. When the macOS app changes its
-prompt, requests, or behavior, make the same change here.
+rewrite the macOS Swift app while working here. The two apps must stay
+identical: see "Parity between macOS and desktop" in the root `AGENTS.md`. Every
+change made here must also be made in the macOS app, and the reverse, except for
+what depends on the operating system.
 
 ## Commands
 
