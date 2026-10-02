@@ -14,12 +14,11 @@ public enum FeatherPlus {
     #endif
     public static let callbackPath = "/callback"
 
-    // Feather Plus rolls out in two stages. Accounts (sign-in, plan, usage) come first and
-    // leave generation on the provider the user configured. Generating through Feather Plus
-    // follows once the hosted upstream is set up. Beta testers turn each stage on early with
-    // `defaults write com.feather.app plusEnabled -bool true` and `plusProviderEnabled`.
-    public static let accountsLaunched = false
-    public static let providerLaunched = false
+    // Feather Plus rolled out in two stages: accounts (sign-in, plan, usage), then generating
+    // through it. Both are launched. Setting either back to false hides that stage again in
+    // release builds, except for testers with the `plusEnabled` or `plusProviderEnabled` default.
+    public static let accountsLaunched = true
+    public static let providerLaunched = true
 
     /// Whether Settings shows the Feather Plus pane. Debug builds always do.
     public static func isEnabled(_ defaults: UserDefaults = .standard) -> Bool {

@@ -38,8 +38,7 @@ Choose a provider in **Feather > Settings > Connection**.
 
 ### Feather Plus
 
-Feather Plus is the hosted option: no API key needed. It is not available yet: release
-builds hide it until launch. Sign in from **Settings > Feather Plus**
+Feather Plus is the hosted option: no API key needed. Sign in from **Settings > Feather Plus**
 with a one-time email link, pick a plan, and select **Feather Plus** as the provider.
 
 | Plan | Price | Includes |

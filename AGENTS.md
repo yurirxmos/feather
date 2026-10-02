@@ -43,10 +43,11 @@ screen context on a hotkey, streams a reply from an LLM, and pastes it into the 
   - `FeatherPlus.swift` (requests, account decoding) and `FeatherPlusProvider.swift` (every plan
     uses the server's model, so the model it sends is a placeholder) live in `FeatherCore`; `PlusAuth.swift` (browser
     sign-in with PKCE over a 127.0.0.1 loopback redirect) and `PlusSettingsView.swift` in the app.
-  - It rolls out in stages: `FeatherPlus.accountsLaunched` shows the pane (sign-in, plan, usage)
-    and `providerLaunched` lets it generate replies. Release builds hide both until launch;
-    testers enable them with the `plusEnabled` and `plusProviderEnabled` defaults. Debug builds
-    always show the pane and talk to `wrangler dev`; `plusBaseURL` overrides the server.
+  - It rolled out in stages and both are launched: `FeatherPlus.accountsLaunched` shows the pane
+    (sign-in, plan, usage) and `providerLaunched` lets it generate replies. Setting one back to
+    false hides that stage in release builds, except for testers with the `plusEnabled` or
+    `plusProviderEnabled` defaults. Debug builds always show the pane and talk to `wrangler dev`;
+    `plusBaseURL` overrides the server.
 
 ## Conventions
 
