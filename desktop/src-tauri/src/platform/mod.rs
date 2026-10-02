@@ -1,67 +1,216 @@
+//! Platform adapters for reading the focused window, capturing it, and pasting into it. Nothing
+//! here runs until the user presses the shortcut.
+
+#[cfg(target_os = "linux")]
+mod linux;
+#[cfg(target_os = "linux")]
+use linux as imp;
+
+#[cfg(windows)]
+mod windows;
+#[cfg(windows)]
+use self::windows as imp;
+
+#[cfg(not(any(windows, target_os = "linux")))]
+mod unsupported;
+#[cfg(not(any(windows, target_os = "linux")))]
+use unsupported as imp;
+
+use std::io::Cursor;
+use std::time::Duration;
+
+use image::{imageops::FilterType, DynamicImage, RgbaImage};
 use serde::Serialize;
 
-#[derive(Clone, Serialize)]
+/// Keeps the shortcut responsive when an app exposes a large accessibility tree.
+pub const WINDOW_TEXT_BUDGET: Duration = Duration::from_millis(700);
+pub const MAX_WINDOW_TEXT_CHARACTERS: usize = 24_000;
+pub const MAX_WINDOW_ELEMENTS: usize = 1_200;
+pub const MAX_TREE_DEPTH: usize = 18;
+
+/// Vision models downscale anything larger, so sending more only adds latency.
+const MAX_SCREENSHOT_LONG_EDGE: u32 = 1_568;
+
+/// The app that was frontmost when the shortcut was pressed.
+#[derive(Clone, Debug)]
+pub struct Target {
+    /// An `HWND` on Windows or an X11 window ID.
+    pub window: u64,
+    pub pid: u32,
+    pub app_name: Option<String>,
+    pub app_id: Option<String>,
+}
+
+/// Physical pixels in global coordinates with a top-left origin.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct Rect {
+    pub x: i32,
+    pub y: i32,
+    pub width: u32,
+    pub height: u32,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct Snapshot {
+    pub window_title: Option<String>,
+    pub focused_text: Option<String>,
+    pub selected_text: Option<String>,
+    pub window_text: Option<String>,
+    pub window_text_was_truncated: bool,
+    pub window_frame: Option<Rect>,
+}
+
+#[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Capability {
-    id: &'static str,
-    title: &'static str,
-    available: bool,
-    detail: &'static str,
+    pub id: &'static str,
+    pub available: bool,
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ProbeStatus {
-    platform: &'static str,
-    shortcut: &'static str,
-    capabilities: Vec<Capability>,
+/// Turns on what the platform needs before the first capture, such as the AT-SPI bus status.
+pub fn prepare() {
+    imp::prepare();
 }
 
-pub fn probe_status() -> ProbeStatus {
-    ProbeStatus {
-        platform: platform_name(),
-        shortcut: "Ctrl+Shift+Space",
-        capabilities: vec![
-            Capability {
-                id: "global-shortcut",
-                title: "Global shortcut",
-                available: true,
-                detail: "The prototype registers Ctrl+Shift+Space while it is running.",
-            },
-            Capability {
-                id: "tray",
-                title: "Tray integration",
-                available: true,
-                detail: "Use the tray menu to show, hide, or quit Feather. Linux click behavior depends on the desktop environment.",
-            },
-            Capability {
-                id: "focused-context",
-                title: "Focused-window context",
-                available: false,
-                detail: "Accessibility adapters have not been implemented or verified yet.",
-            },
-            Capability {
-                id: "window-screenshot",
-                title: "Active-window screenshot",
-                available: false,
-                detail: "Capture is intentionally disabled until platform permissions are verified.",
-            },
-            Capability {
-                id: "automatic-insertion",
-                title: "Automatic insertion",
-                available: false,
-                detail: "Text insertion must be validated per platform and desktop session.",
-            },
-        ],
+/// Returns the frontmost window unless it belongs to Feather itself.
+pub fn foreground_target() -> Option<Target> {
+    imp::foreground_target().filter(|target| target.pid != std::process::id())
+}
+
+/// Reads the focused field and window text. Blocking; call it off the main thread.
+pub fn capture(target: &Target) -> Snapshot {
+    imp::capture(target)
+}
+
+/// Whether the screenshot must be taken before the panel appears, because the platform can only
+/// read what is visible on screen.
+pub const CAPTURES_SCREENSHOT_BEFORE_PANEL: bool = imp::CAPTURES_SCREENSHOT_BEFORE_PANEL;
+
+/// A JPEG of the target window. Blocking; call it off the main thread.
+pub fn screenshot_jpeg(target: &Target, frame: Option<Rect>) -> Option<Vec<u8>> {
+    imp::screenshot(target, frame).and_then(encode_jpeg)
+}
+
+/// Brings the target window back to the front.
+pub fn activate(target: &Target) {
+    imp::activate(target);
+}
+
+/// Sends the platform's paste shortcut to the focused window.
+pub fn send_paste_shortcut() {
+    imp::send_paste_shortcut();
+}
+
+/// A value that changes whenever anything writes to the clipboard, where the platform has one.
+pub fn clipboard_change_token() -> Option<u64> {
+    imp::clipboard_change_token()
+}
+
+pub fn capabilities() -> Vec<Capability> {
+    imp::capabilities()
+}
+
+fn encode_jpeg(image: RgbaImage) -> Option<Vec<u8>> {
+    let (width, height) = image.dimensions();
+    if width == 0 || height == 0 {
+        return None;
+    }
+    let mut image = DynamicImage::ImageRgba8(image);
+    let long_edge = width.max(height);
+    if long_edge > MAX_SCREENSHOT_LONG_EDGE {
+        let scale = MAX_SCREENSHOT_LONG_EDGE as f64 / long_edge as f64;
+        let size = |value: u32| ((value as f64 * scale).round() as u32).max(1);
+        image = image.resize_exact(size(width), size(height), FilterType::Triangle);
+    }
+    let mut jpeg = Vec::new();
+    let encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(Cursor::new(&mut jpeg), 70);
+    DynamicImage::ImageRgb8(image.to_rgb8()).write_with_encoder(encoder).ok()?;
+    Some(jpeg)
+}
+
+/// Collects distinct text from an accessibility tree within the element, character, and time
+/// budgets shared by every platform.
+pub struct TextCollector {
+    parts: Vec<String>,
+    characters: usize,
+    elements: usize,
+    deadline: std::time::Instant,
+    pub truncated: bool,
+}
+
+impl TextCollector {
+    /// Starts the time budget.
+    pub fn start() -> Self {
+        Self {
+            parts: Vec::new(),
+            characters: 0,
+            elements: 0,
+            deadline: std::time::Instant::now() + WINDOW_TEXT_BUDGET,
+            truncated: false,
+        }
+    }
+
+    /// Counts one element; returns false once a budget is spent and the walk should stop.
+    pub fn visit(&mut self, depth: usize) -> bool {
+        if std::time::Instant::now() >= self.deadline
+            || depth >= MAX_TREE_DEPTH
+            || self.elements >= MAX_WINDOW_ELEMENTS
+            || self.characters >= MAX_WINDOW_TEXT_CHARACTERS
+        {
+            self.truncated = true;
+            return false;
+        }
+        self.elements += 1;
+        true
+    }
+
+    pub fn add(&mut self, value: String) {
+        let count = value.chars().count();
+        if count > 1 && !self.parts.contains(&value) && self.characters + count <= MAX_WINDOW_TEXT_CHARACTERS {
+            self.characters += count;
+            self.parts.push(value);
+        }
+    }
+
+    pub fn finish(self) -> (Option<String>, bool) {
+        let truncated = self.truncated
+            || self.elements >= MAX_WINDOW_ELEMENTS
+            || self.characters >= MAX_WINDOW_TEXT_CHARACTERS;
+        let text = self.parts.join("\n");
+        ((!text.is_empty()).then_some(text), truncated)
     }
 }
 
-fn platform_name() -> &'static str {
-    if cfg!(target_os = "windows") {
-        "Windows"
-    } else if cfg!(target_os = "linux") {
-        "Linux"
-    } else {
-        "Unsupported development platform"
+/// Trims and drops empty values.
+pub fn non_empty(value: String) -> Option<String> {
+    (!value.trim().is_empty()).then_some(value)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn collector_skips_duplicates_and_single_characters() {
+        let mut collector = TextCollector::start();
+        assert!(collector.visit(0));
+        collector.add("Hello".into());
+        collector.add("Hello".into());
+        collector.add("x".into());
+        assert_eq!(collector.finish(), (Some("Hello".into()), false));
+    }
+
+    #[test]
+    fn collector_stops_at_the_depth_limit() {
+        let mut collector = TextCollector::start();
+        assert!(!collector.visit(MAX_TREE_DEPTH));
+        assert!(collector.finish().1);
+    }
+
+    #[test]
+    fn screenshots_are_downscaled_jpegs() {
+        let jpeg = encode_jpeg(RgbaImage::new(3_000, 1_000)).unwrap();
+        let decoded = image::load_from_memory(&jpeg).unwrap();
+        assert_eq!((decoded.width(), decoded.height()), (1_568, 523));
     }
 }

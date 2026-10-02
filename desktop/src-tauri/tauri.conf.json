@@ -12,18 +12,57 @@
   "app": {
     "windows": [
       {
-        "label": "main",
-        "title": "Feather desktop probe",
-        "width": 680,
-        "height": 620,
-        "resizable": true
+        "label": "panel",
+        "title": "Feather",
+        "width": 600,
+        "height": 80,
+        "visible": false,
+        "decorations": false,
+        "transparent": true,
+        "shadow": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "resizable": false,
+        "maximizable": false,
+        "minimizable": false,
+        "visibleOnAllWorkspaces": true
+      },
+      {
+        "label": "settings",
+        "title": "Feather Settings",
+        "width": 720,
+        "height": 520,
+        "minWidth": 680,
+        "minHeight": 480,
+        "visible": false,
+        "center": true
       }
     ],
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost; style-src 'self' 'unsafe-inline'; img-src 'self' asset: http://asset.localhost"
+      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost; style-src 'self' 'unsafe-inline'; img-src 'self' data: asset: http://asset.localhost"
     }
   },
   "bundle": {
-    "active": false
+    "active": true,
+    "targets": ["nsis", "appimage", "deb"],
+    "createUpdaterArtifacts": true,
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
+    "category": "Productivity",
+    "shortDescription": "Write anything, right where you are typing.",
+    "publisher": "Feather contributors",
+    "license": "MIT",
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["English", "PortugueseBR"]
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": ["https://github.com/yurirxmos/feather/releases/latest/download/latest-desktop.json"],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDZDNUQwMDNDMzdBMjU3RDEKUldUUlY2STNQQUJkYkNrY0llNnljVm16KzdTY0RNd0tiU3k5NG81eURJUm9pRktrSzVLRUJKYkMK",
+      "windows": { "installMode": "passive" }
+    }
   }
 }

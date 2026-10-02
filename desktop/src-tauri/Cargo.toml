@@ -1,9 +1,10 @@
 [package]
 name = "feather-desktop"
 version = "0.1.0"
-description = "Feather's Windows and Linux prototype"
+description = "Feather for Windows and Linux"
 authors = ["Feather contributors"]
 edition = "2021"
+rust-version = "1.88"
 
 [lib]
 name = "feather_desktop_lib"
@@ -13,9 +14,39 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-keyring = "3"
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+arboard = "3"
+base64 = "0.22"
+futures-util = "0.3"
+getrandom = "0.2"
+image = { version = "0.25", default-features = false, features = ["jpeg"] }
+keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tauri = { version = "2", features = ["tray-icon"] }
+sha2 = "0.10"
+sys-locale = "0.3"
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-dialog = "2"
 tauri-plugin-global-shortcut = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-single-instance = "2"
+tauri-plugin-updater = "2"
+tokio = { version = "1", features = ["io-util", "macros", "net", "rt", "sync", "time"] }
+
+[target.'cfg(windows)'.dependencies]
+uiautomation = "0.25"
+windows = { version = "0.62", features = [
+  "Win32_Foundation",
+  "Win32_Graphics_Dwm",
+  "Win32_Graphics_Gdi",
+  "Win32_Storage_FileSystem",
+  "Win32_System_DataExchange",
+  "Win32_System_Threading",
+  "Win32_UI_Input_KeyboardAndMouse",
+  "Win32_UI_WindowsAndMessaging",
+] }
+xcap = "0.9"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+atspi = { version = "0.30", default-features = false, features = ["connection", "proxies", "tokio"] }
+x11rb = { version = "0.14", features = ["xtest"] }

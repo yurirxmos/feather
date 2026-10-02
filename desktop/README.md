@@ -1,44 +1,59 @@
-# Feather Desktop prototype
+# Feather for Windows and Linux
 
-This directory contains the Windows and Linux prototype. The macOS app remains
-in the repository root and is not built from here.
+This directory contains Feather's Windows and Linux app, built with
+[Tauri](https://v2.tauri.app). The macOS app remains in the repository root and
+is not built from here. Both apps send the same prompt and requests, and the
+desktop app follows the macOS app's behavior:
 
-The prototype validates the desktop features Feather needs before capture and
-text-insertion code is added:
+- A global shortcut (Ctrl+Shift+Space by default) opens a floating panel at the
+  bottom of the screen, centered on the window you were using.
+- On demand only, Feather reads the app name, window title, focused field,
+  selection, and window text, and can attach a screenshot of the window.
+- Replies stream from OpenCode Go, ChatGPT, or Feather Plus. Follow-up
+  instructions refine the reply, and Enter pastes it into the field you were
+  typing in. The clipboard is restored afterward.
+- Settings, a tray menu, pt-BR translations, and signed automatic updates.
 
-- A global shortcut
-- A tray-resident app window with a show, hide, and quit menu
-- Capability reporting for the current platform
-- A small, explicit IPC boundary between the frontend and Rust
-- OpenCode Go generation with an API key stored in the system credential store
+## Platform support
 
-It deliberately does not capture screen content. The current UI can generate
-and copy text, but it cannot yet insert it into another application.
+| Capability | Windows | Linux X11 | Linux Wayland |
+| --- | --- | --- | --- |
+| Shortcut, panel, generation | Yes | Yes | Yes |
+| Focused field and window text | UI Automation | AT-SPI | No |
+| Window screenshot | `PrintWindow` | X11 `GetImage` | No |
+| Paste into the focused field | `SendInput` | XTest | No, copies instead |
+
+Wayland does not let one app read or type into another, so on Wayland Feather
+generates the reply and copies it. Settings > System shows what works in the
+current session.
 
 ## Run
 
-Install Node.js 20 or later, Rust, and the platform prerequisites required by
-[Tauri](https://v2.tauri.app/start/prerequisites/). Then run:
+Install Node.js 20 or later, Rust 1.88 or later, and the platform prerequisites
+required by [Tauri](https://v2.tauri.app/start/prerequisites/). On Linux, also
+install `libdbus-1-dev` for the Secret Service credential store. Then run:
 
 ```sh
 npm install
 npm run tauri dev
 ```
 
-Press `Ctrl+Shift+Space` to show or hide the probe window. The shortcut is a
-temporary default used only by this prototype.
+On macOS, the app runs with stub platform adapters: it captures and pastes
+nothing, which is enough to work on the UI and providers.
 
-## Validate on each platform
+## Check
 
-Record the results before adding capture or insertion code:
+```sh
+npm run build
+cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+cargo test --manifest-path src-tauri/Cargo.toml
+```
 
-| Check | Windows | Linux X11 | Linux Wayland |
-| --- | --- | --- | --- |
-| App opens from tray | | | |
-| Global shortcut works | | | |
-| Window restores after shortcut | | | |
-| Shortcut conflicts are reported | | | |
+## Release
 
-The next milestone adds platform adapters for focused-window context,
-accessibility text, screenshots, and text insertion. Those capabilities must
-be verified per desktop environment before they are presented as supported.
+`.github/workflows/release-desktop.yml` builds the Windows installer, the
+AppImage, and the .deb for every `v*` tag and attaches them, with the
+`latest-desktop.json` update feed, to the release the macOS workflow publishes.
+Updates are signed with the `TAURI_SIGNING_PRIVATE_KEY` secret and verified with
+the public key in `src-tauri/tauri.conf.json`. The Windows installer is not
+code-signed yet, so SmartScreen warns on first install.

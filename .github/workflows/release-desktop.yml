@@ -1,0 +1,159 @@
+name: Release desktop
+
+# Builds the Windows and Linux apps for the same `v*` tag as the macOS release and attaches them to
+# that release. It never creates the release itself: `/releases/latest` must always carry the
+# Sparkle appcasts, so the macOS workflow stays the only one that publishes it.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RELEASE_TAG: ${{ github.ref_name }}
+
+jobs:
+  build:
+    name: Build (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows-x86_64
+          # The oldest supported runner, so the AppImage runs on older glibc versions too.
+          - os: ubuntu-22.04
+            platform: linux-x86_64
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: desktop
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libdbus-1-dev patchelf pkg-config libfuse2
+
+      - name: Set version from tag
+        run: |
+          version="${RELEASE_TAG#v}"
+          node -e '
+            const fs = require("fs");
+            const path = "src-tauri/tauri.conf.json";
+            const config = JSON.parse(fs.readFileSync(path, "utf8"));
+            config.version = process.argv[1];
+            fs.writeFileSync(path, JSON.stringify(config, null, 2) + "\n");
+          ' "$version"
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Run Rust tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Build app
+        env:
+          # Signs the updater artifacts; installed apps verify them with the public key in
+          # tauri.conf.json. Never replace this key, or installed apps reject every update.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          test -n "$TAURI_SIGNING_PRIVATE_KEY"
+          npx tauri build
+
+      - name: Collect release assets
+        run: |
+          bundle="src-tauri/target/release/bundle"
+          out="$GITHUB_WORKSPACE/release-assets"
+          mkdir -p "$out"
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp "$bundle"/nsis/*-setup.exe "$out/Feather-windows-x64-setup.exe"
+            cp "$bundle"/nsis/*-setup.exe.sig "$out/Feather-windows-x64-setup.exe.sig"
+          else
+            cp "$bundle"/appimage/*.AppImage "$out/Feather-linux-x86_64.AppImage"
+            cp "$bundle"/appimage/*.AppImage.sig "$out/Feather-linux-x86_64.AppImage.sig"
+            cp "$bundle"/deb/*.deb "$out/Feather-linux-amd64.deb"
+          fi
+          ls -l "$out"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Feather-${{ matrix.platform }}
+          path: release-assets/*
+          if-no-files-found: error
+
+  publish:
+    name: Attach to release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Write the update feed
+        run: |
+          version="${RELEASE_TAG#v}"
+          base="https://github.com/$GITHUB_REPOSITORY/releases/download/$RELEASE_TAG"
+          jq -n \
+            --arg version "$version" \
+            --arg date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg notes "https://github.com/$GITHUB_REPOSITORY/releases/tag/$RELEASE_TAG" \
+            --arg windowsSignature "$(cat release-assets/Feather-windows-x64-setup.exe.sig)" \
+            --arg windowsUrl "$base/Feather-windows-x64-setup.exe" \
+            --arg linuxSignature "$(cat release-assets/Feather-linux-x86_64.AppImage.sig)" \
+            --arg linuxUrl "$base/Feather-linux-x86_64.AppImage" \
+            '{
+              version: $version,
+              notes: $notes,
+              pub_date: $date,
+              platforms: {
+                "windows-x86_64": { signature: $windowsSignature, url: $windowsUrl },
+                "linux-x86_64": { signature: $linuxSignature, url: $linuxUrl }
+              }
+            }' > release-assets/latest-desktop.json
+          cat release-assets/latest-desktop.json
+
+      - name: Wait for the macOS release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for attempt in $(seq 1 120); do
+            if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "The macOS workflow did not publish $RELEASE_TAG within an hour." >&2
+          exit 1
+
+      - name: Upload assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --clobber \
+            release-assets/Feather-windows-x64-setup.exe \
+            release-assets/Feather-linux-x86_64.AppImage \
+            release-assets/Feather-linux-amd64.deb \
+            release-assets/latest-desktop.json

@@ -1,5 +1,11 @@
-mod prompt;
-mod session;
+//! Pure logic shared by the app, mirroring `FeatherCore` in the macOS app. No Tauri or platform
+//! APIs here, so it can be unit tested anywhere.
 
-pub use prompt::{build_first_turn, ContextOptions, PromptContext};
-pub use session::{CaptureState, Session, SessionState};
+pub mod context;
+pub mod error;
+pub mod pkce;
+pub mod placement;
+pub mod plus;
+pub mod prompt;
+pub mod sse;
+pub mod turn;

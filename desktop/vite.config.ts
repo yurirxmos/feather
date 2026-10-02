@@ -10,4 +10,6 @@ export default defineConfig({
     strictPort: true,
   },
   envPrefix: ["VITE_", "TAURI_"],
+  // WebView2 and WebKitGTK both support top-level await.
+  build: { target: "es2022" },
 });
