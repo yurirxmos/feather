@@ -25,6 +25,16 @@ screen context on a hotkey, streams a reply from an LLM, and pastes it into the 
   `URL.endpoint(base:path:)` in `LLMProvider.swift`.
 - Nothing is captured outside the hotkey: screen context is read only when the user presses the
   shortcut and is discarded when the panel closes. Do not add background capture.
+- Feather Plus is the paid, hosted option. Its backend is the private `feather-api` repository
+  (a Cloudflare Worker, cloned next to this one); its README is the contract the app follows.
+  Never add backend code here: this repository is public.
+  - `FeatherPlus.swift` (requests, account decoding) and `FeatherPlusProvider.swift` (sends the
+    `fast` or `premium` tier as the model) live in `FeatherCore`; `PlusAuth.swift` (browser
+    sign-in with PKCE over a 127.0.0.1 loopback redirect) and `PlusSettingsView.swift` in the app.
+  - It rolls out in stages: `FeatherPlus.accountsLaunched` shows the pane (sign-in, plan, usage)
+    and `providerLaunched` lets it generate replies. Release builds hide both until launch;
+    testers enable them with the `plusEnabled` and `plusProviderEnabled` defaults. Debug builds
+    always show the pane and talk to `wrangler dev`; `plusBaseURL` overrides the server.
 
 ## Conventions
 
