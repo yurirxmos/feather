@@ -62,8 +62,8 @@ public enum FeatherPlus {
     }
 
     /// The page where a signed-in user picks, changes, or cancels a plan.
-    public static func billingURL(base: String) throws -> URL {
-        try .endpoint(base: base, path: "/billing")
+    public static func accountURL(base: String) throws -> URL {
+        try .endpoint(base: base, path: "/account")
     }
 
     /// Extracts the authorization code from a loopback request target such as

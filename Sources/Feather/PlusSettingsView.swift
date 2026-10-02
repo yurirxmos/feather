@@ -191,7 +191,7 @@ struct PlusSettingsView: View {
     }
 
     private func openBilling() {
-        guard let url = try? FeatherPlus.billingURL(base: FeatherPlus.baseURL()) else { return }
+        guard let url = try? FeatherPlus.accountURL(base: FeatherPlus.baseURL()) else { return }
         NSWorkspace.shared.open(url)
     }
 
