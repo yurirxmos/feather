@@ -26,6 +26,10 @@ struct PlusSettingsView: View {
             token = credentialStore.plusToken()
             loadAccount()
         }
+        // Plans change in the browser (checkout, the portal), so refresh on returning to the app.
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            loadAccount()
+        }
         .onDisappear {
             // Leaving the pane abandons a pending browser sign-in and frees its port.
             signInTask?.cancel()
