@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8">
+<title>Feather promo</title>
+<style>
+@font-face{font-family:Inter;font-weight:400;src:url(node_modules/@fontsource/inter/files/inter-latin-400-normal.woff2)}
+@font-face{font-family:Inter;font-weight:600;src:url(node_modules/@fontsource/inter/files/inter-latin-600-normal.woff2)}
+@font-face{font-family:Inter;font-weight:700;src:url(node_modules/@fontsource/inter/files/inter-latin-700-normal.woff2)}
+@font-face{font-family:Inter;font-weight:800;src:url(node_modules/@fontsource/inter/files/inter-latin-800-normal.woff2)}
+:root{--blue:#0a84ff;--bg:#070709}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1920px;height:1080px;overflow:hidden;background:var(--bg);font-family:Inter,"Segoe UI",sans-serif;color:#fff}
+#stage{position:relative;width:1920px;height:1080px;overflow:hidden}
+.abs{position:absolute}
+.scene{position:absolute;inset:0;display:none}
+#bg{position:absolute;inset:0}
+.blob{position:absolute;border-radius:50%;filter:blur(140px)}
+#vig{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 45%,rgba(0,0,0,.65) 100%)}
+.center{left:0;width:1920px;text-align:center}
+.head{font-weight:700;font-size:68px;letter-spacing:-2px;white-space:nowrap}
+.head em{font-style:normal;color:var(--blue)}
+svg.glyph{overflow:visible}
+svg.glyph path{fill:none;stroke:#fff;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.word{font-weight:800;font-size:150px;letter-spacing:-6px;display:inline-block}
+
+/* keys */
+.key{display:inline-flex;align-items:center;justify-content:center;height:150px;min-width:150px;padding:0 34px;border-radius:30px;
+  background:linear-gradient(#2c2c30,#1c1c1f);border:1px solid rgba(255,255,255,.16);font-size:64px;font-weight:600;color:#f2f2f4;
+  box-shadow:0 12px 0 #0c0c0e,0 30px 60px rgba(0,0,0,.6);}
+.key.small{height:84px;min-width:84px;font-size:36px;border-radius:18px;padding:0 22px;box-shadow:0 7px 0 #0c0c0e,0 18px 36px rgba(0,0,0,.5)}
+.keys{display:flex;gap:26px;justify-content:center}
+
+/* messages window */
+#win{position:absolute;left:370px;top:200px;width:1180px;height:730px;border-radius:22px;background:#f4f4f6;overflow:hidden;
+  box-shadow:0 60px 140px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.12)}
+#bar{height:76px;background:#e9e9ec;border-bottom:1px solid #d6d6da;display:flex;align-items:center;padding:0 26px;position:relative}
+.dot{width:20px;height:20px;border-radius:50%;margin-right:12px}
+#who{position:absolute;left:0;right:0;text-align:center;color:#222;font-weight:600;font-size:22px}
+#who i{display:block;width:34px;height:34px;border-radius:50%;background:linear-gradient(#f9a8c9,#c26bd6);margin:-2px auto 3px}
+#chat{position:absolute;left:0;right:0;top:76px;bottom:110px;padding:34px 44px}
+.bubble{position:absolute;max-width:650px;padding:20px 28px;border-radius:32px;font-size:27px;line-height:1.35}
+#in-b{left:44px;top:50px;background:#e5e5ea;color:#111;border-bottom-left-radius:10px}
+#out-b{right:44px;top:200px;background:var(--blue);color:#fff;border-bottom-right-radius:10px}
+#field{position:absolute;left:44px;right:44px;bottom:26px;height:68px;border-radius:34px;border:2px solid #cfcfd4;background:#fff;display:flex;align-items:center;padding:0 30px;font-size:25px;color:#111;overflow:hidden;white-space:nowrap}
+#field .ph{color:#9a9aa0}
+.caret{display:inline-block;width:2px;height:1.1em;background:var(--blue);vertical-align:-0.18em;margin-left:2px}
+
+/* panel */
+.panel{position:absolute;background:#000;border-radius:26px;border:1.5px solid rgba(255,255,255,.18);padding:30px 36px;
+  box-shadow:0 50px 120px rgba(0,0,0,.75),0 0 0 1px rgba(0,0,0,.6),0 0 90px rgba(10,132,255,.18)}
+.prow{display:flex;align-items:center;gap:22px;font-size:27px;min-height:46px}
+.prow svg{flex:none}
+.prow .txt{flex:1;white-space:nowrap;overflow:hidden;color:#fff}
+.ret{flex:none;font-size:20px;padding:6px 14px;border-radius:10px;background:rgba(255,255,255,.12);color:rgba(255,255,255,.75);font-weight:600}
+.sep{height:1px;background:rgba(255,255,255,.12);margin:24px 0 22px}
+.resp{color:rgba(255,255,255,.88);line-height:1.5;font-size:25px}
+.chip{display:inline-block;padding:10px 22px;border-radius:999px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.8);font-size:21px;font-weight:600;margin-right:12px}
+
+/* sc E */
+.bigw{position:absolute;left:0;width:1920px;text-align:center;font-weight:800;font-size:170px;letter-spacing:-7px;line-height:1}
+.pill{display:inline-block;padding:20px 44px;border-radius:999px;background:var(--blue);font-size:30px;font-weight:600;box-shadow:0 20px 60px rgba(10,132,255,.45)}
+.sub{font-size:34px;color:rgba(255,255,255,.6);font-weight:400;letter-spacing:-.5px}
+.ring{position:absolute;border-radius:50%;border:3px solid var(--blue)}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="bg">
+    <div class="blob" id="b1" style="width:900px;height:900px;background:#0a4fd1;opacity:.28"></div>
+    <div class="blob" id="b2" style="width:800px;height:800px;background:#6d28d9;opacity:.20"></div>
+    <div id="vig"></div>
+  </div>
+
+  <!-- A: intro -->
+  <div class="scene" id="A">
+    <svg class="glyph abs" id="gA" viewBox="0 0 24 24" width="300" height="300" style="left:810px;top:350px">
+      <path id="g1" pathLength="1" d="M12.67 19C13.201 19 13.71 18.789 14.086 18.412L20.24 12.24C22.583 9.897 22.583 6.097 20.24 3.75C17.897 1.407 14.097 1.407 11.75 3.75L5.586 9.914C5.211 10.289 5 10.798 5 11.328L5 18C5 18.552 5.448 19 6 19Z"/>
+      <path id="g2" pathLength="1" d="M16 8L2 22"/>
+      <path id="g3" pathLength="1" d="M17.5 15L9 15"/>
+    </svg>
+    <div class="abs center" id="wm" style="top:520px;height:170px"></div>
+    <div class="abs center sub" id="tag" style="top:720px;font-size:40px">Press a shortcut. Tell your Mac what to write.</div>
+  </div>
+
+  <!-- B: demo -->
+  <div class="scene" id="B">
+    <div class="abs center head" id="h1" style="top:80px">Works in <em>any app.</em></div>
+    <div class="abs center head" id="h2" style="top:80px">Streams a <em>reply.</em></div>
+    <div class="abs center head" id="h3" style="top:80px">Return. <em>Pasted.</em></div>
+    <div id="win">
+      <div id="bar">
+        <div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div>
+        <div id="who"><i></i>Marina</div>
+      </div>
+      <div id="chat">
+        <div class="bubble" id="in-b">Are you free tomorrow at 2 pm to go over the proposal?</div>
+        <div class="bubble" id="out-b"></div>
+      </div>
+      <div id="field"><span id="ftxt"><span class="ph">iMessage</span></span></div>
+    </div>
+    <div class="abs keys" id="keysB" style="left:0;width:1920px;top:470px">
+      <div class="key" id="kopt">⌥</div><div class="key" id="kspc" style="min-width:380px">Space</div>
+    </div>
+    <div class="panel" id="panB" style="left:480px;top:560px;width:960px">
+      <div class="prow">
+        <svg viewBox="0 0 24 24" width="36" height="36" class="glyph"><path d="M12.67 19C13.201 19 13.71 18.789 14.086 18.412L20.24 12.24C22.583 9.897 22.583 6.097 20.24 3.75C17.897 1.407 14.097 1.407 11.75 3.75L5.586 9.914C5.211 10.289 5 10.798 5 11.328L5 18C5 18.552 5.448 19 6 19ZM16 8L2 22M17.5 15L9 15"/></svg>
+        <div class="txt" id="pinB"></div><div class="ret" id="retB">↵</div>
+      </div>
+      <div id="respWrap"><div class="sep"></div><div class="resp" id="respB"></div></div>
+    </div>
+  </div>
+
+  <!-- D: refine -->
+  <div class="scene" id="D">
+    <div class="abs center head" style="top:110px">Refine it. <em>Just ask.</em></div>
+    <div class="panel" id="panD" style="left:480px;top:300px;width:960px">
+      <div class="prow">
+        <svg viewBox="0 0 24 24" width="36" height="36" class="glyph"><path d="M12.67 19C13.201 19 13.71 18.789 14.086 18.412L20.24 12.24C22.583 9.897 22.583 6.097 20.24 3.75C17.897 1.407 14.097 1.407 11.75 3.75L5.586 9.914C5.211 10.289 5 10.798 5 11.328L5 18C5 18.552 5.448 19 6 19ZM16 8L2 22M17.5 15L9 15"/></svg>
+        <div class="txt" id="pinD"></div><div class="ret">↵</div>
+      </div>
+      <div class="sep"></div>
+      <div class="resp" id="respD" style="font-size:32px;min-height:140px"></div>
+      <div style="margin-top:22px"><span class="chip">Shorter</span><span class="chip">More casual</span><span class="chip">Translate</span></div>
+    </div>
+    <div class="abs" id="kb" style="left:0;width:1920px;top:800px;display:flex;justify-content:center;gap:90px">
+      <div class="kc" style="text-align:center"><div class="keys"><div class="key small">⌘</div><div class="key small">↵</div></div><div class="sub" style="margin-top:28px;font-size:28px">Copy</div></div>
+      <div class="kc" style="text-align:center"><div class="keys"><div class="key small">⌘</div><div class="key small">R</div></div><div class="sub" style="margin-top:28px;font-size:28px">Regenerate</div></div>
+      <div class="kc" style="text-align:center"><div class="keys"><div class="key small" style="padding:0 30px">Esc</div></div><div class="sub" style="margin-top:28px;font-size:28px">Adjust &amp; recapture</div></div>
+    </div>
+  </div>
+
+  <!-- E: verbs -->
+  <div class="scene" id="E">
+    <div class="bigw" id="e1" style="top:150px">Draft.</div>
+    <div class="bigw" id="e2" style="top:340px">Rewrite.</div>
+    <div class="bigw" id="e3" style="top:530px">Translate.</div>
+    <div class="bigw" id="e4" style="top:720px">Summarize.</div>
+  </div>
+
+  <!-- F: privacy -->
+  <div class="scene" id="F">
+    <div class="abs center" id="f1" style="top:200px;font-size:92px;font-weight:800;letter-spacing:-3.5px;line-height:1.08">Nothing is captured<br>until <span id="fhl">you press it.</span></div>
+    <div class="ring" id="ring1" style="left:810px;top:600px;width:300px;height:300px"></div>
+    <div class="ring" id="ring2" style="left:810px;top:600px;width:300px;height:300px"></div>
+    <div class="abs keys" id="keysF" style="left:0;width:1920px;top:625px">
+      <div class="key small" style="height:110px;font-size:46px;min-width:110px">⌥</div><div class="key small" style="height:110px;font-size:46px;min-width:260px">Space</div>
+    </div>
+    <div class="abs center sub" id="f3" style="top:900px;font-size:36px">Context is discarded the moment the panel closes.</div>
+  </div>
+
+  <!-- G: end -->
+  <div class="scene" id="G">
+    <svg class="glyph abs" id="gG" viewBox="0 0 24 24" width="190" height="190" style="left:865px;top:200px">
+      <path d="M12.67 19C13.201 19 13.71 18.789 14.086 18.412L20.24 12.24C22.583 9.897 22.583 6.097 20.24 3.75C17.897 1.407 14.097 1.407 11.75 3.75L5.586 9.914C5.211 10.289 5 10.798 5 11.328L5 18C5 18.552 5.448 19 6 19ZM16 8L2 22M17.5 15L9 15"/>
+    </svg>
+    <div class="abs center" id="gw" style="top:410px;font-size:170px;font-weight:800;letter-spacing:-7px;line-height:1">Feather</div>
+    <div class="abs center sub" id="gt" style="top:610px;font-size:42px">Now for macOS. Press a shortcut. Tell your Mac what to write.</div>
+    <div class="abs center" id="gp" style="top:720px"><span class="pill">Download the preview</span></div>
+    <div class="abs center sub" id="gu" style="top:850px;font-size:30px">github.com/yurirxmos/feather &nbsp;·&nbsp; macOS 14+ &nbsp;·&nbsp; Apple Silicon &amp; Intel</div>
+  </div>
+</div>
+
+<script>
+const cl=x=>Math.min(1,Math.max(0,x));
+const P=(t,a,d)=>cl((t-a)/d);
+const eo3=x=>1-Math.pow(1-x,3), eo5=x=>1-Math.pow(1-x,5);
+const eio=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;
+const back=x=>{const c1=1.70158,c3=c1+1;return 1+c3*Math.pow(x-1,3)+c1*Math.pow(x-1,2)};
+const $=id=>document.getElementById(id);
+const typed=(s,t,a,cps)=>s.slice(0,Math.max(0,Math.floor((t-a)*cps)));
+const caret=t=>(Math.floor(t*2.2)%2===0)?'<span class="caret"></span>':'<span class="caret" style="opacity:0"></span>';
+
+function tf(el,o){ // opacity, x, y, s, blur
+  el.style.opacity=o.o??1;
+  el.style.transform=`translate(${o.x||0}px,${o.y||0}px) scale(${o.s??1})`;
+  el.style.filter=o.b?`blur(${o.b}px)`:'none';
+}
+// fade/slide in at a, out at b
+function io(el,t,a,b,d=.5,dy=34,sIn=1){
+  if(t<a||t>b+d){el.style.display='none';return false}
+  el.style.display='';
+  const i=eo5(P(t,a,d)), o=eio(P(t,b,d));
+  tf(el,{o:i*(1-o),y:(1-i)*dy-o*dy,b:(1-i)*14+o*14,s:sIn+(1-i)*(1-sIn)});
+  return true;
+}
+function scene(el,t,a,b,f=.45){
+  if(t<a||t>b){el.style.display='none';return false}
+  el.style.display='block';
+  el.style.opacity=Math.min(P(t,a,f),1-P(t,b-f,f));
+  return true;
+}
+const key=(el,t,press,rel)=>{ // depress animation
+  const d=(t>=press&&t<rel)?1:(t>=rel?1-eo3(P(t,rel,.18)):eo3(P(t,press-.12,.12)));
+  const k=Math.min(1,d);
+  el.style.transform=`translateY(${k*9}px)`;
+  el.style.boxShadow=`0 ${12-k*9}px 0 #0c0c0e,0 30px 60px rgba(0,0,0,.6)${t>=press&&t<rel+.4?',0 0 90px rgba(10,132,255,.55)':''}`;
+  el.style.borderColor=(t>=press&&t<rel+.4)?'rgba(10,132,255,.9)':'';
+};
+
+const SPLIT=[...'Feather'].map(c=>{const s=document.createElement('span');s.className='word';s.textContent=c;$('wm').appendChild(s);return s});
+
+const TXT_IN='Reply that I can do tomorrow at 2 pm, in a formal tone.';
+const TXT_OUT="Hello Marina, yes, I'm available tomorrow at 2 pm. Please send the invite and I will be there. Kind regards.";
+const REF1='Yes, tomorrow at 2 pm works. Please send the invite.';
+const REF2='Sure thing! Tomorrow at 2 works for me. Send the invite!';
+
+function render(T){
+  // background drift
+  $('b1').style.transform=`translate(${300+Math.sin(T*.35)*260}px,${60+Math.cos(T*.3)*160}px)`;
+  $('b2').style.transform=`translate(${1000+Math.cos(T*.28)*280}px,${380+Math.sin(T*.33)*180}px)`;
+
+  /* ---- A: 0 – 3.8 ---- */
+  if(scene($('A'),T,0,3.8,.01)){
+    $('A').style.opacity=1-eio(P(T,3.35,.45));
+    const dr=(id,a,d)=>{const p=$(id);const k=eio(P(T,a,d));p.style.strokeDasharray=1;p.style.strokeDashoffset=1-k};
+    dr('g1',.25,1.1);dr('g2',1.0,.55);dr('g3',1.35,.4);
+    const mv=eio(P(T,1.55,.8));
+    const g=$('gA');g.style.transform=`translateY(${-mv*165}px) scale(${1-mv*.38})`;
+    g.style.filter=`drop-shadow(0 0 ${30*eio(P(T,1.3,.8))}px rgba(10,132,255,.9))`;
+    SPLIT.forEach((s,i)=>{const k=eo5(P(T,1.75+i*.06,.6));tf(s,{o:k,y:(1-k)*70,b:(1-k)*16})});
+    const tg=eo5(P(T,2.5,.7));tf($('tag'),{o:tg,y:(1-tg)*26,b:(1-tg)*8});
+    $('A').style.transform=`scale(${1+eio(P(T,3.35,.45))*.06})`;
+  }
+
+  /* ---- B: 3.6 – 12.8 ---- */
+  if(scene($('B'),T,3.6,12.8,.5)){
+    const w=$('win'),wi=eo5(P(T,3.7,.9));
+    // window drifts back slightly once the panel is up
+    const dim=eio(P(T,5.4,.6))*(1-eio(P(T,10.6,.6)));
+    w.style.transform=`translateY(${(1-wi)*140}px) scale(${.94+wi*.06-dim*.02})`;
+    w.style.filter=`brightness(${1-dim*.32})`;
+    io($('h1'),T,3.9,6.4,.5);io($('h2'),T,7.6,9.9,.5);io($('h3'),T,10.4,12.0,.5);
+    // incoming bubble
+    const bi=back(P(T,4.5,.5));tf($('in-b'),{o:eo3(P(T,4.5,.3)),y:(1-bi)*30,s:.85+.15*bi});
+    // keys
+    const ks=$('keysB');
+    if(T>=4.9&&T<5.85){ks.style.display='flex';
+      const ki=eo5(P(T,4.9,.45)),ko=eio(P(T,5.45,.35));
+      tf(ks,{o:ki*(1-ko),y:(1-ki)*50+ko*-20,s:(.9+.1*ki)*(1+ko*.08),b:ko*10});
+      key($('kopt'),T,5.15,5.5);key($('kspc'),T,5.15,5.5);
+    } else ks.style.display='none';
+    // panel
+    const pn=$('panB');
+    if(T>=5.35&&T<11.1){pn.style.display='';
+      const pi=back(P(T,5.35,.6)),po=eio(P(T,10.55,.5));
+      tf(pn,{o:eo3(P(T,5.35,.25))*(1-po),y:(1-pi)*46+po*40,s:(.9+.1*pi)*(1-po*.1),b:po*8});
+      const typedIn=typed(TXT_IN,T,5.9,32);
+      $('pinB').innerHTML=(typedIn||'<span style="color:rgba(255,255,255,.4)">Tell Feather what to write…</span>')+(T<7.6?caret(T):'');
+      const rp=P(T,7.6,.18);$('retB').style.background=T>7.55&&T<7.85?'var(--blue)':'';$('retB').style.color=T>7.55&&T<7.85?'#fff':'';
+      $('retB').style.transform=`scale(${1+(T>7.55&&T<7.85?.18:0)})`;
+      const rw=$('respWrap');rw.style.display=T>=7.8?'':'none';
+      $('respB').textContent=typed(TXT_OUT,T,8.0,52);
+    } else pn.style.display='none';
+    // paste into field
+    const pasteT=10.75,sendT=11.75;
+    const f=$('ftxt');
+    if(T<pasteT)f.innerHTML='<span class="ph">iMessage</span>';
+    else if(T<sendT){const k=P(T,pasteT,.45);f.innerHTML=`<span style="opacity:${eo3(k)}">${TXT_OUT}</span>`+caret(T);$('field').style.borderColor='var(--blue)'}
+    else {f.innerHTML='<span class="ph">iMessage</span>';$('field').style.borderColor='#cfcfd4'}
+    const ob=$('out-b');
+    if(T>=sendT){const k=back(P(T,sendT,.55));ob.style.display='';ob.textContent=TXT_OUT;tf(ob,{o:eo3(P(T,sendT,.25)),y:(1-k)*60,s:.8+.2*k})}
+    else ob.style.display='none';
+    $('B').style.transform=`scale(${1+eio(P(T,12.3,.5))*.04})`;
+  }
+
+  /* ---- D: 12.6 – 17.6 ---- */
+  if(scene($('D'),T,12.6,17.6,.5)){
+    const pi=back(P(T,12.8,.7));
+    tf($('panD'),{o:eo3(P(T,12.8,.3)),y:(1-pi)*80,s:.92+.08*pi});
+    let inT,resp,swap;
+    const a1=13.7,s1=14.55,a2=15.4,s2=16.15;
+    if(T<a2){inT=typed('shorter',T,a1,12);} else inT=typed('more casual',T,a2,14);
+    const typing=(T>=a1&&T<s1)||(T>=a2&&T<s2);
+    $('pinD').innerHTML=(inT||'<span style="color:rgba(255,255,255,.4)">Refine this reply…</span>')+(typing||T<a1?caret(T):'');
+    const stream=(s,a,cps)=>typed(s,T,a,cps);
+    let rt;
+    if(T<s1)rt=TXT_OUT; else if(T<s2)rt=stream(REF1,s1,70); else rt=stream(REF2,s2,70);
+    const r=$('respD');r.textContent=rt;
+    const fl=(T>=s1&&T<s1+.15)||(T>=s2&&T<s2+.15);
+    r.style.opacity=fl?.4:1;
+    const kb=$('kb');[...kb.children].forEach((c,i)=>{const k=eo5(P(T,15.7+i*.2,.6));tf(c,{o:k,y:(1-k)*50,b:(1-k)*10})});
+  }
+
+  /* ---- E: 17.4 – 20.9 ---- */
+  if(scene($('E'),T,17.4,20.9,.4)){
+    ['e1','e2','e3','e4'].forEach((id,i)=>{
+      const a=17.6+i*.5, k=eo5(P(T,a,.6)), el=$(id);
+      const next=i<3?eio(P(T,a+.5,.4)):0;
+      tf(el,{o:k*(1-next*.78),y:(1-k)*110,b:(1-k)*20+next*3});
+      el.style.color=i===3?'#fff':'#fff';
+      if(i===3)el.style.color=`rgb(${255-eio(P(T,19.7,.4))*245},${255-eio(P(T,19.7,.4))*123},255)`;
+    });
+  }
+
+  /* ---- F: 20.7 – 24.2 ---- */
+  if(scene($('F'),T,20.7,24.2,.45)){
+    const k=eo5(P(T,20.9,.8));tf($('f1'),{o:k,y:(1-k)*50,b:(1-k)*12});
+    const ks=eo5(P(T,21.3,.6));tf($('keysF'),{o:ks,y:(1-ks)*50});
+    key($('keysF').children[0],T,22.5,22.85);key($('keysF').children[1],T,22.5,22.85);
+    $('keysF').children[0].style.boxShadow=$('keysF').children[0].style.boxShadow.replace(/0 30px 60px[^,]*/,'0 18px 36px rgba(0,0,0,.5)');
+    $('fhl').style.color=`rgb(${255-eio(P(T,22.5,.3))*245},${255-eio(P(T,22.5,.3))*123},255)`;
+    ['ring1','ring2'].forEach((id,i)=>{
+      const p=P(T,22.5+i*.25,1.1),el=$(id);
+      el.style.opacity=T<22.5+i*.25?0:(1-p)*.8;
+      el.style.transform=`scale(${.4+eo3(p)*.95})`;
+      el.style.left='810px';el.style.top='530px';el.style.width='300px';el.style.height='300px';
+      el.style.borderWidth=(5-p*4)+'px';
+    });
+    const f3=eo5(P(T,23.0,.7));tf($('f3'),{o:f3,y:(1-f3)*24,b:(1-f3)*6});
+  }
+
+  /* ---- G: 23.9 – 28 ---- */
+  if(scene($('G'),T,23.9,28.01,.5)){
+    const g=eo5(P(T,24.1,.9));
+    $('gG').style.transform=`translateY(${(1-g)*40}px) rotate(${(1-g)*-18}deg) scale(${.7+.3*g})`;
+    $('gG').style.opacity=g;$('gG').style.filter=`drop-shadow(0 0 ${30*g}px rgba(10,132,255,.9))`;
+    const w=eo5(P(T,24.4,.8));tf($('gw'),{o:w,y:(1-w)*60,b:(1-w)*16});
+    const t2=eo5(P(T,25.0,.7));tf($('gt'),{o:t2,y:(1-t2)*30,b:(1-t2)*8});
+    const pb=back(P(T,25.6,.6));tf($('gp'),{o:eo3(P(T,25.6,.3)),y:(1-pb)*40,s:.85+.15*pb});
+    const u=eo5(P(T,26.1,.7));tf($('gu'),{o:u*.75,y:(1-u)*20});
+    if(T>26.6)$('gp').firstChild.style.boxShadow=`0 20px ${60+Math.sin((T-26.6)*3)*22}px rgba(10,132,255,.5)`;
+    // fade to black at very end
+    $('G').style.opacity=Math.min(P(T,23.9,.5),1-P(T,27.5,.5));
+  }
+}
+window.render=render;window.TOTAL=28;
+render(0);
+</script>
+</body>
+</html>
