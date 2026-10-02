@@ -36,6 +36,22 @@ only; it does not log screen contents, instructions, or responses.
 
 Choose a provider in **Feather > Settings > Connection**.
 
+### Feather Plus
+
+Feather Plus is the hosted option: no API key needed. Sign in from **Settings > Feather Plus**
+with a one-time email link, pick a plan, and select **Feather Plus** as the provider.
+
+| Plan | Price | Includes |
+| --- | --- | --- |
+| Starter | $5/month | 500 fast requests per billing period |
+| Max | $20/month | 4,000 fast and 150 premium requests per billing period |
+
+Choose **Fast** or **Premium** as the model; Premium is included in Max. Requests are sent to
+models with a Zero Data Retention policy, and instructions, screen context, and replies are
+never stored. Only your email, plan, and request and token counts are kept.
+
+Bringing your own OpenCode Go key or ChatGPT account stays free.
+
 ### OpenCode Go
 
 OpenCode Go uses its OpenAI-compatible streaming API. Paste an OpenCode Go API
