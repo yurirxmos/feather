@@ -46,6 +46,9 @@ button { cursor: default; }
   user-select: text;
 }
 .response.muted { color: rgb(255 255 255 / .52); }
+.answer { max-height: 200px; overflow-y: auto; margin: 0; padding: 9px 12px; border-radius: 8px; background: rgb(255 255 255 / .06); font: 14px/1.5 var(--serif); white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; }
+.answer.muted { color: rgb(255 255 255 / .52); }
+.block-label { margin: 0; color: rgb(255 255 255 / .55); font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
 
 .input-row { display: flex; align-items: flex-start; gap: 10px; }
 .feather-icon {
@@ -147,6 +150,7 @@ button { cursor: default; }
 .row { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 8px 14px; }
 .row + .row { border-top: 1px solid var(--line); }
 p.row { margin: 0; }
+.row.login-box { flex-direction: column; justify-content: center; gap: 8px; padding: 26px 18px; text-align: center; }
 .row.usage { flex-direction: column; align-items: stretch; gap: 6px; }
 .label { display: flex; flex-direction: column; gap: 2px; }
 .label small { color: var(--secondary); font-size: 12px; }
@@ -154,7 +158,6 @@ p.row { margin: 0; }
 .inline { display: inline-flex; align-items: center; gap: 8px; }
 .secondary { color: var(--secondary); }
 .selectable { user-select: text; }
-.price { font-variant-numeric: tabular-nums; }
 .footnote { margin: 8px 4px 0; color: var(--secondary); font-size: 12.5px; line-height: 1.45; }
 .error-text { color: var(--danger); }
 .status { display: inline-flex; align-items: center; gap: 6px; color: var(--secondary); }

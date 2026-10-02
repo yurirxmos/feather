@@ -14,6 +14,9 @@ final class PromptSession: ObservableObject {
     @Published var instruction = ""
     @Published var result = ""
     @Published var streamingResult = ""
+    /// What Feather says to the user, in assistant mode only; `result` is the text to insert.
+    @Published var answer = ""
+    @Published var streamingAnswer = ""
     @Published var isGenerating = false
     @Published var generationStartedAt: Date?
     @Published var errorMessage: String?
@@ -38,6 +41,8 @@ final class PromptSession: ObservableObject {
         instruction = ""
         result = ""
         streamingResult = ""
+        answer = ""
+        streamingAnswer = ""
         isGenerating = false
         generationStartedAt = nil
         errorMessage = nil
@@ -244,7 +249,7 @@ final class PromptController: NSObject, NSWindowDelegate {
         session.history = PromptTurn.history(
             session.history,
             lastInstruction: session.lastInstruction,
-            result: session.result,
+            result: AssistantReply(answer: session.answer, suggestion: session.result).raw,
             isGenerating: session.isGenerating
         )
         session.lastInstruction = instruction
@@ -270,6 +275,7 @@ final class PromptController: NSObject, NSWindowDelegate {
         }
         session.turnBeforeGeneration = nil
         session.streamingResult = ""
+        session.streamingAnswer = ""
         session.generationStartedAt = nil
         session.isGenerating = false
         if session.instruction.isEmpty {
@@ -280,11 +286,14 @@ final class PromptController: NSObject, NSWindowDelegate {
     private func run() {
         generationTask?.cancel()
         session.streamingResult = ""
+        session.streamingAnswer = ""
         session.errorMessage = nil
         session.notice = nil
         session.isGenerating = true
         session.generationStartedAt = .now
         let settings = FeatherCore.Settings.current()
+        // Only the paid plans answer questions; the free version assists typing.
+        let mode: PromptMode = settings.connection == .featherPlus ? .assistant : .typeAssist
         generationTask = Task { [weak self] in
             guard let self else { return }
             await captureTask?.value
@@ -318,7 +327,8 @@ final class PromptController: NSObject, NSWindowDelegate {
                 model: settings.model,
                 sessionID: session.sessionID,
                 includeContext: true,
-                customInstructions: settings.customInstructions
+                customInstructions: settings.customInstructions,
+                mode: mode
             )
             let requestStartedAt = ContinuousClock.now
             var firstTextAfter: Duration?
@@ -332,18 +342,23 @@ final class PromptController: NSObject, NSWindowDelegate {
                     // Every published delta re-lays out the panel; a few updates per second
                     // still read as live typing.
                     if publishedAt.duration(to: .now) >= .milliseconds(80) {
-                        session.streamingResult = text
+                        let reply = AssistantReply(parsing: text, mode: mode)
+                        session.streamingResult = reply.suggestion
+                        session.streamingAnswer = reply.answer
                         publishedAt = .now
                     }
                 }
                 guard !Task.isCancelled else { return }
-                session.result = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                let reply = AssistantReply(parsing: text, mode: mode)
+                session.result = reply.suggestion
+                session.answer = reply.answer
             } catch {
                 guard !Task.isCancelled else { return }
-                let partial = text.trimmingCharacters(in: .whitespacesAndNewlines)
-                if error as? LLMError == .timedOut, !partial.isEmpty {
+                let partial = AssistantReply(parsing: text, mode: mode)
+                if error as? LLMError == .timedOut, !partial.suggestion.isEmpty || !partial.answer.isEmpty {
                     outcome = "timed_out_with_text"
-                    session.result = partial
+                    session.result = partial.suggestion
+                    session.answer = partial.answer
                     session.notice = String(localized: "Stopped after 1 minute. Review the text before inserting it.", bundle: .app)
                 } else {
                     outcome = "failed"
@@ -351,6 +366,7 @@ final class PromptController: NSObject, NSWindowDelegate {
                 }
             }
             session.streamingResult = ""
+            session.streamingAnswer = ""
             session.isGenerating = false
             logTiming(outcome: outcome, firstTextAfter: firstTextAfter, total: requestStartedAt.duration(to: .now))
         }

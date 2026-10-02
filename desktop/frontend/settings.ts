@@ -372,16 +372,14 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     if (!credentials.plusSignedIn) {
       const busy = signingIn === "plus";
       return [
-        group(t("Feather Plus"), [
-          h("p", { class: "row secondary" }, t("Use Feather without your own API key. Feather never stores your prompts, screen context, or replies.")),
-          planRow(t("Starter"), t("$5/month"), t("500 requests a month, enough for everyday replies.")),
-          planRow(t("Max"), t("$20/month"), t("4,000 requests a month, for writing all day.")),
-        ]),
         group(
-          null,
+          t("Feather Plus"),
           [
-            row(
-              t("Account"),
+            h(
+              "div",
+              { class: "row login-box" },
+              h("strong", {}, t("Sign in to Feather Plus")),
+              h("span", { class: "secondary" }, t("Use your Feather Plus account.")),
               h(
                 "span",
                 { class: "inline" },
@@ -430,6 +428,8 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
               plusAccount = null;
               plusError = null;
               render();
+              // Signing out is how you switch accounts, so open the sign-in right away.
+              void signInPlus();
             },
           },
           t("Sign out"),
@@ -548,10 +548,6 @@ function group(title: string | null, rows: HTMLElement[], foot: HTMLElement | nu
 
 function row(label: string, control: Node): HTMLElement {
   return h("div", { class: "row" }, h("span", { class: "label" }, label), control);
-}
-
-function planRow(name: string, price: string, detail: string): HTMLElement {
-  return h("div", { class: "row" }, h("span", { class: "label" }, name, h("small", {}, detail)), h("span", { class: "price" }, price));
 }
 
 function capabilityRow(title: string, detail: string, available: boolean): HTMLElement {

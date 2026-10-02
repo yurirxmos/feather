@@ -41,24 +41,11 @@ struct PlusSettingsView: View {
     @ViewBuilder
     private var signedOutContent: some View {
         Section {
-            Text("Use Feather without your own API key. Feather never stores your prompts, screen context, or replies.", bundle: .app)
-                .foregroundStyle(.secondary)
-            PlanRow(
-                name: String(localized: "Starter", bundle: .app),
-                price: String(localized: "$5/month", bundle: .app),
-                detail: String(localized: "500 requests a month, enough for everyday replies.", bundle: .app)
-            )
-            PlanRow(
-                name: String(localized: "Max", bundle: .app),
-                price: String(localized: "$20/month", bundle: .app),
-                detail: String(localized: "4,000 requests a month, for writing all day.", bundle: .app)
-            )
-        } header: {
-            Text("Feather Plus", bundle: .app)
-        }
-
-        Section {
-            LabeledContent(String(localized: "Account", bundle: .app)) {
+            VStack(spacing: 8) {
+                Text("Sign in to Feather Plus", bundle: .app)
+                    .font(.headline)
+                Text("Use your Feather Plus account.", bundle: .app)
+                    .foregroundStyle(.secondary)
                 HStack(spacing: 10) {
                     if signInTask != nil {
                         ProgressView()
@@ -71,7 +58,12 @@ struct PlusSettingsView: View {
                             .keyboardShortcut(.defaultAction)
                     }
                 }
+                .padding(.top, 4)
             }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+        } header: {
+            Text("Feather Plus", bundle: .app)
         } footer: {
             footer
         }
@@ -209,22 +201,8 @@ struct PlusSettingsView: View {
         token = nil
         account = nil
         errorMessage = nil
-    }
-}
-
-private struct PlanRow: View {
-    let name: String
-    let price: String
-    let detail: String
-
-    var body: some View {
-        LabeledContent {
-            Text(price)
-                .monospacedDigit()
-        } label: {
-            Text(name)
-            Text(detail)
-        }
+        // Signing out is how you switch accounts, so open the sign-in right away.
+        signIn()
     }
 }
 

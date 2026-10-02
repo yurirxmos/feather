@@ -7,5 +7,6 @@ pub mod pkce;
 pub mod placement;
 pub mod plus;
 pub mod prompt;
+pub mod reply;
 pub mod sse;
 pub mod turn;

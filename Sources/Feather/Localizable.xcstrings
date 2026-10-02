@@ -991,16 +991,6 @@
         }
       }
     },
-    "Use Feather without your own API key. Feather never stores your prompts, screen context, or replies.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Use o Feather sem sua própria chave de API. O Feather nunca armazena suas instruções, o contexto da tela nem as respostas."
-          }
-        }
-      }
-    },
     "Starter": {
       "localizations": {
         "pt-BR": {
@@ -1011,32 +1001,12 @@
         }
       }
     },
-    "$5/month": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "US$ 5/mês"
-          }
-        }
-      }
-    },
     "Max": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Max"
-          }
-        }
-      }
-    },
-    "$20/month": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "US$ 20/mês"
           }
         }
       }
@@ -1231,22 +1201,42 @@
         }
       }
     },
-    "500 requests a month, enough for everyday replies.": {
+    "Sign in to Feather Plus": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "500 requisições por mês, o suficiente para as respostas do dia a dia."
+            "value": "Entrar no Feather Plus"
           }
         }
       }
     },
-    "4,000 requests a month, for writing all day.": {
+    "Use your Feather Plus account.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "4.000 requisições por mês, para quem escreve o dia todo."
+            "value": "Use a sua conta do Feather Plus."
+          }
+        }
+      }
+    },
+    "Answer": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resposta"
+          }
+        }
+      }
+    },
+    "Suggested text": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Texto sugerido"
           }
         }
       }

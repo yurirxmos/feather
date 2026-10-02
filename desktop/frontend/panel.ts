@@ -25,6 +25,8 @@ type PanelState = {
   captureStatus: "readingScreen" | "capturingWindow" | null;
   result: string;
   streamingResult: string;
+  answer: string;
+  streamingAnswer: string;
   isGenerating: boolean;
   generationStartedAt: number | null;
   errorMessage: string | null;
@@ -72,7 +74,7 @@ export async function startPanel(root: HTMLElement): Promise<void> {
   };
 
   const render = () => {
-    const hasResult = state.result !== "" || state.isGenerating;
+    const hasResult = state.result !== "" || state.answer !== "" || state.isGenerating;
     const canInsert = state.result !== "" && !state.isGenerating;
     field.placeholder = hasResult ? t("Refine: shorter, more formal…") : t("What do you want to write?");
     field.disabled = state.isGenerating;
@@ -81,6 +83,9 @@ export async function startPanel(root: HTMLElement): Promise<void> {
     const blocks: (Node | null)[] = [];
     if (state.selectedPreview) blocks.push(h("p", { class: "selection-preview" }, state.selectedPreview));
     if (state.windowTextWasTruncated) blocks.push(h("p", { class: "caption" }, `ⓘ ${t("Partial context")}`));
+    // Paid plans answer questions; the answer is for reading and only the suggestion is inserted.
+    if (state.answer) blocks.push(h("p", { class: "block-label" }, t("Answer")), h("p", { class: "answer" }, state.answer));
+    if (state.answer && state.result) blocks.push(h("p", { class: "block-label" }, t("Suggested text")));
     if (state.result) blocks.push(responseBlock(state.result, state.isGenerating));
     content.replaceChildren(...blocks.filter((block): block is Node => block !== null));
 
@@ -103,6 +108,7 @@ export async function startPanel(root: HTMLElement): Promise<void> {
           h("button", { class: "small-button", type: "button", onclick: () => void invoke("prompt_cancel_generation") }, t("Cancel")),
         ),
       );
+      if (state.streamingAnswer) below.push(h("p", { class: "answer muted" }, state.streamingAnswer));
       if (state.streamingResult) below.push(responseBlock(state.streamingResult, true));
     }
     if (state.errorMessage) below.push(h("p", { class: "error", role: "alert" }, `⚠ ${state.errorMessage}`));

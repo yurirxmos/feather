@@ -12,7 +12,7 @@ struct PromptView: View {
     @State private var isTyping = false
     @State private var typingStopTask: Task<Void, Never>?
 
-    private var hasResult: Bool { !session.result.isEmpty || session.isGenerating }
+    private var hasResult: Bool { !session.result.isEmpty || !session.answer.isEmpty || session.isGenerating }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -20,6 +20,14 @@ struct PromptView: View {
                 contextPreview
             }
 
+            // Paid plans answer questions; the answer is for reading and only the suggestion is inserted.
+            if !session.answer.isEmpty {
+                blockLabel(String(localized: "Answer", bundle: .app))
+                answerBlock(session.answer, muted: false)
+            }
+            if !session.answer.isEmpty, !session.result.isEmpty {
+                blockLabel(String(localized: "Suggested text", bundle: .app))
+            }
             if !session.result.isEmpty {
                 responseBlock(session.result, muted: session.isGenerating)
             }
@@ -41,6 +49,9 @@ struct PromptView: View {
             if session.isGenerating {
                 Divider()
                 GeneratingIndicator(startedAt: session.generationStartedAt ?? .now, cancel: cancelGeneration)
+                if !session.streamingAnswer.isEmpty {
+                    answerBlock(session.streamingAnswer, muted: true)
+                }
                 if !session.streamingResult.isEmpty {
                     responseBlock(session.streamingResult, muted: true)
                 }
@@ -122,6 +133,28 @@ struct PromptView: View {
         }
         .frame(maxHeight: 320)
         .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func blockLabel(_ text: String) -> some View {
+        Text(text.uppercased())
+            .font(.system(size: 11, weight: .semibold))
+            .tracking(0.4)
+            .foregroundStyle(.white.opacity(0.55))
+    }
+
+    private func answerBlock(_ text: String, muted: Bool) -> some View {
+        ScrollView {
+            Text(text)
+                .font(.system(size: 14, design: .serif))
+                .foregroundStyle(muted ? Color.white.opacity(0.52) : Color.white)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
+        .frame(maxHeight: 200)
+        .fixedSize(horizontal: false, vertical: true)
+        .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
     }
 
     private var hasContextPreview: Bool {

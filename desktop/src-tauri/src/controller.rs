@@ -14,7 +14,8 @@ use crate::auth;
 use crate::core::context::{ContextOptions, ScreenContext};
 use crate::core::error::LlmError;
 use crate::core::placement::{self, Anchor};
-use crate::core::prompt::{self, Exchange, RequestInput};
+use crate::core::prompt::{self, Exchange, Mode, RequestInput};
+use crate::core::reply::Reply;
 use crate::core::turn::{self, Submission, CLOSING_COUNTDOWN_SECONDS};
 use crate::core::pkce;
 use crate::credentials;
@@ -49,8 +50,12 @@ pub struct PanelState {
     options: ContextOptions,
     is_capturing: bool,
     capture_status: Option<CaptureStatus>,
+    /// The text to insert.
     result: String,
     streaming_result: String,
+    /// What Feather says to the user, in assistant mode only.
+    answer: String,
+    streaming_answer: String,
     is_generating: bool,
     /// Milliseconds since the Unix epoch.
     generation_started_at: Option<u64>,
@@ -70,6 +75,8 @@ struct Session {
     options: ContextOptions,
     result: String,
     streaming_result: String,
+    answer: String,
+    streaming_answer: String,
     is_generating: bool,
     generation_started_at: Option<u64>,
     error_message: Option<String>,
@@ -100,6 +107,11 @@ impl Session {
         };
     }
 
+    /// The last response as the model wrote it, so a refinement keeps its format.
+    fn raw_result(&self) -> String {
+        Reply { answer: self.answer.clone(), suggestion: self.result.clone() }.raw()
+    }
+
     /// Undoes the running generation's turn and puts its instruction back for editing.
     fn roll_back_generation(&mut self) {
         if !self.is_generating {
@@ -111,6 +123,7 @@ impl Session {
             self.last_instruction = last_instruction;
         }
         self.streaming_result.clear();
+        self.streaming_answer.clear();
         self.generation_started_at = None;
         self.is_generating = false;
         self.restore_instruction = Some(instruction);
@@ -130,6 +143,8 @@ impl Session {
             capture_status: self.capture_status,
             result: self.result.clone(),
             streaming_result: self.streaming_result.clone(),
+            answer: self.answer.clone(),
+            streaming_answer: self.streaming_answer.clone(),
             is_generating: self.is_generating,
             generation_started_at: self.generation_started_at,
             error_message: self.error_message.clone(),
@@ -422,7 +437,8 @@ impl PromptController {
         let mut inner = self.lock();
         let session = &mut inner.session;
         session.turn_before_generation = Some((session.history.clone(), session.last_instruction.clone()));
-        session.history = turn::history(&session.history, &session.last_instruction, &session.result, session.is_generating);
+        let raw = session.raw_result();
+        session.history = turn::history(&session.history, &session.last_instruction, &raw, session.is_generating);
         session.last_instruction = instruction;
         drop(inner);
         self.run();
@@ -466,12 +482,15 @@ impl PromptController {
 
     fn run(&self) {
         let settings = self.settings();
+        // Only the paid plans answer questions; the free version assists typing.
+        let mode = if settings.connection == Connection::FeatherPlus { Mode::Assistant } else { Mode::TypeAssist };
         let mut inner = self.lock();
         if let Some(task) = inner.generation_task.take() {
             task.abort();
         }
         let session = &mut inner.session;
         session.streaming_result.clear();
+        session.streaming_answer.clear();
         session.error_message = None;
         session.notice = None;
         session.is_generating = true;
@@ -505,6 +524,7 @@ impl PromptController {
                     model: &settings.model,
                     session_id: &session.session_id,
                     custom_instructions: &settings.custom_instructions,
+                    mode,
                 })
             };
 
@@ -516,8 +536,10 @@ impl PromptController {
                 text.push_str(chunk);
                 first_text_after.get_or_insert_with(|| started.elapsed());
                 if published.elapsed() >= STREAM_PUBLISH_INTERVAL {
+                    let reply = Reply::parse(&text, mode);
                     let mut inner = controller.lock();
-                    inner.session.streaming_result = text.clone();
+                    inner.session.streaming_result = reply.suggestion;
+                    inner.session.streaming_answer = reply.answer;
                     controller.publish(&inner);
                     published = Instant::now();
                 }
@@ -525,14 +547,16 @@ impl PromptController {
             .await;
 
             let mut inner = controller.lock();
-            let partial = text.trim().to_owned();
+            let partial = Reply::parse(&text, mode);
             let label = match outcome {
                 Ok(()) => {
-                    inner.session.result = partial;
+                    inner.session.result = partial.suggestion;
+                    inner.session.answer = partial.answer;
                     "completed"
                 }
-                Err(LlmError::TimedOut) if !partial.is_empty() => {
-                    inner.session.result = partial;
+                Err(LlmError::TimedOut) if !partial.suggestion.is_empty() || !partial.answer.is_empty() => {
+                    inner.session.result = partial.suggestion;
+                    inner.session.answer = partial.answer;
                     inner.session.notice = Some(t("Stopped after 1 minute. Review the text before inserting it."));
                     "timed_out_with_text"
                 }
@@ -542,6 +566,7 @@ impl PromptController {
                 }
             };
             inner.session.streaming_result.clear();
+            inner.session.streaming_answer.clear();
             inner.session.is_generating = false;
             inner.session.turn_before_generation = None;
             controller.publish(&inner);
