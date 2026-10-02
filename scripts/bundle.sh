@@ -26,6 +26,8 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$APP/Contents/Frameworks"
 cp "$BIN_DIR/Feather" "$APP/Contents/MacOS/Feather"
 cp -R "$BIN_DIR/Feather_Feather.bundle" "$APP/Contents/Resources/"
+# Regenerate with `swift scripts/make-icon.swift`.
+cp Assets/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 ditto "$BIN_DIR/Sparkle.framework" "$APP/Contents/Frameworks/Sparkle.framework"
 # SwiftPM only adds @loader_path, which points at Contents/MacOS inside the bundle.
 install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP/Contents/MacOS/Feather"
@@ -39,6 +41,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleName</key><string>Feather</string>
     <key>CFBundleDisplayName</key><string>Feather</string>
     <key>CFBundleExecutable</key><string>Feather</string>
+    <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>${VERSION}</string>
     <key>CFBundleVersion</key><string>${BUILD_NUMBER}</string>
