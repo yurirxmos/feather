@@ -43,7 +43,7 @@ jobs:
           if-no-files-found: error
 
   publish:
-    name: Publish preview release
+    name: Publish release
     needs: build
     runs-on: ubuntu-latest
 
@@ -59,7 +59,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
         run: |
+          # This job has no checkout, so name the repository. A full release (not a prerelease)
+          # is what /releases/latest, the website's download link, resolves to.
           gh release create "$TAG" release-assets/*.zip \
+            --repo "$GITHUB_REPOSITORY" \
             --title "Feather ${TAG#v}" \
-            --generate-notes \
-            --prerelease
+            --notes "Download Feather-arm64.zip for Apple silicon or Feather-x86_64.zip for Intel. Feather is not notarized yet: the first time you open it, go to System Settings > Privacy & Security and choose Open Anyway." \
+            --generate-notes
