@@ -67,6 +67,21 @@ final class ProviderTests: XCTestCase {
         XCTAssertEqual(urlRequest.value(forHTTPHeaderField: "User-Agent"), OpenCodeGoProvider.userAgent)
     }
 
+    func testFeatherCloudUsesAccountTokenAndConfiguredBase() throws {
+        let provider = FeatherCloudProvider(accountToken: "acct-token", baseURL: "https://api.example.test/v1/")
+        let urlRequest = try provider.makeURLRequest(for: request(image: image))
+        XCTAssertEqual(urlRequest.url?.absoluteString, "https://api.example.test/v1/chat/completions")
+        XCTAssertEqual(urlRequest.value(forHTTPHeaderField: "Authorization"), "Bearer acct-token")
+        XCTAssertEqual(try json(urlRequest)["stream"] as? Bool, true)
+    }
+
+    func testFeatherCloudRequiresAccountToken() {
+        let provider = FeatherCloudProvider(accountToken: "", baseURL: "https://api.example.test/v1")
+        XCTAssertThrowsError(try provider.makeURLRequest(for: request(image: nil))) {
+            XCTAssertEqual($0 as? LLMError, .missingAPIKey)
+        }
+    }
+
     func testChatGPTRequestShape() throws {
         let urlRequest = try ChatGPTProvider(accessToken: "token", accountID: "acct").makeURLRequest(for: requestWithSession())
         XCTAssertEqual(urlRequest.url?.absoluteString, ChatGPTProvider.endpoint)
