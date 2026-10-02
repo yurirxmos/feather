@@ -27,7 +27,10 @@ screen context on a hotkey, streams a reply from an LLM, and pastes it into the 
   shortcut and is discarded when the panel closes. Do not add background capture.
 - Feather Plus is the paid, hosted option. Its backend is the private `feather-api` repository
   (a Cloudflare Worker, cloned next to this one); its README is the contract the app follows.
-  Never add backend code here: this repository is public.
+  Never add backend code here: this repository is public. Its web pages (landing, sign-in,
+  account) live in the private `feather-web` repository (`https://feather.rxmos.dev`, cloned
+  next to this one); the API redirects `/auth/authorize` and `/account` there, so the app only
+  needs the API base URL.
   - `FeatherPlus.swift` (requests, account decoding) and `FeatherPlusProvider.swift` (sends the
     `fast` or `premium` tier as the model) live in `FeatherCore`; `PlusAuth.swift` (browser
     sign-in with PKCE over a 127.0.0.1 loopback redirect) and `PlusSettingsView.swift` in the app.
