@@ -12,6 +12,10 @@ struct PlusSettingsView: View {
     @State private var isLoadingAccount = false
     @State private var signInTask: Task<Void, Never>?
     @State private var errorMessage: String?
+    /// Set while switching accounts, so Feather Plus is in use again once the new account signs in.
+    @State private var switchingAccounts = false
+    @AppStorage(offerFeatherPlusKey) private var offerFeatherPlus = false
+    @State private var isAskingToUsePlus = false
 
     var body: some View {
         Form {
@@ -34,6 +38,7 @@ struct PlusSettingsView: View {
             // Leaving the pane abandons a pending browser sign-in and frees its port.
             signInTask?.cancel()
         }
+        .modifier(UseFeatherPlusAlert(isPresented: $isAskingToUsePlus, current: connection, accept: useFeatherPlus))
     }
 
     // MARK: - Signed out
@@ -93,15 +98,6 @@ struct PlusSettingsView: View {
                     }
                 }
             }
-            if account?.plan != nil, FeatherPlus.isProviderEnabled() {
-                LabeledContent(String(localized: "Replies", bundle: .app)) {
-                    if connection == .featherPlus {
-                        StatusBadge(text: String(localized: "Using Feather Plus", bundle: .app), color: .green)
-                    } else {
-                        Button(String(localized: "Use Feather Plus", bundle: .app), action: useFeatherPlus)
-                    }
-                }
-            }
             HStack {
                 Button(account?.plan == nil ? String(localized: "Choose a plan…", bundle: .app) : String(localized: "Manage subscription…", bundle: .app), action: openBilling)
                     .disabled(account == nil)
@@ -157,6 +153,8 @@ struct PlusSettingsView: View {
         signInTask = Task {
             do {
                 token = try await PlusAuth.signIn(store: credentialStore)
+                offerFeatherPlus = true
+                credentialsDidChange(preferring: .featherPlus)
                 loadAccount()
             } catch is CancellationError {
                 // The user cancelled or left the pane.
@@ -174,9 +172,16 @@ struct PlusSettingsView: View {
         Task {
             defer { isLoadingAccount = false }
             do {
-                account = try await PlusAuth.account(token: token)
+                let loaded = try await PlusAuth.account(token: token)
+                account = loaded
+                // Once a newly signed-in account has a plan, ask to reply with it.
+                if offerFeatherPlus, loaded.plan != nil {
+                    offerFeatherPlus = false
+                    if connection != .featherPlus { isAskingToUsePlus = true }
+                }
             } catch PlusAuthError.unauthorized {
                 credentialStore.deletePlusToken()
+                credentialsDidChange()
                 self.token = nil
                 account = nil
                 errorMessage = PlusAuthError.unauthorized.errorDescription
@@ -196,11 +201,27 @@ struct PlusSettingsView: View {
         connection = .featherPlus
     }
 
+    /// Signing in or out changes which providers are set up; the Connection pane's rule decides
+    /// whether Feather Plus is now the one in use.
+    private func credentialsDidChange(preferring preferred: ConnectionKind? = nil) {
+        let setUp = FeatherCore.Settings.providersSetUp(in: credentialStore, plusAvailable: FeatherPlus.isProviderEnabled())
+        var next = FeatherCore.Settings.connection(current: connection, setUp: setUp, preferring: preferred)
+        if switchingAccounts, setUp.contains(.featherPlus) {
+            next = .featherPlus
+            switchingAccounts = false
+        }
+        guard next != connection else { return }
+        model = FeatherCore.Settings.model(afterChangingTo: next, preserving: model)
+        connection = next
+    }
+
     private func signOut() {
+        switchingAccounts = connection == .featherPlus
         PlusAuth.signOut(store: credentialStore)
         token = nil
         account = nil
         errorMessage = nil
+        credentialsDidChange()
         // Signing out is how you switch accounts, so open the sign-in right away.
         signIn()
     }

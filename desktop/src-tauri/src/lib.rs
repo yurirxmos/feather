@@ -58,6 +58,7 @@ pub fn run() {
             commands::set_setting,
             commands::credential_status,
             commands::save_api_key,
+            commands::delete_api_key,
             commands::opencode_models,
             commands::sign_in_chatgpt,
             commands::disconnect_chatgpt,

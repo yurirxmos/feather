@@ -64,4 +64,25 @@ final class SettingsTests: XCTestCase {
         store.deleteChatGPTCredentials()
         XCTAssertNil(store.chatGPTCredentials())
     }
+
+    func testTheProviderInUseStaysWhileItIsSetUp() {
+        XCTAssertEqual(Settings.connection(current: .chatGPT, setUp: [.chatGPT, .openCodeGo], preferring: .openCodeGo), .chatGPT)
+    }
+
+    func testTheFirstProviderSetUpIsUsed() {
+        XCTAssertEqual(Settings.connection(current: .openCodeGo, setUp: [.chatGPT], preferring: .chatGPT), .chatGPT)
+    }
+
+    func testRemovingTheProviderInUseFallsBackInOrder() {
+        XCTAssertEqual(Settings.connection(current: .chatGPT, setUp: [.openCodeGo, .featherPlus]), .featherPlus)
+        XCTAssertEqual(Settings.connection(current: .chatGPT, setUp: [.openCodeGo]), .openCodeGo)
+        XCTAssertEqual(Settings.connection(current: .chatGPT, setUp: []), .chatGPT)
+    }
+
+    func testProvidersSetUpFollowTheStoredCredentials() {
+        let store = MemoryCredentialStore(apiKey: "key", plusToken: "token")
+        XCTAssertEqual(Settings.providersSetUp(in: store, plusAvailable: true), [.openCodeGo, .featherPlus])
+        XCTAssertEqual(Settings.providersSetUp(in: store, plusAvailable: false), [.openCodeGo])
+    }
 }
+

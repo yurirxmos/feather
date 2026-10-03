@@ -42,20 +42,10 @@ struct SettingsView: View {
     @State private var selectedSection: SettingsSection? = .general
     @StateObject private var permissions = PermissionMonitor()
     @AppStorage(SettingsKey.connection) private var connection: ConnectionKind = .openCodeGo
-    @AppStorage(SettingsKey.model) private var model = OpenCodeGoProvider.defaultModel
     @AppStorage(SettingsKey.hotkey) private var hotkey: HotkeyPreset = .optionSpace
     @AppStorage(SettingsKey.includeScreenshot) private var includeScreenshot = true
     @AppStorage(SettingsKey.customInstructions) private var customInstructions = ""
-    @State private var storedKey = ""
-    @State private var newKey = ""
-    @State private var isEditingKey = false
-    @State private var isLoggingIn = false
-    @State private var authError: String?
-    @State private var chatGPTConnected = false
-    @State private var plusSignedIn = false
-    @State private var openCodeModels: [String] = []
-    @State private var isLoadingModels = false
-    @State private var modelsFailed = false
+    @State private var providersSetUp: Set<ConnectionKind> = []
 
     init(credentialStore: any CredentialStore = KeychainCredentialStore.shared) {
         self.credentialStore = credentialStore
@@ -71,7 +61,7 @@ struct SettingsView: View {
         .toolbar(removing: .sidebarToggle)
         .frame(minWidth: 680, minHeight: 480)
         .onAppear {
-            loadCredentials(for: connection)
+            refreshProviders()
             if !isConnected {
                 selectedSection = .connection
             } else if !permissions.allGranted {
@@ -80,12 +70,7 @@ struct SettingsView: View {
         }
         .onChange(of: selectedSection) { _, _ in
             // Feather Plus sign-in happens in its own pane; refresh when coming back.
-            loadCredentials(for: connection)
-        }
-        .onChange(of: connection) { _, value in
-            model = FeatherCore.Settings.model(afterChangingTo: value, preserving: model)
-            authError = nil
-            loadCredentials(for: value)
+            refreshProviders()
         }
     }
 
@@ -139,199 +124,27 @@ struct SettingsView: View {
         }
     }
 
+    /// Whether the provider in use is set up.
     private var isConnected: Bool {
-        switch connection {
-        case .openCodeGo: !storedKey.isEmpty
-        case .chatGPT: chatGPTConnected
-        case .featherPlus: plusSignedIn
-        }
+        providersSetUp.contains(connection)
+    }
+
+    private func refreshProviders() {
+        providersSetUp = Settings.providersSetUp(in: credentialStore, plusAvailable: FeatherPlus.isProviderEnabled())
     }
 
     @ViewBuilder
     private var detailView: some View {
         switch selectedSection ?? .general {
-        case .connection: connectionView
+        case .connection:
+            ConnectionSettingsView(
+                credentialStore: credentialStore,
+                openPlus: { selectedSection = .plus },
+                credentialsChanged: refreshProviders
+            )
         case .general: generalView
         case .plus: PlusSettingsView(credentialStore: credentialStore)
         case .permissions: permissionsView
-        }
-    }
-
-    // MARK: - Connection
-
-    private var connectionView: some View {
-        Form {
-            Section {
-                Picker(String(localized: "Provider", bundle: .app), selection: $connection) {
-                    Text("OpenCode Go", bundle: .app).tag(ConnectionKind.openCodeGo)
-                    Text("ChatGPT", bundle: .app).tag(ConnectionKind.chatGPT)
-                    if FeatherPlus.isProviderEnabled() {
-                        Text("Feather Plus", bundle: .app).tag(ConnectionKind.featherPlus)
-                    }
-                }
-                .pickerStyle(.segmented)
-
-                switch connection {
-                case .openCodeGo: keyEditor
-                case .chatGPT: chatGPTEditor
-                case .featherPlus: plusEditor
-                }
-            } header: {
-                Text("Account", bundle: .app)
-            } footer: {
-                Text("Credentials are stored in the macOS Keychain.", bundle: .app)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-
-            // Feather Plus picks its own model, so there is nothing to choose.
-            if connection != .featherPlus {
-                Section {
-                    modelEditor
-                } header: {
-                    Text("Model", bundle: .app)
-                } footer: {
-                    modelFooter
-                }
-            }
-        }
-        .formStyle(.grouped)
-    }
-
-    @ViewBuilder
-    private var modelFooter: some View {
-        if connection == .openCodeGo, storedKey.isEmpty {
-            Text("Add an API key to load the available models.", bundle: .app)
-                .font(.callout)
-                .foregroundStyle(.secondary)
-        } else if connection == .openCodeGo, modelsFailed {
-            Label {
-                Text("Couldn't load the models. Check your key and connection.", bundle: .app)
-            } icon: {
-                Image(systemName: "exclamationmark.triangle.fill")
-            }
-            .font(.callout)
-            .foregroundStyle(.red)
-        }
-    }
-
-    @ViewBuilder
-    private var keyEditor: some View {
-        if storedKey.isEmpty || isEditingKey {
-            LabeledContent(String(localized: "API key", bundle: .app)) {
-                HStack(spacing: 8) {
-                    SecureField(String(localized: "API key", bundle: .app), text: $newKey, prompt: Text("Paste your key", bundle: .app))
-                        .labelsHidden()
-                        .textFieldStyle(.roundedBorder)
-                        .frame(minWidth: 180)
-                        .onSubmit(saveKey)
-                    if !storedKey.isEmpty {
-                        Button(String(localized: "Cancel", bundle: .app)) {
-                            newKey = ""
-                            isEditingKey = false
-                        }
-                    }
-                    Button(String(localized: "Save", bundle: .app), action: saveKey)
-                        .keyboardShortcut(.defaultAction)
-                        .disabled(trimmedNewKey.isEmpty)
-                }
-            }
-        } else {
-            LabeledContent(String(localized: "API key", bundle: .app)) {
-                HStack(spacing: 10) {
-                    Text(APIKey.masked(storedKey))
-                        .font(.system(.body, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                        .textSelection(.disabled)
-                    Button(String(localized: "Replace…", bundle: .app)) {
-                        newKey = ""
-                        isEditingKey = true
-                    }
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var chatGPTEditor: some View {
-        LabeledContent(String(localized: "Account", bundle: .app)) {
-            if chatGPTConnected {
-                HStack(spacing: 10) {
-                    StatusBadge(text: String(localized: "Connected", bundle: .app), color: .green)
-                    Button(String(localized: "Disconnect", bundle: .app)) {
-                        credentialStore.deleteChatGPTCredentials()
-                        chatGPTConnected = false
-                    }
-                }
-            } else {
-                HStack(spacing: 10) {
-                    if isLoggingIn {
-                        ProgressView()
-                            .controlSize(.small)
-                    }
-                    Button(isLoggingIn ? String(localized: "Signing in…", bundle: .app) : String(localized: "Sign in with ChatGPT", bundle: .app), action: signInWithChatGPT)
-                        .disabled(isLoggingIn)
-                }
-            }
-        }
-        if !chatGPTConnected, !isLoggingIn, authError == nil {
-            Text("Sign-in continues in your browser.", bundle: .app)
-                .font(.callout)
-                .foregroundStyle(.secondary)
-        }
-        if let authError {
-            Label(authError, systemImage: "exclamationmark.triangle.fill")
-                .font(.callout)
-                .foregroundStyle(.red)
-        }
-    }
-
-    @ViewBuilder
-    private var plusEditor: some View {
-        LabeledContent(String(localized: "Account", bundle: .app)) {
-            HStack(spacing: 10) {
-                if plusSignedIn {
-                    StatusBadge(text: String(localized: "Signed in", bundle: .app), color: .green)
-                }
-                Button(plusSignedIn ? String(localized: "Manage…", bundle: .app) : String(localized: "Sign in…", bundle: .app)) {
-                    selectedSection = .plus
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var modelEditor: some View {
-        switch connection {
-        case .featherPlus:
-            EmptyView()
-        case .chatGPT:
-            Picker(String(localized: "Model", bundle: .app), selection: $model) {
-                ForEach(ChatGPTModelCatalog.models) { model in
-                    Text(model.name).tag(model.id)
-                }
-            }
-        case .openCodeGo:
-            HStack(spacing: 8) {
-                Picker(String(localized: "Model", bundle: .app), selection: $model) {
-                    ForEach(OpenCodeGoModelCatalog.sortedUniqueModels(openCodeModels, including: model), id: \.self) { option in
-                        Text(option).tag(option)
-                    }
-                }
-                .disabled(storedKey.isEmpty || isLoadingModels)
-                if isLoadingModels {
-                    ProgressView()
-                        .controlSize(.small)
-                } else {
-                    Button(action: loadOpenCodeModels) {
-                        Image(systemName: "arrow.clockwise")
-                    }
-                    .buttonStyle(.borderless)
-                    .disabled(storedKey.isEmpty)
-                    .help(String(localized: "Refresh", bundle: .app))
-                    .accessibilityLabel(String(localized: "Refresh", bundle: .app))
-                }
-            }
         }
     }
 
@@ -394,63 +207,6 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-    }
-
-    // MARK: - Actions
-
-    private var trimmedNewKey: String {
-        newKey.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private func saveKey() {
-        let trimmed = trimmedNewKey
-        guard !trimmed.isEmpty, credentialStore.setAPIKey(trimmed) else { return }
-        storedKey = trimmed
-        newKey = ""
-        isEditingKey = false
-        openCodeModels = []
-        loadOpenCodeModels()
-    }
-
-    private func signInWithChatGPT() {
-        isLoggingIn = true
-        authError = nil
-        Task {
-            do {
-                _ = try await ChatGPTAuth.login(store: credentialStore)
-                chatGPTConnected = true
-            } catch {
-                authError = error.localizedDescription
-            }
-            isLoggingIn = false
-        }
-    }
-
-    private func loadCredentials(for connection: ConnectionKind) {
-        switch connection {
-        case .openCodeGo:
-            storedKey = credentialStore.apiKey() ?? ""
-            if openCodeModels.isEmpty { loadOpenCodeModels() }
-        case .chatGPT:
-            chatGPTConnected = credentialStore.chatGPTCredentials() != nil
-        case .featherPlus:
-            plusSignedIn = credentialStore.plusToken() != nil
-        }
-    }
-
-    private func loadOpenCodeModels() {
-        guard !isLoadingModels, !storedKey.isEmpty else { return }
-        let apiKey = storedKey
-        isLoadingModels = true
-        modelsFailed = false
-        Task {
-            defer { isLoadingModels = false }
-            guard let fetched = try? await OpenCodeGoModelCatalog.fetchModels(apiKey: apiKey) else {
-                modelsFailed = true
-                return
-            }
-            openCodeModels = fetched
-        }
     }
 }
 

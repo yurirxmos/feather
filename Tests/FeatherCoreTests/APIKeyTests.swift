@@ -2,11 +2,11 @@ import XCTest
 @testable import FeatherCore
 
 final class APIKeyTests: XCTestCase {
-    func testMasksKeyAfterSixCharacters() {
-        XCTAssertEqual(APIKey.masked("abcdef123456"), "abcdef...")
+    func testMasksKeyAfterTenCharacters() {
+        XCTAssertEqual(APIKey.masked("abcdef123456"), "abcdef1234...")
     }
 
-    func testMasksKeyWithExactlySixCharacters() {
+    func testShowsAShortKeyWhole() {
         XCTAssertEqual(APIKey.masked("abcdef"), "abcdef...")
     }
 

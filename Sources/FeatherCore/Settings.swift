@@ -98,4 +98,31 @@ public struct Settings: Equatable, Sendable {
         }
         return model
     }
+
+    /// The order Settings lists providers in, and the order Feather falls back through.
+    public static let providerOrder: [ConnectionKind] = [.featherPlus, .chatGPT, .openCodeGo]
+
+    /// The provider to use after the set of providers that are set up changes. The one in use stays
+    /// while it is still set up; otherwise the one just set up (`preferring`), else the first one
+    /// set up. With none set up, nothing changes and Settings asks for attention.
+    public static func connection(
+        current: ConnectionKind,
+        setUp: Set<ConnectionKind>,
+        preferring preferred: ConnectionKind? = nil
+    ) -> ConnectionKind {
+        if setUp.contains(current) { return current }
+        if let preferred, setUp.contains(preferred) { return preferred }
+        return providerOrder.first(where: setUp.contains) ?? current
+    }
+
+    /// The providers that have credentials. Feather Plus counts once signed in, plan or not; its
+    /// row in Settings asks for a plan when there is none.
+    public static func providersSetUp(in store: any CredentialStore, plusAvailable: Bool) -> Set<ConnectionKind> {
+        var setUp: Set<ConnectionKind> = []
+        if !(store.apiKey() ?? "").isEmpty { setUp.insert(.openCodeGo) }
+        if store.chatGPTCredentials() != nil { setUp.insert(.chatGPT) }
+        if plusAvailable, store.plusToken() != nil { setUp.insert(.featherPlus) }
+        return setUp
+    }
 }
+

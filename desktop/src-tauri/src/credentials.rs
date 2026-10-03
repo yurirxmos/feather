@@ -52,6 +52,10 @@ pub fn set_api_key(key: &str) -> Result<(), String> {
     write(OPENCODE_GO_ACCOUNT, key)
 }
 
+pub fn delete_api_key() {
+    delete(OPENCODE_GO_ACCOUNT);
+}
+
 pub fn chatgpt_credentials() -> Option<ChatGptCredentials> {
     serde_json::from_str(&read(CHATGPT_ACCOUNT)?).ok()
 }
@@ -82,7 +86,7 @@ pub fn masked(key: &str) -> String {
     if trimmed.is_empty() {
         return String::new();
     }
-    format!("{}...", trimmed.chars().take(6).collect::<String>())
+    format!("{}...", trimmed.chars().take(10).collect::<String>())
 }
 
 #[cfg(test)]
@@ -91,7 +95,7 @@ mod tests {
 
     #[test]
     fn masks_all_but_the_prefix() {
-        assert_eq!(masked(" sk-abcdefgh "), "sk-abc...");
+        assert_eq!(masked(" sk-abcdefghij "), "sk-abcdefg...");
         assert_eq!(masked("  "), "");
     }
 }

@@ -6,6 +6,9 @@ import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { h, featherIcon } from "./dom";
 import { formatDate, t } from "./i18n";
+// The original logos, shared with the macOS app (its `ProviderLogos` resources).
+import openAILogo from "../../Sources/Feather/ProviderLogos/openai_logo.svg";
+import openCodeLogo from "../../Sources/Feather/ProviderLogos/opencode_logo.png";
 
 type Connection = "openCodeGo" | "chatGPT" | "featherPlus";
 type Section = "general" | "connection" | "plus" | "system";
@@ -55,6 +58,9 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
   let plusAccount: PlusAccount | null = null;
   let loadingAccount = false;
   let plusError: string | null = null;
+  // Set when a Feather Plus account signs in, until its plan is known: then Settings asks once
+  // whether to reply with Feather Plus, as the macOS app's `UseFeatherPlusAlert`.
+  let offerFeatherPlus = false;
 
   const sidebar = h("nav", { class: "sidebar", "aria-label": t("Feather Settings") });
   const detail = h("main", { class: "detail" });
@@ -166,152 +172,204 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
 
   // MARK: Connection
 
-  function connection(): HTMLElement[] {
-    const providers: [Connection, string][] = [
-      ["openCodeGo", t("OpenCode Go")],
-      ["chatGPT", t("ChatGPT")],
-    ];
-    if (settings.plusProviderEnabled) providers.push(["featherPlus", t("Feather Plus")]);
-    const picker = h(
-      "div",
-      { class: "segmented", role: "radiogroup", "aria-label": t("Provider") },
-      ...providers.map(([id, label]) =>
-        h(
-          "button",
-          {
-            type: "button",
-            role: "radio",
-            "aria-checked": String(settings.connection === id),
-            class: settings.connection === id ? "selected" : "",
-            onclick: async () => {
-              authError = null;
-              await set("connection", id);
-              if (id === "openCodeGo" && models.length === 0) loadModels();
-            },
-          },
-          label,
-        ),
-      ),
-    );
+  // Providers that are set up come first, with the one in use marked; the rest wait below with a
+  // Set Up button. Which one is in use after credentials change is decided in Rust
+  // (`connection_after_setup_change`), which emits "settings-changed".
 
-    const account: HTMLElement[] = [h("div", { class: "row" }, picker)];
-    let accountFootnote: HTMLElement | null = footnote(t("Credentials are stored in your system's secure credential storage."));
-    switch (settings.connection) {
+  const ORDER: Connection[] = ["featherPlus", "chatGPT", "openCodeGo"];
+
+  function providers(): Connection[] {
+    return ORDER.filter((id) => id !== "featherPlus" || settings.plusProviderEnabled);
+  }
+
+  function isSetUp(id: Connection): boolean {
+    switch (id) {
       case "openCodeGo":
-        account.push(keyEditor());
-        break;
+        return credentials.apiKey !== null;
       case "chatGPT":
-        account.push(chatgptEditor());
-        if (authError) accountFootnote = error(authError);
-        else if (!credentials.chatgptConnected && signingIn !== "chatGPT") accountFootnote = footnote(t("Sign-in continues in your browser."));
-        break;
+        return credentials.chatgptConnected;
       case "featherPlus":
-        account.push(
-          row(
-            t("Account"),
-            h(
-              "span",
-              { class: "inline" },
-              credentials.plusSignedIn ? badge(t("Signed in")) : null,
-              h("button", { type: "button", onclick: () => ((section = "plus"), render(), loadAccount()) }, credentials.plusSignedIn ? t("Manage…") : t("Sign in…")),
-            ),
-          ),
-        );
-        break;
+        return credentials.plusSignedIn;
     }
+  }
 
-    const views = [group(t("Account"), account, accountFootnote)];
+  function providerName(id: Connection): string {
+    return { featherPlus: t("Feather Plus"), chatGPT: t("ChatGPT"), openCodeGo: t("OpenCode Go") }[id];
+  }
+
+  function connection(): HTMLElement[] {
+    const ready = providers().filter(isSetUp);
+    const rest = providers().filter((id) => !isSetUp(id));
+    const views: HTMLElement[] = [];
+    if (ready.length > 0) {
+      views.push(group(t("Your providers"), ready.map(providerRow), footnote(t("Credentials are stored in your system's secure credential storage."))));
+    }
     // Feather Plus picks its own model, so there is nothing to choose.
-    if (settings.connection !== "featherPlus") views.push(group(t("Model"), [modelEditor()], modelFootnote()));
+    if (isSetUp(settings.connection) && settings.connection !== "featherPlus") {
+      views.push(group(t("Model"), [modelEditor()], modelFootnote()));
+    }
+    if (rest.length > 0) {
+      const foot = authError ? error(authError) : ready.length === 0 ? footnote(t("Set up one to start. You can add the others later.")) : null;
+      views.push(group(ready.length === 0 ? t("Choose how Feather writes") : t("Add a provider"), rest.map(providerRow), foot));
+    } else if (authError) {
+      views.push(error(authError));
+    }
     return views;
   }
 
-  function keyEditor(): HTMLElement {
-    if (credentials.apiKey === null || isEditingKey) {
-      const input = h("input", { type: "password", placeholder: t("Paste your key"), autocomplete: "off", spellcheck: "false", "aria-label": t("API key") });
-      const save = h("button", { type: "submit", class: "primary", disabled: true }, t("Save"));
-      input.addEventListener("input", () => (save.disabled = input.value.trim() === ""));
-      const form = h(
-        "form",
-        {
-          class: "inline",
-          onsubmit: async (event) => {
-            event.preventDefault();
-            const apiKey = input.value;
-            input.value = "";
-            try {
-              credentials = await invoke<Credentials>("save_api_key", { apiKey });
-              isEditingKey = false;
-              models = [];
-              render();
-              loadModels();
-            } catch (problem) {
-              render();
-              detail.append(error(String(problem)));
-            }
-          },
-        },
-        input,
-        credentials.apiKey !== null
-          ? h("button", { type: "button", onclick: () => ((isEditingKey = false), render()) }, t("Cancel"))
-          : null,
-        save,
-      );
-      queueMicrotask(() => input.focus());
-      return row(t("API key"), form);
-    }
-    return row(
-      t("API key"),
-      h(
-        "span",
-        { class: "inline" },
-        h("code", { class: "secondary" }, credentials.apiKey),
-        h("button", { type: "button", onclick: () => ((isEditingKey = true), render()) }, t("Replace…")),
-      ),
+  function providerRow(id: Connection): HTMLElement {
+    const main = h(
+      "div",
+      { class: "row provider" },
+      providerIcon(id),
+      h("span", { class: "label" }, h("span", {}, providerName(id)), h("small", { class: id === "openCodeGo" && isSetUp(id) ? "mono" : "" }, providerDetail(id))),
+      providerAccessory(id),
+    );
+    if (id === "openCodeGo" && isEditingKey) return h("div", { class: "provider-group" }, main, keyForm());
+    return main;
+  }
+
+  /** Feather Plus uses Feather's mark, the app icon's white feather on blue; ChatGPT and OpenCode Go their black logos on white. */
+  function providerIcon(id: Connection): HTMLElement {
+    if (id === "featherPlus") return h("span", { class: "provider-icon featherPlus", "aria-hidden": "true" }, featherIcon("feather-mark"));
+    return h(
+      "span",
+      { class: `provider-icon logo ${id}`, "aria-hidden": "true" },
+      h("img", { src: id === "chatGPT" ? openAILogo : openCodeLogo, alt: "" }),
     );
   }
 
-  function chatgptEditor(): HTMLElement {
-    if (credentials.chatgptConnected) {
-      return row(
-        t("Account"),
-        h(
-          "span",
-          { class: "inline" },
-          badge(t("Connected")),
-          h("button", { type: "button", onclick: async () => ((credentials = await invoke<Credentials>("disconnect_chatgpt")), render()) }, t("Disconnect")),
-        ),
-      );
+  function providerDetail(id: Connection): string {
+    if (!isSetUp(id)) {
+      return {
+        featherPlus: t("No API key, and it also answers questions. Paid plan."),
+        chatGPT: t("Sign in with your ChatGPT account. Free."),
+        openCodeGo: t("Paste an OpenCode Go API key. Free."),
+      }[id];
     }
-    const busy = signingIn === "chatGPT";
-    return row(
-      t("Account"),
-      h(
+    switch (id) {
+      case "openCodeGo":
+        return credentials.apiKey ?? "";
+      case "chatGPT":
+        return t("Signed in");
+      case "featherPlus":
+        if (!plusAccount) return t("Signed in");
+        return plusAccount.plan === "max" ? t("Max plan") : plusAccount.plan === "starter" ? t("Starter plan") : t("No plan yet");
+    }
+  }
+
+  function providerAccessory(id: Connection): HTMLElement {
+    const busy = (id === "chatGPT" && signingIn === "chatGPT") || (id === "featherPlus" && signingIn === "plus");
+    if (busy) {
+      return h(
         "span",
         { class: "inline" },
-        busy ? h("span", { class: "spinner", "aria-hidden": "true" }) : null,
-        h(
-          "button",
-          {
-            type: "button",
-            class: "primary",
-            disabled: busy,
-            onclick: async () => {
-              signingIn = "chatGPT";
-              authError = null;
-              render();
-              try {
-                credentials = await invoke<Credentials>("sign_in_chatgpt");
-              } catch (problem) {
-                if (problem !== CANCELLED) authError = String(problem);
-              }
-              signingIn = null;
-              render();
-            },
+        h("span", { class: "spinner", "aria-hidden": "true" }),
+        h("button", { type: "button", onclick: () => void invoke("cancel_sign_in") }, t("Cancel")),
+      );
+    }
+    if (!isSetUp(id)) {
+      if (id === "openCodeGo" && isEditingKey) return h("span");
+      return h("button", { type: "button", disabled: signingIn !== null, onclick: () => setUp(id) }, t("Set Up…"));
+    }
+    let status: HTMLElement;
+    if (id === "featherPlus" && plusAccount && !plusAccount.plan) {
+      status = h("button", { type: "button", onclick: () => void invoke("open_plus_account_page") }, t("Choose a plan…"));
+    } else if (settings.connection === id) {
+      status = h("span", { class: "status in-use" }, h("span", { class: "dot green" }), t("In use"));
+    } else {
+      status = h(
+        "button",
+        {
+          type: "button",
+          onclick: async () => {
+            await set("connection", id);
+            if (id === "openCodeGo" && models.length === 0) loadModels();
           },
-          busy ? t("Signing in…") : t("Sign in with ChatGPT"),
-        ),
-      ),
+        },
+        t("Use"),
+      );
+    }
+    return h("span", { class: "inline" }, status, ...providerActions(id));
+  }
+
+  /** The row's secondary actions, as quiet link buttons. */
+  function providerActions(id: Connection): HTMLElement[] {
+    const link = (label: string, onclick: () => void) => h("button", { type: "button", class: "link", onclick }, label);
+    switch (id) {
+      case "openCodeGo":
+        return [
+          link(t("Replace…"), () => ((isEditingKey = true), render())),
+          link(t("Remove Key"), async () => {
+            credentials = await invoke<Credentials>("delete_api_key");
+            models = [];
+            render();
+          }),
+        ];
+      case "chatGPT":
+        return [link(t("Disconnect"), async () => ((credentials = await invoke<Credentials>("disconnect_chatgpt")), render()))];
+      case "featherPlus":
+        return [link(t("Manage…"), () => ((section = "plus"), render(), loadAccount()))];
+    }
+  }
+
+  function setUp(id: Connection): void {
+    authError = null;
+    switch (id) {
+      case "openCodeGo":
+        isEditingKey = true;
+        render();
+        return;
+      case "chatGPT":
+        void signInChatGPT();
+        return;
+      case "featherPlus":
+        void signInPlus();
+        return;
+    }
+  }
+
+  async function signInChatGPT(): Promise<void> {
+    signingIn = "chatGPT";
+    render();
+    try {
+      credentials = await invoke<Credentials>("sign_in_chatgpt");
+    } catch (problem) {
+      if (problem !== CANCELLED) authError = String(problem);
+    }
+    signingIn = null;
+    render();
+  }
+
+  function keyForm(): HTMLElement {
+    const input = h("input", { type: "password", placeholder: t("Paste your key"), autocomplete: "off", spellcheck: "false", "aria-label": t("API key") });
+    const save = h("button", { type: "submit", class: "primary", disabled: true }, t("Save"));
+    input.addEventListener("input", () => (save.disabled = input.value.trim() === ""));
+    queueMicrotask(() => input.focus());
+    return h(
+      "form",
+      {
+        class: "row key-form",
+        onsubmit: async (event) => {
+          event.preventDefault();
+          const apiKey = input.value;
+          input.value = "";
+          try {
+            credentials = await invoke<Credentials>("save_api_key", { apiKey });
+            isEditingKey = false;
+            authError = null;
+            models = [];
+            render();
+            loadModels();
+          } catch (problem) {
+            authError = String(problem);
+            render();
+          }
+        },
+      },
+      input,
+      h("button", { type: "button", onclick: () => ((isEditingKey = false), render()) }, t("Cancel")),
+      save,
     );
   }
 
@@ -347,7 +405,6 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
 
   function modelFootnote(): HTMLElement | null {
     if (settings.connection !== "openCodeGo") return null;
-    if (credentials.apiKey === null) return footnote(t("Add an API key to load the available models."));
     if (modelsFailed) return error(t("Couldn't load the models. Check your key and connection."));
     return null;
   }
@@ -400,16 +457,6 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
       row(t("Email"), account ? h("span", { class: "selectable" }, account.email) : loadingAccount ? h("span", { class: "spinner" }) : h("span")),
       row(t("Plan"), account ? (account.plan ? badge(account.plan === "max" ? t("Max") : t("Starter")) : h("span", { class: "secondary" }, t("No plan"))) : h("span")),
     ];
-    if (account?.plan && settings.plusProviderEnabled) {
-      rows.push(
-        row(
-          t("Replies"),
-          settings.connection === "featherPlus"
-            ? badge(t("Using Feather Plus"))
-            : h("button", { type: "button", onclick: () => void set("connection", "featherPlus") }, t("Use Feather Plus")),
-        ),
-      );
-    }
     rows.push(
       h(
         "div",
@@ -466,6 +513,9 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     render();
     try {
       credentials = await invoke<Credentials>("sign_in_plus");
+      // Signing in may have switched the provider in Rust; read it before deciding to ask.
+      settings = await invoke<Settings>("get_settings");
+      offerFeatherPlus = true;
       loadAccount();
     } catch (problem) {
       if (problem !== CANCELLED) plusError = String(problem);
@@ -480,7 +530,13 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     plusError = null;
     render();
     invoke<PlusAccount | null>("plus_account")
-      .then((account) => (plusAccount = account))
+      .then((account) => {
+        plusAccount = account;
+        if (offerFeatherPlus && account?.plan) {
+          offerFeatherPlus = false;
+          if (settings.connection !== "featherPlus") askToUseFeatherPlus();
+        }
+      })
       .catch(async (problem: { unauthorized: boolean; message: string }) => {
         plusError = problem.message;
         if (problem.unauthorized) {
@@ -516,12 +572,45 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     return [group(t("What Feather can do here"), rows, footnote(note))];
   }
 
+  /** Asks whether to switch replies to Feather Plus, naming the provider in use now. */
+  function askToUseFeatherPlus(): void {
+    const current = providerName(settings.connection);
+    const dialog = h(
+      "dialog",
+      { class: "confirm", "aria-labelledby": "confirm-title" },
+      h("div", { class: "confirm-icon", "aria-hidden": "true" }, featherIcon("feather-mark")),
+      h("h2", { id: "confirm-title" }, t("Use Feather Plus for replies?")),
+      h("p", {}, t("Feather is using {provider} now. You can switch again in Settings > Connection anytime.", { provider: current })),
+      h(
+        "div",
+        { class: "confirm-actions" },
+        h("button", { type: "button", onclick: () => dialog.close() }, t("Keep {provider}", { provider: current })),
+        h(
+          "button",
+          {
+            type: "button",
+            class: "primary",
+            onclick: async () => {
+              dialog.close();
+              await set("connection", "featherPlus");
+            },
+          },
+          t("Use Feather Plus"),
+        ),
+      ),
+    );
+    dialog.addEventListener("close", () => dialog.remove());
+    document.body.append(dialog);
+    dialog.showModal();
+    dialog.querySelector<HTMLButtonElement>(".primary")?.focus();
+  }
+
   // MARK: Refreshing
 
   async function refreshCredentials(): Promise<void> {
     credentials = await invoke<Credentials>("credential_status");
     render();
-    if (section === "plus") loadAccount();
+    if (section === "plus" || section === "connection") loadAccount();
   }
 
   await listen("settings-changed", async () => {
@@ -535,6 +624,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
 
   render();
   if (settings.connection === "openCodeGo") loadModels();
+  if (section === "connection") loadAccount();
 }
 
 function sectionGlyph(section: Section): Node {

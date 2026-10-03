@@ -461,16 +461,6 @@
         }
       }
     },
-    "Provider": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Provedor"
-          }
-        }
-      }
-    },
     "Quit": {
       "localizations": {
         "pt-BR": {
@@ -777,16 +767,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Conta"
-          }
-        }
-      }
-    },
-    "Add an API key to load the available models.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Adicione uma chave de API para carregar os modelos disponíveis."
           }
         }
       }
@@ -1161,36 +1141,6 @@
         }
       }
     },
-    "Replies": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Respostas"
-          }
-        }
-      }
-    },
-    "Using Feather Plus": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Usando o Feather Plus"
-          }
-        }
-      }
-    },
-    "Use Feather Plus": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Usar o Feather Plus"
-          }
-        }
-      }
-    },
     "Requests": {
       "localizations": {
         "pt-BR": {
@@ -1237,6 +1187,196 @@
           "stringUnit": {
             "state": "translated",
             "value": "Texto sugerido"
+          }
+        }
+      }
+    },
+    "Your providers": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seus provedores"
+          }
+        }
+      }
+    },
+    "Add a provider": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adicionar um provedor"
+          }
+        }
+      }
+    },
+    "Choose how Feather writes": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha como o Feather escreve"
+          }
+        }
+      }
+    },
+    "Set up one to start. You can add the others later.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configure um para começar. Você pode adicionar os outros depois."
+          }
+        }
+      }
+    },
+    "No API key, and it also answers questions. Paid plan.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem chave de API, e também responde perguntas. Plano pago."
+          }
+        }
+      }
+    },
+    "Sign in with your ChatGPT account. Free.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entre com a sua conta do ChatGPT. Grátis."
+          }
+        }
+      }
+    },
+    "Paste an OpenCode Go API key. Free.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cole uma chave de API do OpenCode Go. Grátis."
+          }
+        }
+      }
+    },
+    "Starter plan": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plano Starter"
+          }
+        }
+      }
+    },
+    "Max plan": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plano Max"
+          }
+        }
+      }
+    },
+    "No plan yet": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ainda sem plano"
+          }
+        }
+      }
+    },
+    "Set Up…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configurar…"
+          }
+        }
+      }
+    },
+    "In use": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Em uso"
+          }
+        }
+      }
+    },
+    "Use": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar"
+          }
+        }
+      }
+    },
+    "Remove Key": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remover chave"
+          }
+        }
+      }
+    },
+    "More": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mais"
+          }
+        }
+      }
+    },
+    "Use Feather Plus for replies?": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar o Feather Plus nas respostas?"
+          }
+        }
+      }
+    },
+    "Use Feather Plus": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar o Feather Plus"
+          }
+        }
+      }
+    },
+    "Keep %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manter o %@"
+          }
+        }
+      }
+    },
+    "Feather is using %@ now. You can switch again in Settings > Connection anytime.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Feather está usando o %@. Você pode trocar de novo em Ajustes > Conexão quando quiser."
           }
         }
       }

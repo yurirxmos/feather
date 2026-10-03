@@ -170,7 +170,7 @@ p.row { margin: 0; }
 .settings-body button:not(.section):not(.quit):not(.link) {
   min-height: 30px; padding: 0 12px; border: 1px solid var(--control-line); border-radius: 5px; background: var(--control);
 }
-.settings-body button.primary { border-color: transparent; background: var(--accent); color: #fff; }
+.settings-body button.primary:not(.section):not(.quit):not(.link) { border-color: transparent; background: var(--accent); color: #fff; }
 .settings-body button:disabled { opacity: .45; }
 .settings-body button.icon-button { min-width: 30px; padding: 0; }
 .settings-body button.link { padding: 0; border: 0; background: none; color: var(--accent); text-decoration: underline; }
@@ -184,6 +184,32 @@ p.row { margin: 0; }
 .segmented { display: inline-flex; padding: 2px; border-radius: 7px; background: var(--hover); border: 1px solid var(--line); }
 .settings-body .segmented button:not(.section):not(.quit):not(.link) { border: 0; background: none; min-height: 26px; padding: 0 14px; border-radius: 5px; color: var(--secondary); }
 .settings-body .segmented button.selected:not(.section):not(.quit):not(.link) { background: var(--control); color: var(--text); font-weight: 600; box-shadow: 0 1px 2px rgb(0 0 0 / .25); }
+.row.provider { justify-content: flex-start; gap: 12px; }
+.row.provider .label { flex: 1; min-width: 0; }
+.row.provider .label small.mono { font-family: var(--mono); }
+.provider-icon { display: grid; flex: none; width: 28px; height: 28px; place-items: center; border-radius: 7px; color: #fff; font-size: 13px; }
+/* Feather's own mark: the app icon's white feather on its gradient around #0a84ff. */
+.provider-icon.featherPlus, .confirm-icon { background: linear-gradient(#349aff, #0a70f0); }
+.feather-mark { width: 16px; height: 16px; fill: none; stroke: #fff; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.confirm-icon .feather-mark { width: 22px; height: 22px; }
+.provider-icon.logo { background: #fff; box-shadow: inset 0 0 0 1px rgb(0 0 0 / .1); }
+.provider-icon.logo img { width: 18px; height: 18px; object-fit: contain; }
+.provider-icon.openCodeGo img { width: 22px; height: 22px; }
+.provider-group + .row, .row + .provider-group, .provider-group + .provider-group { border-top: 1px solid var(--line); }
+.row.key-form { justify-content: flex-start; gap: 8px; padding-left: 54px; border-top: 0; }
+.row.key-form input { flex: 1; }
+.status.in-use { color: var(--green); font-weight: 600; }
+.settings-body button.link { font-size: 12.5px; }
+dialog.confirm {
+  width: 360px; padding: 22px 22px 18px; border: 1px solid var(--line); border-radius: 12px;
+  color: var(--text); background: var(--card); box-shadow: 0 24px 60px rgb(0 0 0 / .3); text-align: center;
+}
+dialog.confirm::backdrop { background: rgb(0 0 0 / .25); }
+.confirm-icon { display: grid; width: 40px; height: 40px; margin: 0 auto 12px; place-items: center; border-radius: 10px; }
+dialog.confirm h2 { margin: 0 0 8px; font-size: 15px; font-weight: 600; }
+dialog.confirm p { margin: 0 0 18px; color: var(--secondary); font-size: 13px; line-height: 1.45; }
+.confirm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.confirm-actions button { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 progress { width: 100%; height: 6px; accent-color: var(--accent); }
 progress.exhausted { accent-color: var(--orange); }
 .settings-body :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

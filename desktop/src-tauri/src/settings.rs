@@ -36,6 +36,23 @@ pub enum Connection {
 
 impl Connection {
     pub const ALL: [Connection; 3] = [Connection::OpenCodeGo, Connection::ChatGpt, Connection::FeatherPlus];
+    /// The order Settings lists providers in and Feather falls back through, as
+    /// `Settings.providerOrder` in the macOS app.
+    pub const ORDER: [Connection; 3] = [Connection::FeatherPlus, Connection::ChatGpt, Connection::OpenCodeGo];
+}
+
+/// The provider to use after the set of providers that are set up changes. The one in use stays
+/// while it is still set up; otherwise the one just set up (`preferred`), else the first one set up.
+/// With none set up, nothing changes and Settings asks for attention. Mirrors
+/// `Settings.connection(current:setUp:preferring:)` in the macOS app.
+pub fn connection_after_setup_change(current: Connection, set_up: &[Connection], preferred: Option<Connection>) -> Connection {
+    if set_up.contains(&current) {
+        return current;
+    }
+    if let Some(preferred) = preferred.filter(|preferred| set_up.contains(preferred)) {
+        return preferred;
+    }
+    Connection::ORDER.into_iter().find(|candidate| set_up.contains(candidate)).unwrap_or(current)
 }
 
 /// Shortcuts that do not collide with Windows or common Linux desktop bindings. macOS's ⌥ Space
@@ -223,6 +240,25 @@ mod tests {
         assert_eq!(model_after_changing_to(Connection::ChatGpt, "my-model"), "my-model");
         assert_eq!(model_after_changing_to(Connection::ChatGpt, crate::providers::OPENCODE_GO_DEFAULT_MODEL), "gpt-5.4-mini");
         assert_eq!(model_after_changing_to(Connection::FeatherPlus, "my-model"), plus::DEFAULT_MODEL);
+    }
+
+    #[test]
+    fn the_provider_in_use_stays_while_it_is_set_up() {
+        let set_up = [Connection::ChatGpt, Connection::OpenCodeGo];
+        assert_eq!(connection_after_setup_change(Connection::ChatGpt, &set_up, Some(Connection::OpenCodeGo)), Connection::ChatGpt);
+    }
+
+    #[test]
+    fn the_first_provider_set_up_is_used() {
+        assert_eq!(connection_after_setup_change(Connection::OpenCodeGo, &[Connection::ChatGpt], Some(Connection::ChatGpt)), Connection::ChatGpt);
+    }
+
+    #[test]
+    fn removing_the_provider_in_use_falls_back_in_order() {
+        let both = [Connection::OpenCodeGo, Connection::FeatherPlus];
+        assert_eq!(connection_after_setup_change(Connection::ChatGpt, &both, None), Connection::FeatherPlus);
+        assert_eq!(connection_after_setup_change(Connection::ChatGpt, &[Connection::OpenCodeGo], None), Connection::OpenCodeGo);
+        assert_eq!(connection_after_setup_change(Connection::ChatGpt, &[], None), Connection::ChatGpt);
     }
 
     #[test]

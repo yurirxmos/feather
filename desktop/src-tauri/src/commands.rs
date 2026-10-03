@@ -1,6 +1,7 @@
 //! The IPC boundary. Credentials and captured content stay on this side: the webview only gets
 //! masked keys, connection states, and what the panel renders.
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 use serde::Serialize;
@@ -16,7 +17,7 @@ use crate::credentials;
 use crate::i18n;
 use crate::platform::{self, Capability};
 use crate::providers::catalog::{self, Model, CHATGPT_MODELS};
-use crate::settings::{key, HotkeyPreset, Settings, SettingsStore};
+use crate::settings::{connection_after_setup_change, key, Connection, HotkeyPreset, Settings, SettingsStore};
 use crate::shell::{self, ShellState};
 
 /// Cancels the pending browser sign-in, if any.
@@ -109,10 +110,51 @@ pub fn credential_status() -> CredentialStatus {
     }
 }
 
+/// Set while switching Feather Plus accounts, so Feather Plus is in use again once the new
+/// account signs in.
+static SWITCHING_PLUS_ACCOUNTS: AtomicBool = AtomicBool::new(false);
+
+/// The providers that have credentials. Feather Plus counts once signed in, plan or not.
+fn providers_set_up(settings: &Settings) -> Vec<Connection> {
+    let mut set_up = Vec::new();
+    if credentials::api_key().is_some() {
+        set_up.push(Connection::OpenCodeGo);
+    }
+    if credentials::chatgpt_credentials().is_some() {
+        set_up.push(Connection::ChatGpt);
+    }
+    if settings.plus_provider_enabled && credentials::plus_token().is_some() {
+        set_up.push(Connection::FeatherPlus);
+    }
+    set_up
+}
+
+/// After credentials change, keeps the provider in use or moves to one that is set up, and tells
+/// the windows when that changes the settings.
+fn credentials_changed(app: &AppHandle, store: &SettingsStore, preferred: Option<Connection>) {
+    let settings = store.current();
+    let set_up = providers_set_up(&settings);
+    let mut next = connection_after_setup_change(settings.connection, &set_up, preferred);
+    if set_up.contains(&Connection::FeatherPlus) && SWITCHING_PLUS_ACCOUNTS.swap(false, Ordering::Relaxed) {
+        next = Connection::FeatherPlus;
+    }
+    if next != settings.connection && store.set(key::CONNECTION, serde_json::to_value(next).expect("connection")).is_ok() {
+        let _ = app.emit("settings-changed", ());
+    }
+}
+
 #[tauri::command]
-pub fn save_api_key(api_key: String) -> Result<CredentialStatus, String> {
+pub fn save_api_key(app: AppHandle, store: State<'_, SettingsStore>, api_key: String) -> Result<CredentialStatus, String> {
     credentials::set_api_key(&api_key)?;
+    credentials_changed(&app, &store, Some(Connection::OpenCodeGo));
     Ok(credential_status())
+}
+
+#[tauri::command]
+pub fn delete_api_key(app: AppHandle, store: State<'_, SettingsStore>) -> CredentialStatus {
+    credentials::delete_api_key();
+    credentials_changed(&app, &store, None);
+    credential_status()
 }
 
 #[tauri::command]
@@ -136,14 +178,16 @@ fn open_in_browser(app: &AppHandle) -> impl FnOnce(&str) + '_ {
 }
 
 #[tauri::command]
-pub async fn sign_in_chatgpt(app: AppHandle, sign_in: State<'_, SignIn>) -> Result<CredentialStatus, String> {
+pub async fn sign_in_chatgpt(app: AppHandle, store: State<'_, SettingsStore>, sign_in: State<'_, SignIn>) -> Result<CredentialStatus, String> {
     cancellable(&sign_in, auth::chatgpt::sign_in(open_in_browser(&app))).await?;
+    credentials_changed(&app, &store, Some(Connection::ChatGpt));
     Ok(credential_status())
 }
 
 #[tauri::command]
-pub fn disconnect_chatgpt() -> CredentialStatus {
+pub fn disconnect_chatgpt(app: AppHandle, store: State<'_, SettingsStore>) -> CredentialStatus {
     credentials::delete_chatgpt_credentials();
+    credentials_changed(&app, &store, None);
     credential_status()
 }
 
@@ -151,6 +195,7 @@ pub fn disconnect_chatgpt() -> CredentialStatus {
 pub async fn sign_in_plus(app: AppHandle, store: State<'_, SettingsStore>, sign_in: State<'_, SignIn>) -> Result<CredentialStatus, String> {
     let base = store.current().plus_base_url;
     cancellable(&sign_in, async { auth::plus::sign_in(&base, open_in_browser(&app)).await.map_err(|error| error.message()) }).await?;
+    credentials_changed(&app, &store, Some(Connection::FeatherPlus));
     Ok(credential_status())
 }
 
@@ -169,7 +214,7 @@ pub struct PlusAccountError {
 }
 
 #[tauri::command]
-pub async fn plus_account(store: State<'_, SettingsStore>) -> Result<Option<PlusAccount>, PlusAccountError> {
+pub async fn plus_account(app: AppHandle, store: State<'_, SettingsStore>) -> Result<Option<PlusAccount>, PlusAccountError> {
     let Some(token) = credentials::plus_token() else { return Ok(None) };
     match auth::plus::account(&store.current().plus_base_url, &token).await {
         Ok(account) => Ok(Some(account)),
@@ -177,6 +222,7 @@ pub async fn plus_account(store: State<'_, SettingsStore>) -> Result<Option<Plus
             let unauthorized = error == auth::plus::PlusError::Unauthorized;
             if unauthorized {
                 credentials::delete_plus_token();
+                credentials_changed(&app, &store, None);
             }
             Err(PlusAccountError { unauthorized, message: error.message() })
         }
@@ -184,8 +230,10 @@ pub async fn plus_account(store: State<'_, SettingsStore>) -> Result<Option<Plus
 }
 
 #[tauri::command]
-pub fn plus_sign_out(store: State<'_, SettingsStore>) -> CredentialStatus {
+pub fn plus_sign_out(app: AppHandle, store: State<'_, SettingsStore>) -> CredentialStatus {
+    SWITCHING_PLUS_ACCOUNTS.store(store.current().connection == Connection::FeatherPlus, Ordering::Relaxed);
     auth::plus::sign_out(&store.current().plus_base_url);
+    credentials_changed(&app, &store, None);
     credential_status()
 }
 

@@ -15,7 +15,7 @@ let package = Package(
             name: "Feather",
             dependencies: ["FeatherCore", .product(name: "Sparkle", package: "Sparkle")],
             path: "Sources/Feather",
-            resources: [.process("Localizable.xcstrings")]
+            resources: [.process("Localizable.xcstrings"), .copy("ProviderLogos")]
         ),
         .testTarget(
             name: "FeatherCoreTests",

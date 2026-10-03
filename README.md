@@ -34,12 +34,15 @@ only; it does not log screen contents, instructions, or responses.
 
 ## Providers
 
-Choose a provider in **Feather > Settings > Connection**.
+Set up a provider in **Feather > Settings > Connection**. Providers you have set up are listed
+first, with the one in use marked; click **Use** to switch. The first one you set up is used right
+away, and removing the one in use switches to another that is set up.
 
 ### Feather Plus
 
-Feather Plus is the hosted option: no API key needed. Sign in from **Settings > Feather Plus**
-with a one-time email link, pick a plan, and select **Feather Plus** as the provider.
+Feather Plus is the hosted option: no API key needed. Click **Set Up…** next to Feather Plus in
+**Settings > Connection**, sign in with a one-time email link, and pick a plan. The account and
+usage are in **Settings > Feather Plus**.
 
 | Plan | Price | Includes |
 | --- | --- | --- |
