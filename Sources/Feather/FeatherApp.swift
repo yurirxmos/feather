@@ -45,22 +45,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let menu = NSMenu()
         let open = NSMenuItem(title: "", action: #selector(openPrompt), keyEquivalent: "")
         open.target = self
+        open.image = NSImage.featherMenuBarIcon(size: 16)
         hotkeyMenuItem = open
         menu.addItem(open)
         menu.addItem(.separator())
         let settings = NSMenuItem(title: String(localized: "Settings…", bundle: .app), action: #selector(showSettings), keyEquivalent: ",")
         settings.target = self
+        settings.image = menuSymbol("gearshape")
         menu.addItem(settings)
         if updater.isConfigured {
             let updates = NSMenuItem(title: String(localized: "Check for Updates…", bundle: .app), action: #selector(AppUpdater.checkForUpdates(_:)), keyEquivalent: "")
             updates.target = updater
+            updates.image = menuSymbol("arrow.triangle.2.circlepath")
             menu.addItem(updates)
         }
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: String(localized: "Quit", bundle: .app), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        let quit = NSMenuItem(title: String(localized: "Quit", bundle: .app), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        quit.image = menuSymbol("power")
+        menu.addItem(quit)
         item.menu = menu
         statusItem = item
         updateHotkeyMenuTitle()
+    }
+
+    /// An SF Symbol for a menu item; the desktop app's tray menu draws the same glyphs.
+    private func menuSymbol(_ name: String) -> NSImage? {
+        NSImage(systemSymbolName: name, accessibilityDescription: nil)
     }
 
     private func registerHotkey() {

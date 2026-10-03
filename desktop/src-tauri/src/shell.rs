@@ -3,7 +3,8 @@
 
 use std::sync::Mutex;
 
-use tauri::menu::{MenuBuilder, MenuItem, MenuItemBuilder};
+use tauri::image::Image;
+use tauri::menu::{IconMenuItem, IconMenuItemBuilder, MenuBuilder};
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
@@ -20,7 +21,7 @@ pub const SETTINGS_LABEL: &str = "settings";
 /// The tray item whose title shows the current shortcut, and whether that shortcut is registered.
 #[derive(Default)]
 pub struct ShellState {
-    open_item: Mutex<Option<MenuItem<tauri::Wry>>>,
+    open_item: Mutex<Option<IconMenuItem<tauri::Wry>>>,
     pub hotkey_registered: Mutex<bool>,
 }
 
@@ -50,10 +51,14 @@ pub fn open_prompt(app: &AppHandle) {
 
 pub fn build_tray(app: &AppHandle) -> tauri::Result<()> {
     app.manage(ShellState::default());
-    let open = MenuItemBuilder::with_id("open", open_title(app)).build(app)?;
-    let settings = MenuItemBuilder::with_id("settings", t("Settings…")).build(app)?;
-    let updates = MenuItemBuilder::with_id("updates", t("Check for Updates…")).build(app)?;
-    let quit = MenuItemBuilder::with_id("quit", t("Quit")).build(app)?;
+    // Icons beside every item, the same glyphs as the macOS menu bar menu.
+    let item = |id: &str, text: String, icon: &[u8]| -> tauri::Result<IconMenuItem<tauri::Wry>> {
+        IconMenuItemBuilder::with_id(id, text).icon(Image::from_bytes(icon)?).build(app)
+    };
+    let open = item("open", open_title(app), include_bytes!("../icons/menu/open.png"))?;
+    let settings = item("settings", t("Settings…"), include_bytes!("../icons/menu/settings.png"))?;
+    let updates = item("updates", t("Check for Updates…"), include_bytes!("../icons/menu/updates.png"))?;
+    let quit = item("quit", t("Quit"), include_bytes!("../icons/menu/quit.png"))?;
     let menu = MenuBuilder::new(app).item(&open).separator().item(&settings).item(&updates).separator().item(&quit).build()?;
     *app.state::<ShellState>().open_item.lock().expect("shell lock") = Some(open);
 
