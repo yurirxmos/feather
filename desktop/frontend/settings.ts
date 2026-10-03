@@ -160,7 +160,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
             screenshot,
           ),
         ],
-        footnote(`✋ ${t("Nothing is captured until you press the shortcut, and the context is discarded when the panel closes.")}`),
+        footnote(t("Nothing is captured until you press the shortcut, and the context is discarded when the panel closes.")),
       ),
       group(t("Instructions"), [instructions], footnote(t("Set writing preferences for every response, such as “Do not use emojis or em dashes.”"))),
       group(t("About"), [

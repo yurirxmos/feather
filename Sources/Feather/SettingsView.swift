@@ -170,13 +170,10 @@ struct SettingsView: View {
             } header: {
                 Text("Context", bundle: .app)
             } footer: {
-                Label {
-                    Text("Nothing is captured until you press the shortcut, and the context is discarded when the panel closes.", bundle: .app)
-                } icon: {
-                    Image(systemName: "hand.raised.fill")
-                }
-                .font(.callout)
-                .foregroundStyle(.secondary)
+                Text("Nothing is captured until you press the shortcut, and the context is discarded when the panel closes.", bundle: .app)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .sectionFooter()
             }
 
             Section {
@@ -189,6 +186,7 @@ struct SettingsView: View {
                 Text("Set writing preferences for every response, such as “Do not use emojis or em dashes.”", bundle: .app)
                     .font(.callout)
                     .foregroundStyle(.secondary)
+                    .sectionFooter()
             }
         }
         .formStyle(.grouped)
@@ -204,6 +202,7 @@ struct SettingsView: View {
                 Text("Feather needs both permissions to read the context around your cursor and paste replies.", bundle: .app)
                     .font(.callout)
                     .foregroundStyle(.secondary)
+                    .sectionFooter()
             }
         }
         .formStyle(.grouped)
@@ -235,5 +234,14 @@ struct StatusBadge: View {
             Text(text)
                 .foregroundStyle(.secondary)
         }
+    }
+}
+
+extension View {
+    /// Lays a Form section footer across the section's full width, aligned left. Left alone,
+    /// grouped forms on macOS wrap a long footer into a narrow, centered column.
+    func sectionFooter() -> some View {
+        frame(maxWidth: .infinity, alignment: .leading)
+            .multilineTextAlignment(.leading)
     }
 }

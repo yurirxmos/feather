@@ -71,6 +71,7 @@ struct PlusSettingsView: View {
             Text("Feather Plus", bundle: .app)
         } footer: {
             footer
+                .sectionFooter()
         }
     }
 
@@ -108,6 +109,7 @@ struct PlusSettingsView: View {
             Text("Account", bundle: .app)
         } footer: {
             footer
+                .sectionFooter()
         }
 
         if let account, account.plan != nil, !account.usage.isEmpty {
@@ -122,6 +124,7 @@ struct PlusSettingsView: View {
                     Text("Resets on \(periodEnd.formatted(date: .abbreviated, time: .omitted)).", bundle: .app)
                         .font(.callout)
                         .foregroundStyle(.secondary)
+                        .sectionFooter()
                 }
             }
         }

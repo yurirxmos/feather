@@ -54,6 +54,7 @@ struct ConnectionSettingsView: View {
                 Text("Use your own ChatGPT account or OpenCode Go key. Credentials are stored in the macOS Keychain.", bundle: .app)
                     .font(.callout)
                     .foregroundStyle(.secondary)
+                    .sectionFooter()
             }
 
             // Feather Plus picks its own model, so there is nothing to choose.
@@ -64,6 +65,7 @@ struct ConnectionSettingsView: View {
                     Text("Model", bundle: .app)
                 } footer: {
                     modelFooter
+                        .sectionFooter()
                 }
             }
 
