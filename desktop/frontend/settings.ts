@@ -221,8 +221,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     const free: Connection[] = ["chatGPT", "openCodeGo"];
     const ready = free.filter(isSetUp);
     const pending = free.filter((id) => !isSetUp(id));
-    const divider = ready.length > 0 && pending.length > 0 ? [h("p", { class: "row subhead" }, t("Not set up yet"))] : [];
-    return [...ready.map(providerRow), ...divider, ...pending.map(providerRow)];
+    return [...ready, ...pending].map(providerRow);
   }
 
   function plusCard(): HTMLElement {

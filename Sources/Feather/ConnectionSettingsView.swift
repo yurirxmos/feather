@@ -47,14 +47,7 @@ struct ConnectionSettingsView: View {
             let ready = free.filter(setUp.contains)
             let pending = free.filter { !setUp.contains($0) }
             Section {
-                ForEach(ready, id: \.self, content: providerRow)
-                if !ready.isEmpty, !pending.isEmpty {
-                    Text("Not set up yet", bundle: .app)
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(.secondary)
-                        .padding(.top, 4)
-                }
-                ForEach(pending, id: \.self, content: providerRow)
+                ForEach(ready + pending, id: \.self, content: providerRow)
             } header: {
                 Text("Free plan", bundle: .app)
             } footer: {

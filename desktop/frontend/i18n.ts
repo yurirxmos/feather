@@ -52,7 +52,6 @@ export const PT_BR: Record<string, string> = {
   Use: "Usar",
   "Remove Key": "Remover chave",
   "Free plan": "Plano grátis",
-  "Not set up yet": "Ainda não configurados",
   "Use your own ChatGPT account or OpenCode Go key. Credentials are stored in your system's secure credential storage.":
     "Use a sua própria conta do ChatGPT ou chave do OpenCode Go. As credenciais ficam no armazenamento seguro do sistema.",
   "Answers your questions": "Responde às suas perguntas",

@@ -1380,16 +1380,6 @@
           }
         }
       }
-    },
-    "Not set up yet": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ainda não configurados"
-          }
-        }
-      }
     }
   },
   "version": "1.0"
