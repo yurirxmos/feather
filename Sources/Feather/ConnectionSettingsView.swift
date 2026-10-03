@@ -34,19 +34,33 @@ struct ConnectionSettingsView: View {
     }
 
     var body: some View {
-        let ready = providers.filter(setUp.contains)
-        let rest = providers.filter { !setUp.contains($0) }
         Form {
-            if !ready.isEmpty {
+            if providers.contains(.featherPlus) {
                 Section {
-                    ForEach(ready, id: \.self, content: providerRow)
-                } header: {
-                    Text("Your providers", bundle: .app)
-                } footer: {
-                    Text("Credentials are stored in the macOS Keychain.", bundle: .app)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
+                    plusCard
+                        .listRowBackground(Color.accentColor.opacity(0.07))
                 }
+            }
+
+            // Ready providers first; the ones still to set up below them, dimmed.
+            let free: [ConnectionKind] = [.chatGPT, .openCodeGo]
+            let ready = free.filter(setUp.contains)
+            let pending = free.filter { !setUp.contains($0) }
+            Section {
+                ForEach(ready, id: \.self, content: providerRow)
+                if !ready.isEmpty, !pending.isEmpty {
+                    Text("Not set up yet", bundle: .app)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .padding(.top, 4)
+                }
+                ForEach(pending, id: \.self, content: providerRow)
+            } header: {
+                Text("Free plan", bundle: .app)
+            } footer: {
+                Text("Use your own ChatGPT account or OpenCode Go key. Credentials are stored in the macOS Keychain.", bundle: .app)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
             }
 
             // Feather Plus picks its own model, so there is nothing to choose.
@@ -60,27 +74,7 @@ struct ConnectionSettingsView: View {
                 }
             }
 
-            if !rest.isEmpty {
-                Section {
-                    ForEach(rest, id: \.self, content: providerRow)
-                } header: {
-                    if ready.isEmpty {
-                        Text("Choose how Feather writes", bundle: .app)
-                    } else {
-                        Text("Add a provider", bundle: .app)
-                    }
-                } footer: {
-                    if let errorMessage {
-                        Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
-                            .font(.callout)
-                            .foregroundStyle(.red)
-                    } else if ready.isEmpty {
-                        Text("Set up one to start. You can add the others later.", bundle: .app)
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            } else if let errorMessage {
+            if let errorMessage {
                 Section {
                     Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
                         .font(.callout)
@@ -103,16 +97,63 @@ struct ConnectionSettingsView: View {
 
     // MARK: - Rows
 
+    /// Feather Plus, set apart above the free providers.
+    private var plusCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .center, spacing: 14) {
+                ProviderIcon(kind: .featherPlus, size: 40)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Feather Plus", bundle: .app)
+                        .font(.title3.weight(.semibold))
+                    if setUp.contains(.featherPlus) {
+                        detail(.featherPlus)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("No API key, and it also answers questions. Paid plan.", bundle: .app)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Spacer(minLength: 12)
+                accessory(.featherPlus)
+            }
+            if !setUp.contains(.featherPlus) {
+                HStack(spacing: 18) {
+                    perk(String(localized: "Answers your questions", bundle: .app))
+                    perk(String(localized: "No API key to manage", bundle: .app))
+                    perk(String(localized: "Starter or Max plan", bundle: .app))
+                }
+                .font(.callout)
+                .padding(.leading, 54)
+            }
+        }
+        .padding(.vertical, 8)
+    }
+
+    private func perk(_ text: String) -> some View {
+        Label {
+            Text(text)
+        } icon: {
+            Image(systemName: "checkmark")
+                .foregroundStyle(Color.accentColor)
+                .fontWeight(.semibold)
+        }
+    }
+
     private func providerRow(_ kind: ConnectionKind) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 12) {
-                ProviderIcon(kind: kind)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(kind.title)
-                    detail(kind)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
+                // A provider still to set up reads quieter than the ready ones; its button does not.
+                HStack(spacing: 12) {
+                    ProviderIcon(kind: kind)
+                        .saturation(setUp.contains(kind) ? 1 : 0)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(kind.title)
+                        detail(kind)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    }
                 }
+                .opacity(setUp.contains(kind) ? 1 : 0.55)
                 Spacer(minLength: 12)
                 accessory(kind)
             }
@@ -160,7 +201,11 @@ struct ConnectionSettingsView: View {
                 }
             }
         } else if !setUp.contains(kind) {
-            if !(kind == .openCodeGo && isEnteringKey) {
+            if kind == .featherPlus {
+                Button(String(localized: "Set Up…", bundle: .app)) { beginSetUp(kind) }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(busy != nil)
+            } else if !(kind == .openCodeGo && isEnteringKey) {
                 Button(String(localized: "Set Up…", bundle: .app)) { beginSetUp(kind) }
                     .disabled(busy != nil)
             }
@@ -448,6 +493,7 @@ extension ConnectionKind {
 /// (shared with the desktop app).
 private struct ProviderIcon: View {
     let kind: ConnectionKind
+    var size: CGFloat = 28
 
     private static let logos: [ConnectionKind: NSImage] = {
         var logos: [ConnectionKind: NSImage] = [:]
@@ -467,30 +513,30 @@ private struct ProviderIcon: View {
         endPoint: .bottom
     )
 
-    private var tile: RoundedRectangle { RoundedRectangle(cornerRadius: 7, style: .continuous) }
+    private var tile: RoundedRectangle { RoundedRectangle(cornerRadius: size / 4, style: .continuous) }
 
     var body: some View {
         Group {
             if kind == .featherPlus {
                 FeatherShape()
-                    .stroke(.white, style: StrokeStyle(lineWidth: 1.7, lineCap: .round, lineJoin: .round))
-                    .frame(width: 16, height: 16)
-                    .frame(width: 28, height: 28)
+                    .stroke(.white, style: StrokeStyle(lineWidth: size / 16, lineCap: .round, lineJoin: .round))
+                    .frame(width: size * 0.57, height: size * 0.57)
+                    .frame(width: size, height: size)
                     .background(Self.featherBlue, in: tile)
             } else if let logo = Self.logos[kind] {
                 Image(nsImage: logo)
                     .resizable()
                     .interpolation(.high)
                     .aspectRatio(contentMode: .fit)
-                    .padding(kind == .openCodeGo ? 3 : 5)
-                    .frame(width: 28, height: 28)
+                    .padding(size * (kind == .openCodeGo ? 0.1 : 0.18))
+                    .frame(width: size, height: size)
                     .background(.white, in: tile)
                     .overlay(tile.strokeBorder(.black.opacity(0.1)))
             } else {
                 Image(systemName: kind == .chatGPT ? "bubble.left.and.bubble.right.fill" : "key.fill")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: size * 0.46, weight: .semibold))
                     .foregroundStyle(.black)
-                    .frame(width: 28, height: 28)
+                    .frame(width: size, height: size)
                     .background(.white, in: tile)
                     .overlay(tile.strokeBorder(.black.opacity(0.1)))
             }

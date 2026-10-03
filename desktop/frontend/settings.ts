@@ -198,29 +198,65 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
   }
 
   function connection(): HTMLElement[] {
-    const ready = providers().filter(isSetUp);
-    const rest = providers().filter((id) => !isSetUp(id));
     const views: HTMLElement[] = [];
-    if (ready.length > 0) {
-      views.push(group(t("Your providers"), ready.map(providerRow), footnote(t("Credentials are stored in your system's secure credential storage."))));
-    }
+    // Feather Plus is set apart above the free providers.
+    if (providers().includes("featherPlus")) views.push(group(null, [plusCard()]));
+    views.push(
+      group(
+        t("Free plan"),
+        freeRows(),
+        footnote(t("Use your own ChatGPT account or OpenCode Go key. Credentials are stored in your system's secure credential storage.")),
+      ),
+    );
     // Feather Plus picks its own model, so there is nothing to choose.
     if (isSetUp(settings.connection) && settings.connection !== "featherPlus") {
       views.push(group(t("Model"), [modelEditor()], modelFootnote()));
     }
-    if (rest.length > 0) {
-      const foot = authError ? error(authError) : ready.length === 0 ? footnote(t("Set up one to start. You can add the others later.")) : null;
-      views.push(group(ready.length === 0 ? t("Choose how Feather writes") : t("Add a provider"), rest.map(providerRow), foot));
-    } else if (authError) {
-      views.push(error(authError));
-    }
+    if (authError) views.push(error(authError));
     return views;
+  }
+
+  /** Ready providers first; the ones still to set up below them, dimmed. */
+  function freeRows(): HTMLElement[] {
+    const free: Connection[] = ["chatGPT", "openCodeGo"];
+    const ready = free.filter(isSetUp);
+    const pending = free.filter((id) => !isSetUp(id));
+    const divider = ready.length > 0 && pending.length > 0 ? [h("p", { class: "row subhead" }, t("Not set up yet"))] : [];
+    return [...ready.map(providerRow), ...divider, ...pending.map(providerRow)];
+  }
+
+  function plusCard(): HTMLElement {
+    const setUpAlready = isSetUp("featherPlus");
+    const perks = setUpAlready
+      ? null
+      : h(
+          "ul",
+          { class: "perks" },
+          ...[t("Answers your questions"), t("No API key to manage"), t("Starter or Max plan")].map((perk) => h("li", {}, perk)),
+        );
+    return h(
+      "div",
+      { class: "row plus-card" },
+      h(
+        "div",
+        { class: "plus-card-head" },
+        providerIcon("featherPlus"),
+        h(
+          "span",
+          { class: "label" },
+          h("strong", {}, t("Feather Plus")),
+          h("small", {}, setUpAlready ? providerDetail("featherPlus") : t("No API key, and it also answers questions. Paid plan.")),
+        ),
+        providerAccessory("featherPlus"),
+      ),
+      perks,
+    );
   }
 
   function providerRow(id: Connection): HTMLElement {
     const main = h(
       "div",
-      { class: "row provider" },
+      { class: isSetUp(id) || id === "featherPlus" ? "row provider" : "row provider pending" },
       providerIcon(id),
       h("span", { class: "label" }, h("span", {}, providerName(id)), h("small", { class: id === "openCodeGo" && isSetUp(id) ? "mono" : "" }, providerDetail(id))),
       providerAccessory(id),
@@ -270,7 +306,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     }
     if (!isSetUp(id)) {
       if (id === "openCodeGo" && isEditingKey) return h("span");
-      return h("button", { type: "button", disabled: signingIn !== null, onclick: () => setUp(id) }, t("Set Up…"));
+      return h("button", { type: "button", class: id === "featherPlus" ? "primary" : "", disabled: signingIn !== null, onclick: () => setUp(id) }, t("Set Up…"));
     }
     let status: HTMLElement;
     if (id === "featherPlus" && plusAccount && !plusAccount.plan) {

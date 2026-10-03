@@ -41,10 +41,6 @@ export const PT_BR: Record<string, string> = {
   "Feather Settings": "Configurações do Feather",
   General: "Geral",
   Connection: "Conexão",
-  "Your providers": "Seus provedores",
-  "Add a provider": "Adicionar um provedor",
-  "Choose how Feather writes": "Escolha como o Feather escreve",
-  "Set up one to start. You can add the others later.": "Configure um para começar. Você pode adicionar os outros depois.",
   "No API key, and it also answers questions. Paid plan.": "Sem chave de API, e também responde perguntas. Plano pago.",
   "Sign in with your ChatGPT account. Free.": "Entre com a sua conta do ChatGPT. Grátis.",
   "Paste an OpenCode Go API key. Free.": "Cole uma chave de API do OpenCode Go. Grátis.",
@@ -55,6 +51,13 @@ export const PT_BR: Record<string, string> = {
   "In use": "Em uso",
   Use: "Usar",
   "Remove Key": "Remover chave",
+  "Free plan": "Plano grátis",
+  "Not set up yet": "Ainda não configurados",
+  "Use your own ChatGPT account or OpenCode Go key. Credentials are stored in your system's secure credential storage.":
+    "Use a sua própria conta do ChatGPT ou chave do OpenCode Go. As credenciais ficam no armazenamento seguro do sistema.",
+  "Answers your questions": "Responde às suas perguntas",
+  "No API key to manage": "Sem chave de API para gerenciar",
+  "Starter or Max plan": "Plano Starter ou Max",
   "Use Feather Plus for replies?": "Usar o Feather Plus nas respostas?",
   "Feather is using {provider} now. You can switch again in Settings > Connection anytime.":
     "O Feather está usando o {provider}. Você pode trocar de novo em Ajustes > Conexão quando quiser.",
@@ -81,8 +84,6 @@ export const PT_BR: Record<string, string> = {
   "OpenCode Go": "OpenCode Go",
   ChatGPT: "ChatGPT",
   Account: "Conta",
-  "Credentials are stored in your system's secure credential storage.":
-    "As credenciais ficam guardadas no armazenamento seguro de credenciais do sistema.",
   Model: "Modelo",
   "Couldn't load the models. Check your key and connection.":
     "Não foi possível carregar os modelos. Verifique sua chave e a conexão.",

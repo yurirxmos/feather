@@ -781,16 +781,6 @@
         }
       }
     },
-    "Credentials are stored in the macOS Keychain.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "As credenciais ficam guardadas nas Chaves do macOS."
-          }
-        }
-      }
-    },
     "Feather needs both permissions to read the context around your cursor and paste replies.": {
       "localizations": {
         "pt-BR": {
@@ -1191,46 +1181,6 @@
         }
       }
     },
-    "Your providers": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Seus provedores"
-          }
-        }
-      }
-    },
-    "Add a provider": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Adicionar um provedor"
-          }
-        }
-      }
-    },
-    "Choose how Feather writes": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Escolha como o Feather escreve"
-          }
-        }
-      }
-    },
-    "Set up one to start. You can add the others later.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Configure um para começar. Você pode adicionar os outros depois."
-          }
-        }
-      }
-    },
     "No API key, and it also answers questions. Paid plan.": {
       "localizations": {
         "pt-BR": {
@@ -1377,6 +1327,66 @@
           "stringUnit": {
             "state": "translated",
             "value": "O Feather está usando o %@. Você pode trocar de novo em Ajustes > Conexão quando quiser."
+          }
+        }
+      }
+    },
+    "Free plan": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plano grátis"
+          }
+        }
+      }
+    },
+    "Use your own ChatGPT account or OpenCode Go key. Credentials are stored in the macOS Keychain.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use a sua própria conta do ChatGPT ou chave do OpenCode Go. As credenciais ficam no Keychain do macOS."
+          }
+        }
+      }
+    },
+    "Answers your questions": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Responde às suas perguntas"
+          }
+        }
+      }
+    },
+    "No API key to manage": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem chave de API para gerenciar"
+          }
+        }
+      }
+    },
+    "Starter or Max plan": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plano Starter ou Max"
+          }
+        }
+      }
+    },
+    "Not set up yet": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ainda não configurados"
           }
         }
       }
