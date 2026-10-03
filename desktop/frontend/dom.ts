@@ -38,3 +38,15 @@ export function featherIcon(className = "feather-icon"): SVGSVGElement {
   svg.append(path);
   return svg;
 }
+
+/** Material's `keyboard_return` glyph on a 24x24 grid, shared with the macOS app's `ReturnKeyShape`. */
+export function returnKeyIcon(): SVGSVGElement {
+  const svg = document.createElementNS(SVG, "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("class", "return-key-icon");
+  svg.setAttribute("aria-hidden", "true");
+  const path = document.createElementNS(SVG, "path");
+  path.setAttribute("d", "M19 7v4H5.83l3.58-3.59L8 6l-6 6 6 6 1.41-1.41L5.83 13H21V7z");
+  svg.append(path);
+  return svg;
+}

@@ -3,7 +3,7 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { h, featherIcon } from "./dom";
+import { h, featherIcon, returnKeyIcon } from "./dom";
 import { t } from "./i18n";
 
 type ContextOptions = {
@@ -135,12 +135,12 @@ export async function startPanel(root: HTMLElement): Promise<void> {
     const hints = h("div", { class: "hints" });
     if (canInsert) {
       hints.append(
-        keyHint("↵", t("Insert"), true),
-        keyHint("Ctrl ↵", t("Copy"), false, () => void invoke("prompt_copy")),
-        keyHint("Ctrl R", t("Retry"), false, () => void invoke("prompt_regenerate")),
+        keyHint([returnKeyIcon()], t("Insert"), true),
+        keyHint(["Ctrl", returnKeyIcon()], t("Copy"), false, () => void invoke("prompt_copy")),
+        keyHint(["Ctrl R"], t("Retry"), false, () => void invoke("prompt_regenerate")),
       );
     } else {
-      hints.append(keyHint("↵", t("Generate")));
+      hints.append(keyHint([returnKeyIcon()], t("Generate")));
     }
     footer.replaceChildren(...below, h("div", { class: "footer-row" }, chips, hints));
 
@@ -215,8 +215,8 @@ function chip(title: string, isOn: boolean, option: string): HTMLElement {
   );
 }
 
-function keyHint(key: string, label: string, highlighted = false, action?: () => void): HTMLElement {
-  const content = [h("kbd", {}, key), h("span", {}, label)];
+function keyHint(keys: (string | Node)[], label: string, highlighted = false, action?: () => void): HTMLElement {
+  const content = [h("kbd", {}, ...keys), h("span", {}, label)];
   const className = highlighted ? "key-hint highlighted" : "key-hint";
   return action
     ? h("button", { class: className, type: "button", "aria-label": label, onclick: action }, ...content)

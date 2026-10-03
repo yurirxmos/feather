@@ -220,7 +220,7 @@ struct PromptView: View {
 
     private var secondaryKeyHints: some View {
         HStack(spacing: 10) {
-            KeyHint(key: "⌘ \(enterKey)", label: String(localized: "Copy", bundle: .app), action: copyResult)
+            KeyHint(key: "⌘", showsReturn: true, label: String(localized: "Copy", bundle: .app), action: copyResult)
             KeyHint(key: "⌘ \(retryKey)", label: String(localized: "Retry", bundle: .app), action: retryResult)
         }
     }
@@ -229,16 +229,15 @@ struct PromptView: View {
     private var primaryKeyHint: some View {
         if canInsert {
             KeyHint(
-                key: enterKey,
+                showsReturn: true,
                 label: String(localized: "Insert", bundle: .app),
                 isHighlighted: true
             )
         } else {
-            KeyHint(key: enterKey, label: String(localized: "Generate", bundle: .app))
+            KeyHint(showsReturn: true, label: String(localized: "Generate", bundle: .app))
         }
     }
 
-    private var enterKey: String { "↩" }
     private var retryKey: String { String(localized: "R", bundle: .app) }
 
     private var canInsert: Bool {
@@ -356,7 +355,8 @@ private struct GeneratingIndicator: View {
 }
 
 private struct KeyHint: View {
-    let key: String
+    var key = ""
+    var showsReturn = false
     let label: String
     var isHighlighted = false
     var action: (() -> Void)? = nil
@@ -375,14 +375,22 @@ private struct KeyHint: View {
 
     private var content: some View {
         HStack(spacing: 6) {
-            Text(key)
-                .font(.caption.monospaced())
-                .padding(.horizontal, 5)
-                .frame(minWidth: 22, minHeight: 20)
-                .background(
-                    isHighlighted ? Color.blue.opacity(0.9) : Color.white.opacity(0.12),
-                    in: RoundedRectangle(cornerRadius: 5, style: .continuous)
-                )
+            HStack(spacing: 3) {
+                if !key.isEmpty {
+                    Text(key)
+                }
+                if showsReturn {
+                    ReturnKeyShape()
+                        .frame(width: 11, height: 11)
+                }
+            }
+            .font(.caption.monospaced())
+            .padding(.horizontal, 5)
+            .frame(minWidth: 22, minHeight: 20)
+            .background(
+                isHighlighted ? Color.blue.opacity(0.9) : Color.white.opacity(0.12),
+                in: RoundedRectangle(cornerRadius: 5, style: .continuous)
+            )
             Text(label)
                 .font(.caption)
                 .foregroundStyle(

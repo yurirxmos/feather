@@ -95,9 +95,11 @@ button { cursor: default; }
 .hints { display: flex; gap: 10px; flex: none; }
 .key-hint { display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; background: none; color: rgb(255 255 255 / .75); font-size: 12px; }
 .key-hint kbd {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
   min-width: 22px; min-height: 20px; padding: 2px 5px; border-radius: 5px; text-align: center;
   background: rgb(255 255 255 / .12); color: rgb(255 255 255 / .58); font: 11px var(--mono);
 }
+.return-key-icon { width: 12px; height: 12px; fill: currentColor; }
 .key-hint.highlighted { color: rgb(59 130 246 / .95); }
 .key-hint.highlighted kbd { background: rgb(37 99 235 / .9); color: #fff; }
 .chip:focus-visible, .key-hint:focus-visible, .small-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
