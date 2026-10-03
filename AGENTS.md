@@ -63,8 +63,8 @@ platform. When a change cannot be mirrored, say so and explain why.
   - It rolled out in stages and both are launched: `FeatherPlus.accountsLaunched` shows the pane
     (sign-in, plan, usage) and `providerLaunched` lets it generate replies. Setting one back to
     false hides that stage in release builds, except for testers with the `plusEnabled` or
-    `plusProviderEnabled` defaults. Debug builds always show the pane and talk to `wrangler dev`;
-    `plusBaseURL` overrides the server.
+    `plusProviderEnabled` defaults. Debug builds always show the pane. Every build talks to
+    production; set `plusBaseURL` to `http://127.0.0.1:8787` to use `wrangler dev` instead.
 
 ## Conventions
 

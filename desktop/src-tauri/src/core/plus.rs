@@ -10,8 +10,9 @@ use serde_json::Value;
 
 use super::error::{endpoint, LlmError};
 
-/// Release builds talk to production; debug builds to `wrangler dev` in `feather-api`.
-pub const DEFAULT_BASE_URL: &str = if cfg!(debug_assertions) { "http://127.0.0.1:8787" } else { "https://feather-api.rxmos.dev" };
+/// Every build talks to production; set the `plusBaseURL` setting to use `wrangler dev`
+/// (`http://127.0.0.1:8787`) in `feather-api` instead.
+pub const DEFAULT_BASE_URL: &str = "https://feather-api.rxmos.dev";
 pub const CALLBACK_PATH: &str = "/callback";
 
 // Feather Plus rolled out in two stages: accounts (sign-in, plan, usage), then generating through

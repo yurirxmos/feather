@@ -6,12 +6,9 @@ import Foundation
 /// the browser returns a short-lived code to `http://127.0.0.1:<port>/callback`, and the app
 /// exchanges it for a long-lived account token stored in the Keychain.
 public enum FeatherPlus {
-    /// Release builds talk to production; debug builds to `wrangler dev` in `feather-api`.
-    #if DEBUG
-    public static let defaultBaseURL = "http://127.0.0.1:8787"
-    #else
+    /// Every build talks to production; set the `plusBaseURL` default to use `wrangler dev`
+    /// (`http://127.0.0.1:8787`) in `feather-api` instead.
     public static let defaultBaseURL = "https://feather-api.rxmos.dev"
-    #endif
     public static let callbackPath = "/callback"
 
     // Feather Plus rolled out in two stages: accounts (sign-in, plan, usage), then generating
