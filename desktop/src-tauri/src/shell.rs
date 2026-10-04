@@ -33,10 +33,9 @@ pub fn has_credentials(app: &AppHandle) -> bool {
     }
 }
 
-/// Whether the first-run welcome guide is still pending. Installs that already have credentials
-/// predate the guide and skip it.
+/// Whether the first-run welcome guide is still pending. It runs once on every install.
 pub fn needs_onboarding(app: &AppHandle) -> bool {
-    !onboarding_completed(app.state::<SettingsStore>().current().onboarding_completed, has_credentials(app))
+    !onboarding_completed(app.state::<SettingsStore>().current().onboarding_completed)
 }
 
 pub fn show_settings(app: &AppHandle) {

@@ -85,11 +85,10 @@ final class SettingsTests: XCTestCase {
         XCTAssertEqual(Settings.providersSetUp(in: store, plusAvailable: false), [.openCodeGo])
     }
 
-    func testOnboardingIsSkippedForInstallsThatAlreadyHaveCredentials() {
-        XCTAssertTrue(Settings.onboardingCompleted(stored: nil, hasCredentials: true))
-        XCTAssertFalse(Settings.onboardingCompleted(stored: nil, hasCredentials: false))
-        XCTAssertTrue(Settings.onboardingCompleted(stored: true, hasCredentials: false))
-        XCTAssertFalse(Settings.onboardingCompleted(stored: false, hasCredentials: true))
+    func testOnboardingRunsOnceForEveryInstall() {
+        XCTAssertFalse(Settings.onboardingCompleted(stored: nil))
+        XCTAssertFalse(Settings.onboardingCompleted(stored: false))
+        XCTAssertTrue(Settings.onboardingCompleted(stored: true))
     }
 }
 

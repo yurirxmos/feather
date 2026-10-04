@@ -16,8 +16,8 @@ pub mod key {
     pub const HOTKEY: &str = "hotkey";
     pub const INCLUDE_SCREENSHOT: &str = "includeScreenshot";
     pub const CUSTOM_INSTRUCTIONS: &str = "customInstructions";
-    /// Whether the first-run welcome guide has been finished or dismissed. Absent on installs that
-    /// predate the guide; `onboarding_completed` treats those as done.
+    /// Whether the first-run welcome guide has been finished or dismissed. Absent until the guide has
+    /// run once; `onboarding_completed` treats an absent value as not done.
     pub const ONBOARDING_COMPLETED: &str = "onboardingCompleted";
     /// Development override for the Feather Plus server. Not shown in Settings.
     pub const PLUS_BASE_URL: &str = "plusBaseURL";
@@ -93,11 +93,11 @@ impl HotkeyPreset {
     }
 }
 
-/// Whether the welcome guide counts as done. Installs that already have credentials predate the
-/// guide, so an unset value does not send them through it. Mirrors
-/// `Settings.onboardingCompleted(stored:hasCredentials:)` in the macOS app.
-pub fn onboarding_completed(stored: Option<bool>, has_credentials: bool) -> bool {
-    stored.unwrap_or(has_credentials)
+/// Whether the welcome guide counts as done. An unset value is not done, so every install sees the
+/// guide once, including ones that already have credentials. Mirrors
+/// `Settings.onboardingCompleted(stored:)` in the macOS app.
+pub fn onboarding_completed(stored: Option<bool>) -> bool {
+    stored.unwrap_or(false)
 }
 
 /// A resolved settings snapshot.
@@ -242,11 +242,10 @@ mod tests {
     }
 
     #[test]
-    fn onboarding_is_skipped_for_installs_that_already_have_credentials() {
-        assert!(onboarding_completed(None, true));
-        assert!(!onboarding_completed(None, false));
-        assert!(onboarding_completed(Some(true), false));
-        assert!(!onboarding_completed(Some(false), true));
+    fn onboarding_runs_once_for_every_install() {
+        assert!(!onboarding_completed(None));
+        assert!(!onboarding_completed(Some(false)));
+        assert!(onboarding_completed(Some(true)));
     }
 
     #[test]

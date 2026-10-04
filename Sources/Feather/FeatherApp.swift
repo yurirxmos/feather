@@ -31,12 +31,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NotificationCenter.default.addObserver(
             self, selector: #selector(defaultsChanged), name: UserDefaults.didChangeNotification, object: nil
         )
-        // Installs that already have credentials predate the welcome guide and skip it.
+        // The welcome guide runs once on every install, including ones that already have credentials.
         let hasCredentials = FeatherCore.Settings.current().hasCredentials(using: credentialStore)
         let defaults = UserDefaults.standard
         let onboardingDone = FeatherCore.Settings.onboardingCompleted(
-            stored: defaults.object(forKey: SettingsKey.onboardingCompleted) as? Bool,
-            hasCredentials: hasCredentials
+            stored: defaults.object(forKey: SettingsKey.onboardingCompleted) as? Bool
         )
         defaults.set(onboardingDone, forKey: SettingsKey.onboardingCompleted)
         if !onboardingDone || !AccessibilityContext.isTrusted || !WindowCapture.hasPermission || !hasCredentials {

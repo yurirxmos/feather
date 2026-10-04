@@ -15,7 +15,9 @@ type Section = "general" | "connection" | "plus" | "system";
 
 type AppInfo = {
   locale: string;
-  platform: "windows" | "other";
+  platform: "windows" | "linux" | "other";
+  /** On Linux, the display server. */
+  session: "x11" | "wayland" | "unknown" | null;
   version: string;
   hotkeys: { id: string; label: string }[];
   chatgptModels: { id: string; name: string }[];
@@ -48,8 +50,8 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
   let credentials = await invoke<Credentials>("credential_status");
   const capabilities = await invoke<Capability[]>("capabilities");
   let section: Section = isConnected() ? "general" : "connection";
-  // The welcome guide runs on first launch; installs that already have credentials skip it.
-  let onboardingStep: number | null = (settings.onboardingCompleted ?? hasAnyCredentials()) ? null : 0;
+  // The welcome guide runs once on every install, including ones that already have credentials.
+  let onboardingStep: number | null = settings.onboardingCompleted ? null : 0;
 
   // Transient view state, like the macOS view's @State.
   let isEditingKey = false;
@@ -69,10 +71,6 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
   const detail = h("main", { class: "detail" });
   const shell = h("div", { class: "settings" }, sidebar, detail);
   const wizardView = h("div", { class: "onboarding" });
-
-  function hasAnyCredentials(): boolean {
-    return credentials.apiKey !== null || credentials.chatgptConnected || credentials.plusSignedIn;
-  }
 
   function isConnected(): boolean {
     switch (settings.connection) {
