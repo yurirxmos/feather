@@ -1,5 +1,4 @@
-//! Secrets in the operating system's credential store (Windows Credential Manager, or the Secret
-//! Service on Linux), one entry per provider. They never reach the webview.
+//! Secrets in the operating system's credential store (Windows Credential Manager), one entry per provider. They never reach the webview.
 
 use keyring::Entry;
 use serde::{Deserialize, Serialize};

@@ -1,6 +1,6 @@
 name: Release desktop
 
-# Builds the Windows and Linux apps for the same `v*` tag as the macOS release and attaches them to
+# Builds the Windows app for the same `v*` tag as the macOS release and attaches them to
 # that release. It never creates the release itself: `/releases/latest` must always carry the
 # Sparkle appcasts, so the macOS workflow stays the only one that publishes it.
 on:
@@ -20,17 +20,8 @@ env:
 
 jobs:
   build:
-    name: Build (${{ matrix.platform }})
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            platform: windows-x86_64
-          # The oldest supported runner, so the AppImage runs on older glibc versions too.
-          - os: ubuntu-22.04
-            platform: linux-x86_64
-    runs-on: ${{ matrix.os }}
+    name: Build (Windows)
+    runs-on: windows-latest
     defaults:
       run:
         shell: bash
@@ -46,12 +37,6 @@ jobs:
           cache-dependency-path: desktop/package-lock.json
 
       - uses: dtolnay/rust-toolchain@stable
-
-      - name: Install Linux build dependencies
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libdbus-1-dev patchelf pkg-config libfuse2
 
       - name: Set version from tag
         run: |
@@ -85,19 +70,13 @@ jobs:
           bundle="src-tauri/target/release/bundle"
           out="$GITHUB_WORKSPACE/release-assets"
           mkdir -p "$out"
-          if [ "${{ runner.os }}" = "Windows" ]; then
-            cp "$bundle"/nsis/*-setup.exe "$out/Feather-windows-x64-setup.exe"
-            cp "$bundle"/nsis/*-setup.exe.sig "$out/Feather-windows-x64-setup.exe.sig"
-          else
-            cp "$bundle"/appimage/*.AppImage "$out/Feather-linux-x86_64.AppImage"
-            cp "$bundle"/appimage/*.AppImage.sig "$out/Feather-linux-x86_64.AppImage.sig"
-            cp "$bundle"/deb/*.deb "$out/Feather-linux-amd64.deb"
-          fi
+          cp "$bundle"/nsis/*-setup.exe "$out/Feather-windows-x64-setup.exe"
+          cp "$bundle"/nsis/*-setup.exe.sig "$out/Feather-windows-x64-setup.exe.sig"
           ls -l "$out"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Feather-${{ matrix.platform }}
+          name: Feather-windows-x86_64
           path: release-assets/*
           if-no-files-found: error
 
@@ -122,15 +101,12 @@ jobs:
             --arg notes "https://github.com/$GITHUB_REPOSITORY/releases/tag/$RELEASE_TAG" \
             --arg windowsSignature "$(cat release-assets/Feather-windows-x64-setup.exe.sig)" \
             --arg windowsUrl "$base/Feather-windows-x64-setup.exe" \
-            --arg linuxSignature "$(cat release-assets/Feather-linux-x86_64.AppImage.sig)" \
-            --arg linuxUrl "$base/Feather-linux-x86_64.AppImage" \
             '{
               version: $version,
               notes: $notes,
               pub_date: $date,
               platforms: {
-                "windows-x86_64": { signature: $windowsSignature, url: $windowsUrl },
-                "linux-x86_64": { signature: $linuxSignature, url: $linuxUrl }
+                "windows-x86_64": { signature: $windowsSignature, url: $windowsUrl }
               }
             }' > release-assets/latest-desktop.json
           cat release-assets/latest-desktop.json
@@ -154,6 +130,4 @@ jobs:
         run: |
           gh release upload "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --clobber \
             release-assets/Feather-windows-x64-setup.exe \
-            release-assets/Feather-linux-x86_64.AppImage \
-            release-assets/Feather-linux-amd64.deb \
             release-assets/latest-desktop.json

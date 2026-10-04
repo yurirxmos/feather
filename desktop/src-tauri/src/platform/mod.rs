@@ -1,19 +1,14 @@
 //! Platform adapters for reading the focused window, capturing it, and pasting into it. Nothing
 //! here runs until the user presses the shortcut.
 
-#[cfg(target_os = "linux")]
-mod linux;
-#[cfg(target_os = "linux")]
-use linux as imp;
-
 #[cfg(windows)]
 mod windows;
 #[cfg(windows)]
 use self::windows as imp;
 
-#[cfg(not(any(windows, target_os = "linux")))]
+#[cfg(not(windows))]
 mod unsupported;
-#[cfg(not(any(windows, target_os = "linux")))]
+#[cfg(not(windows))]
 use unsupported as imp;
 
 use std::io::Cursor;
@@ -34,7 +29,7 @@ const MAX_SCREENSHOT_LONG_EDGE: u32 = 1_568;
 /// The app that was frontmost when the shortcut was pressed.
 #[derive(Clone, Debug)]
 pub struct Target {
-    /// An `HWND` on Windows or an X11 window ID.
+    /// An `HWND`.
     pub window: u64,
     pub pid: u32,
     pub app_name: Option<String>,
@@ -67,7 +62,7 @@ pub struct Capability {
     pub available: bool,
 }
 
-/// Turns on what the platform needs before the first capture, such as the AT-SPI bus status.
+/// Turns on what the platform needs before the first capture, such as accessibility support.
 pub fn prepare() {
     imp::prepare();
 }

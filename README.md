@@ -2,15 +2,15 @@
 
 **Press a shortcut. Tell your computer what to write.**
 
-Feather is an AI writing assistant for Mac, Windows, and Linux. While working in any app, press
+Feather is an AI writing assistant for Mac and Windows. While working in any app, press
 a global shortcut, describe what you want to write, and Feather generates a reply from the
-context around your cursor. Press `Return` (`Enter` on Windows and Linux) again to paste it into
+context around your cursor. Press `Return` (`Enter` on Windows) again to paste it into
 the field you were using.
 
 **[Download Feather](https://feather.rxmos.dev/download)** · [Website](https://feather.rxmos.dev)
 
-It lives in the menu bar on macOS and in the system tray on Windows and Linux. The macOS app is
-SwiftUI (`Sources/`); the Windows and Linux app is Tauri (`desktop/`), and the two stay in parity.
+It lives in the menu bar on macOS and in the system tray on Windows. The macOS app is
+SwiftUI (`Sources/`); the Windows app is Tauri (`desktop/`), and the two stay in parity.
 
 For example:
 
@@ -101,7 +101,6 @@ system. Preview builds are also published on the
 - `Feather-arm64.dmg` for Apple Silicon Macs, macOS 14 or later
 - `Feather-x86_64.dmg` for Intel Macs, macOS 14 or later
 - `Feather-windows-x64-setup.exe` for Windows 10 or later, 64-bit
-- `Feather-linux-amd64.deb` or `Feather-linux-x86_64.AppImage` for Linux
 
 The preview builds are signed with Feather's own certificate and are not notarized
 yet. macOS may block the first launch. To open Feather anyway:

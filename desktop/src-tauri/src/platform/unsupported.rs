@@ -1,4 +1,4 @@
-//! Lets the desktop app build and run on development machines that are neither Windows nor Linux.
+//! Lets the desktop app build and run on development machines that are not Windows.
 //! It captures nothing and pastes nothing; the macOS app is the real client there.
 
 use super::{Capability, Rect, Snapshot, Target};

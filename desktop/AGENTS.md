@@ -1,6 +1,6 @@
 # Desktop app instructions
 
-`desktop/` is the Windows and Linux app, built with Tauri. Do not move or
+`desktop/` is the Windows app, built with Tauri. Do not move or
 rewrite the macOS Swift app while working here. The two apps must stay
 identical: see "Parity between macOS and desktop" in the root `AGENTS.md`. Every
 change made here must also be made in the macOS app, and the reverse, except for
@@ -14,8 +14,7 @@ what depends on the operating system.
 - Lint the Rust backend: `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`
 - Test the Rust backend: `cargo test --manifest-path src-tauri/Cargo.toml`
 - From macOS, `cargo clippy --target x86_64-pc-windows-gnu` checks the Windows
-  adapter (needs `brew install mingw-w64`). The Linux adapter needs GTK, so CI
-  checks it on Ubuntu.
+  adapter (needs `brew install mingw-w64`).
 
 ## Layout
 
@@ -25,7 +24,7 @@ what depends on the operating system.
 - `src-tauri/src/providers/` builds and streams provider requests.
 - `src-tauri/src/controller.rs` mirrors `PromptController`; `shell.rs` mirrors
   `AppDelegate` (tray, shortcut, updates); `commands.rs` is the IPC boundary.
-- `src-tauri/src/platform/` holds the Windows, Linux X11, and stub adapters.
+- `src-tauri/src/platform/` holds the Windows and stub adapters.
 - `frontend/` renders the panel and Settings from state sent by Rust.
 
 ## Boundaries

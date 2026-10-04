@@ -6,7 +6,7 @@ mod credentials;
 mod i18n;
 mod insert;
 // Only the stub for development machines leaves the shared helpers unused.
-#[cfg_attr(not(any(windows, target_os = "linux")), allow(dead_code))]
+#[cfg_attr(not(windows), allow(dead_code))]
 mod platform;
 mod providers;
 mod settings;

@@ -15,7 +15,7 @@ type Section = "general" | "connection" | "plus" | "system";
 
 type AppInfo = {
   locale: string;
-  platform: "windows" | "linux" | "other";
+  platform: "windows" | "other";
   version: string;
   hotkeys: { id: string; label: string }[];
   chatgptModels: { id: string; name: string }[];
@@ -594,16 +594,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
       capabilityRow(t("Capture the active window"), t("Attaches a screenshot of the window you were using."), available("window-screenshot")),
       capabilityRow(t("Paste replies"), t("Pastes the reply into the field you were typing in."), available("automatic-insertion")),
     ];
-    let note: string;
-    if (info.platform === "linux" && !available("x11-session")) {
-      note = t(
-        "Feather is running in a Wayland session. Wayland does not let apps read or type into other windows, so Feather generates replies and copies them for you to paste. Log in with an X11 session to read context and paste automatically.",
-      );
-    } else if (info.platform === "linux") {
-      note = t("Some apps only share their text when assistive technologies are enabled. If context is missing, turn on accessibility support in your desktop settings.");
-    } else {
-      note = t("Windows needs no extra permissions. Apps that run as administrator cannot be read or pasted into unless Feather also runs as administrator.");
-    }
+    const note = t("Windows needs no extra permissions. Apps that run as administrator cannot be read or pasted into unless Feather also runs as administrator.");
     return [group(t("What Feather can do here"), rows, footnote(note))];
   }
 

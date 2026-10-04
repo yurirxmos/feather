@@ -124,13 +124,8 @@ export const PT_BR: Record<string, string> = {
   "Attaches a screenshot of the window you were using.": "Anexa uma captura de tela da janela que você estava usando.",
   "Paste replies": "Colar as respostas",
   "Pastes the reply into the field you were typing in.": "Cola a resposta no campo em que você estava digitando.",
-  "X11 session": "Sessão X11",
   "Available": "Disponível",
   "Unavailable": "Indisponível",
-  "Feather is running in a Wayland session. Wayland does not let apps read or type into other windows, so Feather generates replies and copies them for you to paste. Log in with an X11 session to read context and paste automatically.":
-    "O Feather está rodando em uma sessão Wayland. O Wayland não permite que um app leia outras janelas ou digite nelas, então o Feather gera as respostas e as copia para você colar. Entre em uma sessão X11 para ler o contexto e colar automaticamente.",
-  "Some apps only share their text when assistive technologies are enabled. If context is missing, turn on accessibility support in your desktop settings.":
-    "Alguns apps só compartilham o texto quando as tecnologias assistivas estão ativadas. Se faltar contexto, ative o suporte de acessibilidade nas configurações do seu ambiente de trabalho.",
   "Windows needs no extra permissions. Apps that run as administrator cannot be read or pasted into unless Feather also runs as administrator.":
     "O Windows não precisa de permissões extras. Apps que rodam como administrador não podem ser lidos nem receber texto colado, a menos que o Feather também rode como administrador.",
 };

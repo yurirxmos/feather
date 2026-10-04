@@ -57,7 +57,7 @@ pub struct AppInfo {
 pub fn app_info(app: AppHandle) -> AppInfo {
     AppInfo {
         locale: i18n::locale(),
-        platform: if cfg!(windows) { "windows" } else if cfg!(target_os = "linux") { "linux" } else { "other" },
+        platform: if cfg!(windows) { "windows" } else { "other" },
         version: app.package_info().version.to_string(),
         hotkeys: HotkeyPreset::ALL.iter().map(|&id| HotkeyOption { id, label: id.label() }).collect(),
         chatgpt_models: CHATGPT_MODELS.to_vec(),

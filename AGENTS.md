@@ -5,7 +5,7 @@ screen context on a hotkey, streams a reply from an LLM, and pastes it into the 
 
 ## Parity between macOS and desktop
 
-Feather ships as two apps: the macOS app in the repository root and the Windows and Linux app in
+Feather ships as two apps: the macOS app in the repository root and the Windows app in
 `desktop/`. They must stay identical. Every change to one, whether a feature, fix, prompt,
 provider request, setting, UI string, translation, or behavior, must land in the other in the same
 piece of work, unless the user explicitly says otherwise. Mirror the structure as well:
@@ -13,7 +13,7 @@ piece of work, unless the user explicitly says otherwise. Mirror the structure a
 `AppDelegate` to `shell.rs`, and the SwiftUI views to `desktop/frontend/`.
 
 The only exceptions are things that depend on the operating system: platform APIs (Accessibility,
-ScreenCaptureKit, UI Automation, AT-SPI, X11), permissions, signing, packaging, update mechanics,
+ScreenCaptureKit, UI Automation), permissions, signing, packaging, update mechanics,
 platform conventions such as Ctrl versus ⌘ shortcuts, and fixes for bugs that only occur on one
 platform. When a change cannot be mirrored, say so and explain why.
 
@@ -31,7 +31,7 @@ platform. When a change cannot be mirrored, say so and explain why.
   (`SPARKLE_PRIVATE_ED_KEY`). Never replace either: a new certificate resets users' Accessibility
   and Screen Recording grants, and a new EdDSA key makes installed apps reject every update.
   No hardened runtime: its library validation refuses Sparkle without a Team ID.
-- `desktop/` is the Windows and Linux app (Tauri); see `desktop/AGENTS.md`. The same `v*` tag
+- `desktop/` is the Windows app (Tauri); see `desktop/AGENTS.md`. The same `v*` tag
   runs `.github/workflows/release-desktop.yml`, which attaches its installers and
   `latest-desktop.json` to the release the macOS workflow publishes, and never creates one.
 - Only `FeatherCore` has unit tests. AppKit, Accessibility, and ScreenCaptureKit changes must be
