@@ -26,6 +26,10 @@ platform. When a change cannot be mirrored, say so and explain why.
   release reaches installed apps through Sparkle, which reads
   `releases/latest/download/appcast-<arch>.xml`. Keep publishing full releases (not
   prereleases) with both `appcast-arm64.xml` and `appcast-x86_64.xml`, or installs stop updating.
+- Every new release needs release notes written as a changelog: say what the previous version
+  had and what changed in this one (features added, fixes, and anything removed or behaving
+  differently), compared against the previous `v*` tag (`git log <previous-tag>..HEAD`). Put them
+  in the GitHub release body, and write them in en-us. The website's download page links to them.
 - Release builds are signed with the self-signed "Feather Release Signing" certificate
   (`RELEASE_CERTIFICATE_*` secrets) and updates with the Sparkle EdDSA key
   (`SPARKLE_PRIVATE_ED_KEY`). Never replace either: a new certificate resets users' Accessibility
