@@ -122,6 +122,20 @@ asks before installing, and the permissions carry over. You can also choose
 A future stable release will use a Developer ID signature and Apple
 notarization.
 
+### Code signing policy
+
+Free code signing for the Windows installer is provided by [SignPath.io](https://signpath.io),
+with a certificate from the [SignPath Foundation](https://signpath.org).
+
+- **Authors, reviewers, and approvers:** [Yuri Ramos](https://github.com/yurirxmos) is the only
+  maintainer and holds all three roles. Every release is built by the public
+  [GitHub Actions workflow](.github/workflows/release-desktop.yml) from a `v*` tag, and signed
+  only after it is approved.
+- **Privacy:** Feather reads your screen context only when you press the shortcut, and sends it
+  only to the provider you chose (OpenCode Go, ChatGPT, or Feather Plus) to generate the reply.
+  It transfers no other information to other networked systems, except the update check against
+  GitHub Releases.
+
 ## Keyboard shortcuts
 
 ### Global shortcut

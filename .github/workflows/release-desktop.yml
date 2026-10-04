@@ -22,6 +22,8 @@ jobs:
   build:
     name: Build (Windows)
     runs-on: windows-latest
+    env:
+      SIGNPATH_ENABLED: ${{ secrets.SIGNPATH_API_TOKEN != '' }}
     defaults:
       run:
         shell: bash
@@ -72,6 +74,42 @@ jobs:
           mkdir -p "$out"
           cp "$bundle"/nsis/*-setup.exe "$out/Feather-windows-x64-setup.exe"
           cp "$bundle"/nsis/*-setup.exe.sig "$out/Feather-windows-x64-setup.exe.sig"
+          ls -l "$out"
+
+      # Code signing by SignPath Foundation. Skipped until the SIGNPATH_API_TOKEN secret and the
+      # SIGNPATH_ORGANIZATION_ID variable exist, so releases keep working unsigned before that.
+      - name: Upload the unsigned installer
+        id: unsigned
+        if: env.SIGNPATH_ENABLED == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Feather-windows-unsigned
+          path: release-assets/Feather-windows-x64-setup.exe
+          if-no-files-found: error
+
+      - name: Sign the installer
+        if: env.SIGNPATH_ENABLED == 'true'
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: feather
+          signing-policy-slug: release-signing
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signed
+
+      - name: Sign the signed installer for updates
+        if: env.SIGNPATH_ENABLED == 'true'
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          # Changing the installer invalidates the updater signature made during the build, and
+          # installed apps would reject the update, so sign the final file again.
+          out="$GITHUB_WORKSPACE/release-assets"
+          cp "$GITHUB_WORKSPACE/signed/Feather-windows-x64-setup.exe" "$out/Feather-windows-x64-setup.exe"
+          npx tauri signer sign "$out/Feather-windows-x64-setup.exe"
           ls -l "$out"
 
       - uses: actions/upload-artifact@v4
