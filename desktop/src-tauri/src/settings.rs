@@ -16,6 +16,9 @@ pub mod key {
     pub const HOTKEY: &str = "hotkey";
     pub const INCLUDE_SCREENSHOT: &str = "includeScreenshot";
     pub const CUSTOM_INSTRUCTIONS: &str = "customInstructions";
+    /// Whether the first-run welcome guide has been finished or dismissed. Absent on installs that
+    /// predate the guide; `onboarding_completed` treats those as done.
+    pub const ONBOARDING_COMPLETED: &str = "onboardingCompleted";
     /// Development override for the Feather Plus server. Not shown in Settings.
     pub const PLUS_BASE_URL: &str = "plusBaseURL";
     /// Shows Feather Plus in release builds before launch. Not shown in Settings.
@@ -90,6 +93,13 @@ impl HotkeyPreset {
     }
 }
 
+/// Whether the welcome guide counts as done. Installs that already have credentials predate the
+/// guide, so an unset value does not send them through it. Mirrors
+/// `Settings.onboardingCompleted(stored:hasCredentials:)` in the macOS app.
+pub fn onboarding_completed(stored: Option<bool>, has_credentials: bool) -> bool {
+    stored.unwrap_or(has_credentials)
+}
+
 /// A resolved settings snapshot.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -104,6 +114,8 @@ pub struct Settings {
     pub plus_enabled: bool,
     /// Whether Feather Plus can be chosen as the provider that generates replies.
     pub plus_provider_enabled: bool,
+    /// The stored welcome guide state, `None` until the guide is finished or dismissed.
+    pub onboarding_completed: Option<bool>,
 }
 
 impl Settings {
@@ -141,6 +153,7 @@ impl Settings {
             plus_base_url: string(key::PLUS_BASE_URL).unwrap_or(plus::DEFAULT_BASE_URL).to_owned(),
             plus_enabled,
             plus_provider_enabled,
+            onboarding_completed: flag(key::ONBOARDING_COMPLETED),
         }
     }
 }
@@ -189,7 +202,7 @@ impl SettingsStore {
                 serde_json::from_value::<HotkeyPreset>(value.clone()).map_err(|_| "Unknown shortcut.".to_owned())?;
             }
             key::MODEL | key::CUSTOM_INSTRUCTIONS if value.is_string() => {}
-            key::INCLUDE_SCREENSHOT if value.is_boolean() => {}
+            key::INCLUDE_SCREENSHOT | key::ONBOARDING_COMPLETED if value.is_boolean() => {}
             _ => return Err(format!("{name} cannot be changed here.")),
         }
         values.insert(name.to_owned(), value);
@@ -226,6 +239,14 @@ mod tests {
         assert_eq!(settings.model, crate::providers::OPENCODE_GO_DEFAULT_MODEL);
         assert!(settings.include_screenshot);
         assert_eq!(settings.hotkey, HotkeyPreset::ControlShiftSpace);
+    }
+
+    #[test]
+    fn onboarding_is_skipped_for_installs_that_already_have_credentials() {
+        assert!(onboarding_completed(None, true));
+        assert!(!onboarding_completed(None, false));
+        assert!(onboarding_completed(Some(true), false));
+        assert!(!onboarding_completed(Some(false), true));
     }
 
     #[test]

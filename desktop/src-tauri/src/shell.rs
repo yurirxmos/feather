@@ -14,7 +14,7 @@ use tauri_plugin_updater::UpdaterExt;
 use crate::controller::PromptController;
 use crate::credentials;
 use crate::i18n::t;
-use crate::settings::{Connection, SettingsStore};
+use crate::settings::{onboarding_completed, Connection, SettingsStore};
 
 pub const SETTINGS_LABEL: &str = "settings";
 
@@ -31,6 +31,12 @@ pub fn has_credentials(app: &AppHandle) -> bool {
         Connection::ChatGpt => credentials::chatgpt_credentials().is_some(),
         Connection::FeatherPlus => credentials::plus_token().is_some(),
     }
+}
+
+/// Whether the first-run welcome guide is still pending. Installs that already have credentials
+/// predate the guide and skip it.
+pub fn needs_onboarding(app: &AppHandle) -> bool {
+    !onboarding_completed(app.state::<SettingsStore>().current().onboarding_completed, has_credentials(app))
 }
 
 pub fn show_settings(app: &AppHandle) {

@@ -1,6 +1,16 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Allow access": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permitir acesso"
+          }
+        }
+      }
+    },
     "API key": {
       "localizations": {
         "pt-BR": {
@@ -41,6 +51,16 @@
         }
       }
     },
+    "Back": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voltar"
+          }
+        }
+      }
+    },
     "Base URL": {
       "localizations": {
         "pt-BR": {
@@ -71,12 +91,52 @@
         }
       }
     },
+    "Choose how Feather gets its replies. You can change this later in Settings.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha como o Feather obtém as respostas. Você pode mudar isso depois nas Configurações."
+          }
+        }
+      }
+    },
+    "Click the box below, then press %@. Say what you want, and Feather writes it here.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clique na caixa abaixo e aperte %@. Diga o que você quer e o Feather escreve aqui."
+          }
+        }
+      }
+    },
     "Close": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Fechar"
+          }
+        }
+      }
+    },
+    "Connect a provider": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conecte um provedor"
+          }
+        }
+      }
+    },
+    "Connect a provider to continue.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conecte um provedor para continuar."
           }
         }
       }
@@ -147,6 +207,56 @@
           "stringUnit": {
             "state": "translated",
             "value": "A renovação da sessão do ChatGPT falhou (%lld)."
+          }
+        }
+      }
+    },
+    "Continue": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuar"
+          }
+        }
+      }
+    },
+    "Finish": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Concluir"
+          }
+        }
+      }
+    },
+    "Get Started": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Começar"
+          }
+        }
+      }
+    },
+    "Press a shortcut anywhere. Feather reads what is on your screen, writes a reply, and pastes it into the field you are typing in.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aperte um atalho em qualquer lugar. O Feather lê o que está na sua tela, escreve uma resposta e cola no campo em que você está digitando."
+          }
+        }
+      }
+    },
+    "Show Welcome Guide…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar guia de boas-vindas…"
           }
         }
       }
@@ -611,6 +721,16 @@
         }
       }
     },
+    "Step %lld of %lld": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Etapa %lld de %lld"
+          }
+        }
+      }
+    },
     "Stopped after 1 minute. Review the text before inserting it.": {
       "localizations": {
         "pt-BR": {
@@ -697,6 +817,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "O modelo recusou esta solicitação."
+          }
+        }
+      }
+    },
+    "Try it out": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Experimente"
+          }
+        }
+      }
+    },
+    "Welcome to Feather": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bem-vindo ao Feather"
           }
         }
       }
@@ -887,6 +1027,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "O login expirou. Tente novamente."
+          }
+        }
+      }
+    },
+    "Your reply appears here": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua resposta aparece aqui"
           }
         }
       }

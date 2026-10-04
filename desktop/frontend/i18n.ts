@@ -21,6 +21,25 @@ export function formatDate(iso: string): string {
 }
 
 export const PT_BR: Record<string, string> = {
+
+  // Onboarding
+  "Welcome to Feather": "Bem-vindo ao Feather",
+  "Press a shortcut anywhere. Feather reads what is on your screen, writes a reply, and pastes it into the field you are typing in.":
+    "Aperte um atalho em qualquer lugar. O Feather lê o que está na sua tela, escreve uma resposta e cola no campo em que você está digitando.",
+  "Get Started": "Começar",
+  Continue: "Continuar",
+  Back: "Voltar",
+  Finish: "Concluir",
+  "Step {current} of {total}": "Etapa {current} de {total}",
+  "Connect a provider": "Conecte um provedor",
+  "Connect a provider to continue.": "Conecte um provedor para continuar.",
+  "Choose how Feather gets its replies. You can change this later in Settings.":
+    "Escolha como o Feather obtém as respostas. Você pode mudar isso depois nas Configurações.",
+  "Try it out": "Experimente",
+  "Click the box below, then press {shortcut}. Say what you want, and Feather writes it here.":
+    "Clique na caixa abaixo e aperte {shortcut}. Diga o que você quer e o Feather escreve aqui.",
+  "Your reply appears here": "Sua resposta aparece aqui",
+  "Show Welcome Guide…": "Mostrar guia de boas-vindas…",
   // Panel
   "What do you want to write?": "O que você quer escrever?",
   "Refine: shorter, more formal…": "Refine: mais curto, mais formal…",

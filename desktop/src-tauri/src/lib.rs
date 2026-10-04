@@ -33,7 +33,7 @@ pub fn run() {
             platform::prepare();
             shell::build_tray(app.handle())?;
             shell::register_hotkey(app.handle());
-            if !shell::has_credentials(app.handle()) {
+            if shell::needs_onboarding(app.handle()) || !shell::has_credentials(app.handle()) {
                 shell::show_settings(app.handle());
             }
             shell::check_for_updates(app.handle().clone(), false);

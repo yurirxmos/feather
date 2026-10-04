@@ -31,7 +31,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NotificationCenter.default.addObserver(
             self, selector: #selector(defaultsChanged), name: UserDefaults.didChangeNotification, object: nil
         )
-        if !AccessibilityContext.isTrusted || !WindowCapture.hasPermission || !FeatherCore.Settings.current().hasCredentials(using: credentialStore) {
+        // Installs that already have credentials predate the welcome guide and skip it.
+        let hasCredentials = FeatherCore.Settings.current().hasCredentials(using: credentialStore)
+        let defaults = UserDefaults.standard
+        let onboardingDone = FeatherCore.Settings.onboardingCompleted(
+            stored: defaults.object(forKey: SettingsKey.onboardingCompleted) as? Bool,
+            hasCredentials: hasCredentials
+        )
+        defaults.set(onboardingDone, forKey: SettingsKey.onboardingCompleted)
+        if !onboardingDone || !AccessibilityContext.isTrusted || !WindowCapture.hasPermission || !hasCredentials {
             showSettings()
         }
         updater.checkForUpdatesInBackground()

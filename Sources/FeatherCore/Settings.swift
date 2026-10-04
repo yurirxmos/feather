@@ -6,6 +6,9 @@ public enum SettingsKey {
     public static let hotkey = "hotkey"
     public static let includeScreenshot = "includeScreenshot"
     public static let customInstructions = "customInstructions"
+    /// Whether the first-run welcome guide has been finished or dismissed. Absent on installs that
+    /// predate the guide; `Settings.onboardingCompleted(stored:hasCredentials:)` treats those as done.
+    public static let onboardingCompleted = "onboardingCompleted"
     /// Development override for the Feather Plus server. Not shown in Settings.
     public static let plusBaseURL = "plusBaseURL"
     /// Shows Feather Plus in release builds before launch. Not shown in Settings.
@@ -66,6 +69,12 @@ public struct Settings: Equatable, Sendable {
                 .trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
             plusBaseURL: FeatherPlus.baseURL(defaults)
         )
+    }
+
+    /// Whether the welcome guide counts as done. Installs that already have credentials predate the
+    /// guide, so an unset value does not send them through it.
+    public static func onboardingCompleted(stored: Bool?, hasCredentials: Bool) -> Bool {
+        stored ?? hasCredentials
     }
 
     public func hasCredentials(using store: any CredentialStore) -> Bool {

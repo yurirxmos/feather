@@ -224,3 +224,14 @@ dialog.confirm p { margin: 0 0 18px; color: var(--secondary); font-size: 13px; l
 progress { width: 100%; height: 6px; accent-color: var(--accent); }
 progress.exhausted { accent-color: var(--orange); }
 .settings-body :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Onboarding --------------------------------------------------------------------------------- */
+
+.onboarding { display: flex; flex-direction: column; height: 100vh; }
+.onboarding-body { flex: 1; overflow-y: auto; width: 100%; max-width: 520px; margin: 0 auto; padding: 36px 28px 16px; }
+.onboarding-body h1 { margin: 0 0 8px; font-size: 24px; font-weight: 600; }
+.onboarding-body .lead { margin: 0 0 22px; color: var(--secondary); font-size: 14.5px; line-height: 1.5; }
+.onboarding-body .card > textarea { min-height: 110px; }
+.welcome-icon { display: grid; width: 64px; height: 64px; margin: 24px 0 20px; place-items: center; border-radius: 16px; background: linear-gradient(#349aff, #0a70f0); }
+.welcome-icon .feather-mark { width: 36px; height: 36px; }
+.onboarding-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px; border-top: 1px solid var(--line); background: var(--sidebar); }

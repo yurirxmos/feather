@@ -486,7 +486,7 @@ extension ConnectionKind {
 /// Feather Plus uses Feather's own mark, the app icon's white feather on blue; ChatGPT and OpenCode
 /// Go use their original black logos on white, from `ProviderLogos` in the app's resource bundle
 /// (shared with the desktop app).
-private struct ProviderIcon: View {
+struct ProviderIcon: View {
     let kind: ConnectionKind
     var size: CGFloat = 28
 

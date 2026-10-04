@@ -30,6 +30,7 @@ type Settings = {
   plusEnabled: boolean;
   plusProviderEnabled: boolean;
   hotkeyRegistered: boolean;
+  onboardingCompleted: boolean | null;
 };
 
 type Credentials = { apiKey: string | null; chatgptConnected: boolean; plusSignedIn: boolean };
@@ -47,6 +48,8 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
   let credentials = await invoke<Credentials>("credential_status");
   const capabilities = await invoke<Capability[]>("capabilities");
   let section: Section = isConnected() ? "general" : "connection";
+  // The welcome guide runs on first launch; installs that already have credentials skip it.
+  let onboardingStep: number | null = (settings.onboardingCompleted ?? hasAnyCredentials()) ? null : 0;
 
   // Transient view state, like the macOS view's @State.
   let isEditingKey = false;
@@ -64,7 +67,12 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
 
   const sidebar = h("nav", { class: "sidebar", "aria-label": t("Feather Settings") });
   const detail = h("main", { class: "detail" });
-  root.replaceChildren(h("div", { class: "settings" }, sidebar, detail));
+  const shell = h("div", { class: "settings" }, sidebar, detail);
+  const wizardView = h("div", { class: "onboarding" });
+
+  function hasAnyCredentials(): boolean {
+    return credentials.apiKey !== null || credentials.chatgptConnected || credentials.plusSignedIn;
+  }
 
   function isConnected(): boolean {
     switch (settings.connection) {
@@ -91,6 +99,12 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
   }
 
   function render(): void {
+    if (onboardingStep !== null) {
+      if (root.firstChild !== wizardView) root.replaceChildren(wizardView);
+      renderOnboarding(onboardingStep);
+      return;
+    }
+    if (root.firstChild !== shell) root.replaceChildren(shell);
     sidebar.replaceChildren(
       h(
         "ul",
@@ -166,6 +180,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
       group(t("About"), [
         row(t("Version"), h("span", { class: "secondary" }, info.version)),
         h("div", { class: "row" }, h("button", { type: "button", onclick: () => void invoke("check_for_updates") }, t("Check for Updates…"))),
+        h("div", { class: "row" }, h("button", { type: "button", onclick: () => void set("onboardingCompleted", false).then(startOnboarding) }, t("Show Welcome Guide…"))),
       ]),
     ];
   }
@@ -629,6 +644,80 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     document.body.append(dialog);
     dialog.showModal();
     dialog.querySelector<HTMLButtonElement>(".primary")?.focus();
+  }
+
+  // MARK: Onboarding
+
+  // The first-run welcome guide, mirroring `OnboardingView` in the macOS app. Windows needs no
+  // permissions, so it has no permissions step: welcome, connect, try it out.
+
+  const STEPS = ["welcome", "connect", "try"] as const;
+  // One element for the whole guide: the window regains focus when the panel closes, which
+  // re-renders, and the reply pasted into the box must survive that.
+  const sample = h("textarea", { rows: "4", "aria-label": t("Try it out"), placeholder: t("Your reply appears here") });
+
+  function startOnboarding(): void {
+    onboardingStep = 0;
+    render();
+  }
+
+  async function finishOnboarding(): Promise<void> {
+    onboardingStep = null;
+    section = "general";
+    await set("onboardingCompleted", true);
+  }
+
+  function renderOnboarding(step: number): void {
+    const name = STEPS[step];
+    const last = step === STEPS.length - 1;
+    const shortcut = info.hotkeys.find((option) => option.id === settings.hotkey)?.label ?? settings.hotkey;
+    const go = (to: number) => () => {
+      onboardingStep = to;
+      render();
+    };
+
+    let body: HTMLElement[];
+    let canContinue = true;
+    if (name === "welcome") {
+      body = [
+        h("div", { class: "welcome-icon", "aria-hidden": "true" }, featherIcon("feather-mark")),
+        h("h1", {}, t("Welcome to Feather")),
+        h("p", { class: "lead" }, t("Press a shortcut anywhere. Feather reads what is on your screen, writes a reply, and pastes it into the field you are typing in.")),
+      ];
+    } else if (name === "connect") {
+      canContinue = isConnected();
+      body = [
+        h("h1", {}, t("Connect a provider")),
+        h("p", { class: "lead" }, t("Choose how Feather gets its replies. You can change this later in Settings.")),
+        ...connection(),
+      ];
+    } else {
+      body = [
+        h("h1", {}, t("Try it out")),
+        h("p", { class: "lead" }, t("Click the box below, then press {shortcut}. Say what you want, and Feather writes it here.", { shortcut })),
+        h("div", { class: "card" }, sample),
+        ...(settings.hotkeyRegistered ? [] : [error(t("Another app is using this shortcut. Choose a different one."))]),
+        footnote(t("Nothing is captured until you press the shortcut, and the context is discarded when the panel closes.")),
+      ];
+    }
+
+    const back = step > 0 ? h("button", { type: "button", onclick: go(step - 1) }, t("Back")) : h("span");
+    const next = h(
+      "button",
+      { type: "button", class: "primary", disabled: !canContinue, onclick: last ? () => void finishOnboarding() : go(step + 1) },
+      name === "welcome" ? t("Get Started") : last ? t("Finish") : t("Continue"),
+    );
+    wizardView.replaceChildren(
+      h("div", { class: "onboarding-body" }, ...body),
+      h(
+        "footer",
+        { class: "onboarding-footer" },
+        back,
+        h("span", { class: "secondary" }, !canContinue ? t("Connect a provider to continue.") : t("Step {current} of {total}", { current: step + 1, total: STEPS.length })),
+        next,
+      ),
+    );
+    if (name === "try" && document.activeElement === document.body) sample.focus();
   }
 
   // MARK: Refreshing

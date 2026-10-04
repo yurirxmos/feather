@@ -45,6 +45,8 @@ struct SettingsView: View {
     @AppStorage(SettingsKey.hotkey) private var hotkey: HotkeyPreset = .optionSpace
     @AppStorage(SettingsKey.includeScreenshot) private var includeScreenshot = true
     @AppStorage(SettingsKey.customInstructions) private var customInstructions = ""
+    // The app delegate sets this at launch, so an unset value never reaches here.
+    @AppStorage(SettingsKey.onboardingCompleted) private var onboardingCompleted = true
     @State private var providersSetUp: Set<ConnectionKind> = []
 
     init(credentialStore: any CredentialStore = KeychainCredentialStore.shared) {
@@ -52,6 +54,17 @@ struct SettingsView: View {
     }
 
     var body: some View {
+        if onboardingCompleted {
+            settingsBody
+        } else {
+            OnboardingView(credentialStore: credentialStore, permissions: permissions) {
+                selectedSection = .general
+                onboardingCompleted = true
+            }
+        }
+    }
+
+    private var settingsBody: some View {
         NavigationSplitView {
             sidebar
         } detail: {
@@ -174,6 +187,12 @@ struct SettingsView: View {
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .sectionFooter()
+            }
+
+            Section {
+                Button(String(localized: "Show Welcome Guide…", bundle: .app)) {
+                    onboardingCompleted = false
+                }
             }
 
             Section {
