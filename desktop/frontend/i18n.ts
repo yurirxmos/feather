@@ -145,6 +145,14 @@ export const PT_BR: Record<string, string> = {
   "Pastes the reply into the field you were typing in.": "Cola a resposta no campo em que você estava digitando.",
   "Available": "Disponível",
   "Unavailable": "Indisponível",
+  "Feather is running in a Wayland session. Wayland does not let apps look at or type into other windows, so Feather reads the app in front through accessibility and copies each reply for you to paste.":
+    "O Feather está rodando em uma sessão Wayland. O Wayland não permite que um app olhe outras janelas nem digite nelas, então o Feather lê o app em primeiro plano pela acessibilidade e copia cada resposta para você colar.",
+  "Some apps only share their text when assistive technologies are enabled. If context is missing, turn on accessibility support in your desktop settings.":
+    "Alguns apps só compartilham o texto quando as tecnologias assistivas estão ativadas. Se faltar contexto, ative o suporte de acessibilidade nas configurações do seu ambiente de trabalho.",
+  "Wayland does not let apps listen for a global shortcut. In your desktop's keyboard settings, add a shortcut that runs Feather with the --prompt option, or open Feather from its tray menu.":
+    "O Wayland não permite que apps escutem um atalho global. Nas configurações de teclado do seu ambiente de trabalho, adicione um atalho que execute o Feather com a opção --prompt, ou abra o Feather pelo menu da bandeja.",
+  "Click the box below, then open Feather from its tray menu or your own shortcut. Say what you want, and Feather writes it here.":
+    "Clique na caixa abaixo e abra o Feather pelo menu da bandeja ou pelo seu próprio atalho. Diga o que você quer, e o Feather escreve aqui.",
   "Windows needs no extra permissions. Apps that run as administrator cannot be read or pasted into unless Feather also runs as administrator.":
     "O Windows não precisa de permissões extras. Apps que rodam como administrador não podem ser lidos nem receber texto colado, a menos que o Feather também rode como administrador.",
 };

@@ -35,7 +35,7 @@ platform. When a change cannot be mirrored, say so and explain why.
   (`SPARKLE_PRIVATE_ED_KEY`). Never replace either: a new certificate resets users' Accessibility
   and Screen Recording grants, and a new EdDSA key makes installed apps reject every update.
   No hardened runtime: its library validation refuses Sparkle without a Team ID.
-- `desktop/` is the Windows app (Tauri); see `desktop/AGENTS.md`. The same `v*` tag
+- `desktop/` is the Windows and Linux app (Tauri); see `desktop/AGENTS.md`. The same `v*` tag
   runs `.github/workflows/release-desktop.yml`, which attaches its installers and
   `latest-desktop.json` to the release the macOS workflow publishes, and never creates one.
 - Only `FeatherCore` has unit tests. AppKit, Accessibility, and ScreenCaptureKit changes must be

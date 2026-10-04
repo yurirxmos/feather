@@ -6,7 +6,7 @@ mod credentials;
 mod i18n;
 mod insert;
 // Only the stub for development machines leaves the shared helpers unused.
-#[cfg_attr(not(windows), allow(dead_code))]
+#[cfg_attr(not(any(windows, target_os = "linux")), allow(dead_code))]
 mod platform;
 mod providers;
 mod settings;
@@ -19,8 +19,16 @@ use settings::SettingsStore;
 
 pub fn run() {
     tauri::Builder::default()
-        // A second launch opens Settings in the running instance instead of starting another one.
-        .plugin(tauri_plugin_single_instance::init(|app, _, _| shell::show_settings(app)))
+        // A second launch opens Settings in the running instance instead of starting another one. With
+        // `--prompt` it opens the prompt, so a keyboard shortcut set in the desktop's own settings can
+        // start Feather where Wayland gives apps no global shortcut of their own.
+        .plugin(tauri_plugin_single_instance::init(|app, args, _| {
+            if args.iter().any(|arg| arg == shell::PROMPT_FLAG) {
+                shell::open_prompt(app);
+            } else {
+                shell::show_settings(app);
+            }
+        }))
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
@@ -35,6 +43,8 @@ pub fn run() {
             shell::register_hotkey(app.handle());
             if shell::needs_onboarding(app.handle()) || !shell::has_credentials(app.handle()) {
                 shell::show_settings(app.handle());
+            } else if std::env::args().any(|arg| arg == shell::PROMPT_FLAG) {
+                shell::open_prompt(app.handle());
             }
             shell::check_for_updates(app.handle().clone(), false);
             Ok(())

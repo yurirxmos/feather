@@ -58,7 +58,7 @@ pub fn connection_after_setup_change(current: Connection, set_up: &[Connection],
     Connection::ORDER.into_iter().find(|candidate| set_up.contains(candidate)).unwrap_or(current)
 }
 
-/// Shortcuts that do not collide with common Windows bindings. macOS's ⌥ Space
+/// Shortcuts that do not collide with Windows or common Linux desktop bindings. macOS's ⌥ Space
 /// would open the window menu on Windows.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]

@@ -9,7 +9,7 @@ use arboard::{Clipboard, ImageData};
 
 use crate::platform::{self, Target};
 
-/// One clipboard for the app's lifetime.
+/// One clipboard for the app's lifetime. On X11 the owner must stay alive to serve what it copied.
 static CLIPBOARD: LazyLock<Mutex<Option<Clipboard>>> = LazyLock::new(|| Mutex::new(Clipboard::new().ok()));
 
 enum Saved {

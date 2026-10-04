@@ -46,6 +46,9 @@ pub fn show_settings(app: &AppHandle) {
     }
 }
 
+/// The command-line option that opens the prompt in the running Feather.
+pub const PROMPT_FLAG: &str = "--prompt";
+
 pub fn open_prompt(app: &AppHandle) {
     if !has_credentials(app) {
         show_settings(app);

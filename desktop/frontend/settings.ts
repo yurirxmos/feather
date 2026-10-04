@@ -161,7 +161,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     });
 
     return [
-      group(t("Shortcut"), [row(t("Open Feather"), hotkey)], settings.hotkeyRegistered ? null : error(t("Another app is using this shortcut. Choose a different one."))),
+      group(t("Shortcut"), [row(t("Open Feather"), hotkey)], shortcutNote()),
       group(
         t("Context"),
         [
@@ -607,8 +607,31 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
       capabilityRow(t("Capture the active window"), t("Attaches a screenshot of the window you were using."), available("window-screenshot")),
       capabilityRow(t("Paste replies"), t("Pastes the reply into the field you were typing in."), available("automatic-insertion")),
     ];
-    const note = t("Windows needs no extra permissions. Apps that run as administrator cannot be read or pasted into unless Feather also runs as administrator.");
+    let note: string;
+    if (info.platform === "linux" && info.session === "wayland") {
+      note = t(
+        "Feather is running in a Wayland session. Wayland does not let apps look at or type into other windows, so Feather reads the app in front through accessibility and copies each reply for you to paste.",
+      );
+    } else if (info.platform === "linux") {
+      note = t("Some apps only share their text when assistive technologies are enabled. If context is missing, turn on accessibility support in your desktop settings.");
+    } else {
+      note = t("Windows needs no extra permissions. Apps that run as administrator cannot be read or pasted into unless Feather also runs as administrator.");
+    }
     return [group(t("What Feather can do here"), rows, footnote(note))];
+  }
+
+  /**
+   * What to say under the shortcut. On Wayland an app cannot listen for a global shortcut, so the
+   * desktop's own keyboard settings must run Feather with `--prompt`; elsewhere the only problem is
+   * another app owning the shortcut.
+   */
+  function shortcutNote(): HTMLElement | null {
+    if (info.platform === "linux" && info.session === "wayland") {
+      return footnote(
+        t("Wayland does not let apps listen for a global shortcut. In your desktop's keyboard settings, add a shortcut that runs Feather with the --prompt option, or open Feather from its tray menu."),
+      );
+    }
+    return settings.hotkeyRegistered ? null : error(t("Another app is using this shortcut. Choose a different one."));
   }
 
   /** Asks whether to switch replies to Feather Plus, naming the provider in use now. */
@@ -692,9 +715,15 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     } else {
       body = [
         h("h1", {}, t("Try it out")),
-        h("p", { class: "lead" }, t("Click the box below, then press {shortcut}. Say what you want, and Feather writes it here.", { shortcut })),
+        h(
+          "p",
+          { class: "lead" },
+          info.platform === "linux" && info.session === "wayland"
+            ? t("Click the box below, then open Feather from its tray menu or your own shortcut. Say what you want, and Feather writes it here.")
+            : t("Click the box below, then press {shortcut}. Say what you want, and Feather writes it here.", { shortcut }),
+        ),
         h("div", { class: "card" }, sample),
-        ...(settings.hotkeyRegistered ? [] : [error(t("Another app is using this shortcut. Choose a different one."))]),
+        ...[shortcutNote()].filter((note): note is HTMLElement => note !== null),
         footnote(t("Nothing is captured until you press the shortcut, and the context is discarded when the panel closes.")),
       ];
     }

@@ -6,15 +6,18 @@ mod windows;
 #[cfg(windows)]
 use self::windows as imp;
 
-// Linux uses the same adapter for now: it captures and pastes nothing until the X11 and Wayland
-// adapters land, and `session` already tells which of the two the user is on.
-#[cfg(not(windows))]
-mod unsupported;
-#[cfg(not(windows))]
-use unsupported as imp;
-
+#[cfg(target_os = "linux")]
+mod linux;
+#[cfg(target_os = "linux")]
+use linux as imp;
 #[cfg(target_os = "linux")]
 mod session;
+
+// Other systems, such as macOS, only build the app for development: it captures and pastes nothing.
+#[cfg(not(any(windows, target_os = "linux")))]
+mod unsupported;
+#[cfg(not(any(windows, target_os = "linux")))]
+use unsupported as imp;
 
 use std::io::Cursor;
 use std::time::Duration;

@@ -1,6 +1,6 @@
 # Desktop app instructions
 
-`desktop/` is the Windows app, built with Tauri. Do not move or
+`desktop/` is the Windows and Linux app, built with Tauri. Do not move or
 rewrite the macOS Swift app while working here. The two apps must stay
 identical: see "Parity between macOS and desktop" in the root `AGENTS.md`. Every
 change made here must also be made in the macOS app, and the reverse, except for
@@ -24,7 +24,8 @@ what depends on the operating system.
 - `src-tauri/src/providers/` builds and streams provider requests.
 - `src-tauri/src/controller.rs` mirrors `PromptController`; `shell.rs` mirrors
   `AppDelegate` (tray, shortcut, updates); `commands.rs` is the IPC boundary.
-- `src-tauri/src/platform/` holds the Windows and stub adapters.
+- `src-tauri/src/platform/` holds the Windows, Linux (`linux.rs`, with `session.rs` telling X11
+  from Wayland), and stub adapters.
 - `frontend/` renders the panel and Settings from state sent by Rust.
 
 ## Boundaries
