@@ -48,6 +48,8 @@ pub struct HotkeyOption {
 pub struct AppInfo {
     locale: &'static str,
     platform: &'static str,
+    /// On Linux, the display server: `x11`, `wayland`, or `unknown`.
+    session: Option<&'static str>,
     version: String,
     hotkeys: Vec<HotkeyOption>,
     chatgpt_models: Vec<Model>,
@@ -57,7 +59,8 @@ pub struct AppInfo {
 pub fn app_info(app: AppHandle) -> AppInfo {
     AppInfo {
         locale: i18n::locale(),
-        platform: if cfg!(windows) { "windows" } else { "other" },
+        platform: platform::name(),
+        session: platform::session_name(),
         version: app.package_info().version.to_string(),
         hotkeys: HotkeyPreset::ALL.iter().map(|&id| HotkeyOption { id, label: id.label() }).collect(),
         chatgpt_models: CHATGPT_MODELS.to_vec(),

@@ -1,6 +1,15 @@
+/* One bundled face, so Windows and Linux render the same text. Inter is the closest open match to
+   the macOS app's San Francisco. Licensed under the SIL OFL: see fonts/Inter-LICENSE.txt. */
+@font-face {
+  font-family: "Inter";
+  src: url("./fonts/inter-latin-wght-normal.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: block;
+}
+
 :root {
   --serif: Georgia, "Times New Roman", serif;
-  --sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Ubuntu, Cantarell, sans-serif;
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: "Cascadia Mono", Consolas, "DejaVu Sans Mono", ui-monospace, monospace;
   --accent: #3b82f6;
   font-family: var(--sans);

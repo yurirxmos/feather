@@ -6,10 +6,15 @@ mod windows;
 #[cfg(windows)]
 use self::windows as imp;
 
+// Linux uses the same adapter for now: it captures and pastes nothing until the X11 and Wayland
+// adapters land, and `session` already tells which of the two the user is on.
 #[cfg(not(windows))]
 mod unsupported;
 #[cfg(not(windows))]
 use unsupported as imp;
+
+#[cfg(target_os = "linux")]
+mod session;
 
 use std::io::Cursor;
 use std::time::Duration;
@@ -60,6 +65,29 @@ pub struct Snapshot {
 pub struct Capability {
     pub id: &'static str,
     pub available: bool,
+}
+
+/// The operating system, as the webview names it.
+pub fn name() -> &'static str {
+    if cfg!(windows) {
+        "windows"
+    } else if cfg!(target_os = "linux") {
+        "linux"
+    } else {
+        "other"
+    }
+}
+
+/// On Linux, `x11`, `wayland`, or `unknown`; `None` elsewhere.
+pub fn session_name() -> Option<&'static str> {
+    #[cfg(target_os = "linux")]
+    {
+        Some(session::current().name())
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        None
+    }
 }
 
 /// Turns on what the platform needs before the first capture, such as accessibility support.
