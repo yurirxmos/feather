@@ -30,6 +30,15 @@ platform. When a change cannot be mirrored, say so and explain why.
   had and what changed in this one (features added, fixes, and anything removed or behaving
   differently), compared against the previous `v*` tag (`git log <previous-tag>..HEAD`). Put them
   in the GitHub release body, and write them in en-us. The website's download page links to them.
+  - The macOS workflow creates the release with a generic body, so after pushing the tag, wait
+    for both release workflows to finish (`gh run list`), then replace the body:
+    `gh release edit v<version> --notes-file <file>`. Do this for every release.
+  - Follow the shape of the previous release's notes (`gh release view <previous-tag>`): an
+    **Install** section for Mac, Windows, and Linux, **What the previous version had**, **What
+    changed** split into New, Changed, Fixed, and Removed (write "Nothing." when empty), and a
+    **Full changelog** compare link between the two tags.
+  - Check that the release is published (not a draft or prerelease) and has both appcasts and the
+    desktop installers attached before announcing it.
 - Release builds are signed with the self-signed "Feather Release Signing" certificate
   (`RELEASE_CERTIFICATE_*` secrets) and updates with the Sparkle EdDSA key
   (`SPARKLE_PRIVATE_ED_KEY`). Never replace either: a new certificate resets users' Accessibility
