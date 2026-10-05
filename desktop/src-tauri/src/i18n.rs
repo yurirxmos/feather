@@ -48,6 +48,10 @@ const TRANSLATIONS: &[(&str, &str)] = &[
         "O Feather não conseguiu acessar o provedor. Verifique sua conexão e tente novamente.",
     ),
     ("Feather could not save the credential to secure storage.", "O Feather não conseguiu salvar a credencial no armazenamento seguro."),
+    (
+        "Feather could not change whether it starts at login: {error}",
+        "O Feather não conseguiu alterar se inicia ao ligar o computador: {error}",
+    ),
     ("Feather is up to date.", "O Feather está atualizado."),
     (
         "Feather {version} is available. Install it now? Feather restarts when it finishes.",

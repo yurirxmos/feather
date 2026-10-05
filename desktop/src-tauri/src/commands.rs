@@ -7,6 +7,7 @@ use std::sync::{Arc, Mutex};
 use serde::Serialize;
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager, State};
+use tauri_plugin_autostart::ManagerExt as _;
 use tauri_plugin_opener::OpenerExt;
 use tokio::sync::Notify;
 
@@ -73,12 +74,20 @@ pub struct SettingsView {
     #[serde(flatten)]
     settings: Settings,
     hotkey_registered: bool,
+    /// Whether the system starts Feather at login. The system holds this, not the settings file, so
+    /// it stays right when the user removes the entry elsewhere.
+    launch_at_login: bool,
 }
 
 fn settings_view(app: &AppHandle, settings: Settings) -> SettingsView {
     let hotkey_registered = *app.state::<ShellState>().hotkey_registered.lock().expect("shell lock");
-    SettingsView { settings, hotkey_registered }
+    let launch_at_login = app.autolaunch().is_enabled().unwrap_or(false);
+    SettingsView { settings, hotkey_registered, launch_at_login }
 }
+
+/// The setting name the webview uses for starting at login, which `set_setting` routes to the
+/// system instead of the settings file, as `SMAppService` does in the macOS app.
+const LAUNCH_AT_LOGIN: &str = "launchAtLogin";
 
 #[tauri::command]
 pub fn get_settings(app: AppHandle, store: State<'_, SettingsStore>) -> SettingsView {
@@ -87,6 +96,13 @@ pub fn get_settings(app: AppHandle, store: State<'_, SettingsStore>) -> Settings
 
 #[tauri::command]
 pub fn set_setting(app: AppHandle, store: State<'_, SettingsStore>, name: String, value: Value) -> Result<SettingsView, String> {
+    if name == LAUNCH_AT_LOGIN {
+        let enabled = value.as_bool().ok_or_else(|| format!("{name} must be true or false."))?;
+        let autolaunch = app.autolaunch();
+        let result = if enabled { autolaunch.enable() } else { autolaunch.disable() };
+        result.map_err(|error| i18n::t("Feather could not change whether it starts at login: {error}").replace("{error}", &error.to_string()))?;
+        return Ok(settings_view(&app, store.current()));
+    }
     let settings = store.set(&name, value)?;
     if name == key::HOTKEY {
         shell::register_hotkey(&app);

@@ -1,4 +1,5 @@
 import FeatherCore
+import ServiceManagement
 import SwiftUI
 
 private enum SettingsSection: String, CaseIterable, Identifiable {
@@ -48,6 +49,7 @@ struct SettingsView: View {
     // The app delegate sets this at launch, so an unset value never reaches here.
     @AppStorage(SettingsKey.onboardingCompleted) private var onboardingCompleted = true
     @State private var providersSetUp: Set<ConnectionKind> = []
+    @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
     init(credentialStore: any CredentialStore = KeychainCredentialStore.shared) {
         self.credentialStore = credentialStore
@@ -163,8 +165,37 @@ struct SettingsView: View {
 
     // MARK: - General
 
+    /// Reads and writes the login item through the system instead of `UserDefaults`, so the toggle
+    /// stays right when the user removes Feather from System Settings > Login Items.
+    private var launchAtLoginBinding: Binding<Bool> {
+        Binding(
+            get: { launchAtLogin },
+            set: { enabled in
+                do {
+                    if enabled {
+                        try SMAppService.mainApp.register()
+                    } else {
+                        try SMAppService.mainApp.unregister()
+                    }
+                } catch {
+                    NSLog("Feather could not change its login item: \(error.localizedDescription)")
+                }
+                launchAtLogin = SMAppService.mainApp.status == .enabled
+            }
+        )
+    }
+
     private var generalView: some View {
         Form {
+            Section {
+                Toggle(isOn: launchAtLoginBinding) {
+                    Text("Open Feather at login", bundle: .app)
+                    Text("Starts Feather in the background when you sign in to your computer.", bundle: .app)
+                }
+            } header: {
+                Text("Startup", bundle: .app)
+            }
+
             Section {
                 Picker(String(localized: "Open Feather", bundle: .app), selection: $hotkey) {
                     ForEach(HotkeyPreset.allCases) { preset in
@@ -209,6 +240,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .onAppear { launchAtLogin = SMAppService.mainApp.status == .enabled }
     }
 
     // MARK: - Permissions

@@ -32,6 +32,7 @@ type Settings = {
   plusEnabled: boolean;
   plusProviderEnabled: boolean;
   hotkeyRegistered: boolean;
+  launchAtLogin: boolean;
   onboardingCompleted: boolean | null;
 };
 
@@ -147,6 +148,15 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
       { "aria-label": t("Open Feather"), onchange: (event) => void set("hotkey", (event.target as HTMLSelectElement).value) },
       ...info.hotkeys.map((option) => h("option", { value: option.id, selected: option.id === settings.hotkey }, option.label)),
     );
+    const launchAtLogin = h("input", {
+      type: "checkbox",
+      id: "launch-at-login",
+      checked: settings.launchAtLogin,
+      onchange: (event) => {
+        // The system can refuse, so a failure puts the checkbox back to what the system reports.
+        void set("launchAtLogin", (event.target as HTMLInputElement).checked).catch(render);
+      },
+    });
     const screenshot = h("input", {
       type: "checkbox",
       id: "include-screenshot",
@@ -164,6 +174,14 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     });
 
     return [
+      group(t("Startup"), [
+        h(
+          "label",
+          { class: "row toggle", for: "launch-at-login" },
+          h("span", { class: "label" }, t("Open Feather at login"), h("small", {}, t("Starts Feather in the background when you sign in to your computer."))),
+          launchAtLogin,
+        ),
+      ]),
       group(t("Shortcut"), [row(t("Open Feather"), hotkey)], shortcutNote()),
       group(
         t("Context"),

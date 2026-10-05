@@ -141,6 +141,36 @@
         }
       }
     },
+    "Open Feather at login": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir o Feather ao ligar o computador"
+          }
+        }
+      }
+    },
+    "Starts Feather in the background when you sign in to your computer.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inicia o Feather em segundo plano quando você entra no computador."
+          }
+        }
+      }
+    },
+    "Startup": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inicialização"
+          }
+        }
+      }
+    },
     "Context": {
       "localizations": {
         "pt-BR": {

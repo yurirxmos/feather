@@ -88,6 +88,10 @@ export const PT_BR: Record<string, string> = {
   Shortcut: "Atalho",
   "Open Feather": "Abrir o Feather",
   "Another app is using this shortcut. Choose a different one.": "Outro app está usando este atalho. Escolha outro.",
+  Startup: "Inicialização",
+  "Open Feather at login": "Abrir o Feather ao ligar o computador",
+  "Starts Feather in the background when you sign in to your computer.":
+    "Inicia o Feather em segundo plano quando você entra no computador.",
   Context: "Contexto",
   "Include a screenshot of the active window": "Incluir uma captura da janela ativa",
   "Gives the model visual context.": "Dá contexto visual ao modelo.",

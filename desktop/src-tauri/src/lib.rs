@@ -13,6 +13,7 @@ mod settings;
 mod shell;
 
 use tauri::{Manager, RunEvent, WindowEvent};
+use tauri_plugin_autostart::MacosLauncher;
 
 use controller::{PromptController, PANEL_LABEL};
 use settings::SettingsStore;
@@ -29,6 +30,8 @@ pub fn run() {
                 shell::show_settings(app);
             }
         }))
+        // Starts Feather in the tray at login: the registry on Windows, an XDG autostart entry on Linux.
+        .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
