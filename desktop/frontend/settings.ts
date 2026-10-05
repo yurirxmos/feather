@@ -58,6 +58,9 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
   let models: string[] = [];
   let loadingModels = false;
   let modelsFailed = false;
+  let chatgptModels = info.chatgptModels;
+  let loadingChatgptModels = false;
+  let chatgptModelsFailed = false;
   let signingIn: "chatGPT" | "plus" | null = null;
   let authError: string | null = null;
   let plusAccount: PlusAccount | null = null;
@@ -333,6 +336,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
           onclick: async () => {
             await set("connection", id);
             if (id === "openCodeGo" && models.length === 0) loadModels();
+            if (id === "chatGPT") loadChatgptModels();
           },
         },
         t("Use"),
@@ -387,6 +391,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     }
     signingIn = null;
     render();
+    loadChatgptModels();
   }
 
   function keyForm(): HTMLElement {
@@ -423,12 +428,22 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
 
   function modelEditor(): HTMLElement {
     if (settings.connection === "chatGPT") {
+      const options = chatgptModels.some((model) => model.id === settings.model)
+        ? chatgptModels
+        : [...chatgptModels, { id: settings.model, name: settings.model }];
       return row(
         t("Model"),
         h(
-          "select",
-          { "aria-label": t("Model"), onchange: (event) => void set("model", (event.target as HTMLSelectElement).value) },
-          ...info.chatgptModels.map((model) => h("option", { value: model.id, selected: model.id === settings.model }, model.name)),
+          "span",
+          { class: "inline" },
+          h(
+            "select",
+            { "aria-label": t("Model"), disabled: loadingChatgptModels, onchange: (event) => void set("model", (event.target as HTMLSelectElement).value) },
+            ...options.map((model) => h("option", { value: model.id, selected: model.id === settings.model }, model.name)),
+          ),
+          loadingChatgptModels
+            ? h("span", { class: "spinner", "aria-hidden": "true" })
+            : h("button", { type: "button", class: "icon-button", title: t("Refresh"), "aria-label": t("Refresh"), onclick: loadChatgptModels }, "↻"),
         ),
       );
     }
@@ -452,9 +467,27 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
   }
 
   function modelFootnote(): HTMLElement | null {
+    if (settings.connection === "chatGPT") {
+      return chatgptModelsFailed ? error(t("Couldn't load your ChatGPT models. Showing the defaults.")) : null;
+    }
     if (settings.connection !== "openCodeGo") return null;
     if (modelsFailed) return error(t("Couldn't load the models. Check your key and connection."));
     return null;
+  }
+
+  /** Asks ChatGPT which models this account can use; the built-in list stays if that fails. */
+  function loadChatgptModels(): void {
+    if (loadingChatgptModels || !credentials.chatgptConnected) return;
+    loadingChatgptModels = true;
+    chatgptModelsFailed = false;
+    render();
+    invoke<{ id: string; name: string }[]>("chatgpt_models")
+      .then((fetched) => (chatgptModels = fetched))
+      .catch(() => (chatgptModelsFailed = true))
+      .finally(() => {
+        loadingChatgptModels = false;
+        render();
+      });
   }
 
   function loadModels(): void {
@@ -766,6 +799,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
 
   render();
   if (settings.connection === "openCodeGo") loadModels();
+  if (settings.connection === "chatGPT") loadChatgptModels();
   if (section === "connection") loadAccount();
 }
 

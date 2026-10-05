@@ -105,6 +105,8 @@ export const PT_BR: Record<string, string> = {
   Model: "Modelo",
   "Couldn't load the models. Check your key and connection.":
     "Não foi possível carregar os modelos. Verifique sua chave e a conexão.",
+  "Couldn't load your ChatGPT models. Showing the defaults.":
+    "Não foi possível carregar seus modelos do ChatGPT. Mostrando os padrões.",
   "API key": "Chave de API",
   "Paste your key": "Cole sua chave",
   Save: "Salvar",

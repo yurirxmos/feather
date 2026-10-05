@@ -26,6 +26,10 @@ struct ConnectionSettingsView: View {
     @State private var openCodeModels: [String] = []
     @State private var isLoadingModels = false
     @State private var modelsFailed = false
+    @State private var chatGPTModels = ChatGPTModelCatalog.models
+    @State private var isLoadingChatGPTModels = false
+    @State private var chatGPTModelsFailed = false
+    @State private var didLoadChatGPTModels = false
     @AppStorage(offerFeatherPlusKey) private var offerFeatherPlus = false
     @State private var isAskingToUsePlus = false
 
@@ -272,9 +276,23 @@ struct ConnectionSettingsView: View {
         case .featherPlus:
             EmptyView()
         case .chatGPT:
-            Picker(String(localized: "Model", bundle: .app), selection: $model) {
-                ForEach(ChatGPTModelCatalog.models) { model in
-                    Text(model.name).tag(model.id)
+            HStack(spacing: 8) {
+                Picker(String(localized: "Model", bundle: .app), selection: $model) {
+                    ForEach(chatGPTModelOptions) { option in
+                        Text(option.name).tag(option.id)
+                    }
+                }
+                .disabled(isLoadingChatGPTModels)
+                if isLoadingChatGPTModels {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Button(action: loadChatGPTModels) {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .buttonStyle(.borderless)
+                    .help(String(localized: "Refresh", bundle: .app))
+                    .accessibilityLabel(String(localized: "Refresh", bundle: .app))
                 }
             }
         case .openCodeGo:
@@ -300,9 +318,22 @@ struct ConnectionSettingsView: View {
         }
     }
 
+    /// The account's models, plus the selected one until the list confirms it.
+    private var chatGPTModelOptions: [ChatGPTModel] {
+        chatGPTModels.contains(where: { $0.id == model }) ? chatGPTModels : chatGPTModels + [ChatGPTModel(id: model, name: model)]
+    }
+
     @ViewBuilder
     private var modelFooter: some View {
-        if connection == .openCodeGo, modelsFailed {
+        if connection == .chatGPT, chatGPTModelsFailed {
+            Label {
+                Text("Couldn't load your ChatGPT models. Showing the defaults.", bundle: .app)
+            } icon: {
+                Image(systemName: "exclamationmark.triangle.fill")
+            }
+            .font(.callout)
+            .foregroundStyle(.red)
+        } else if connection == .openCodeGo, modelsFailed {
             Label {
                 Text("Couldn't load the models. Check your key and connection.", bundle: .app)
             } icon: {
@@ -323,6 +354,7 @@ struct ConnectionSettingsView: View {
         setUp = Settings.providersSetUp(in: credentialStore, plusAvailable: FeatherPlus.isProviderEnabled())
         storedKey = credentialStore.apiKey() ?? ""
         if setUp.contains(.openCodeGo), openCodeModels.isEmpty { loadOpenCodeModels() }
+        if setUp.contains(.chatGPT), !didLoadChatGPTModels { loadChatGPTModels() }
         loadPlusAccount()
     }
 
@@ -338,6 +370,7 @@ struct ConnectionSettingsView: View {
         model = Settings.model(afterChangingTo: kind, preserving: model)
         connection = kind
         if kind == .openCodeGo, openCodeModels.isEmpty { loadOpenCodeModels() }
+        if kind == .chatGPT { loadChatGPTModels() }
     }
 
     private func beginSetUp(_ kind: ConnectionKind) {
@@ -384,6 +417,8 @@ struct ConnectionSettingsView: View {
 
     private func disconnectChatGPT() {
         credentialStore.deleteChatGPTCredentials()
+        chatGPTModels = ChatGPTModelCatalog.models
+        didLoadChatGPTModels = false
         credentialsDidChange()
     }
 
@@ -434,6 +469,30 @@ struct ConnectionSettingsView: View {
     private func openBilling() {
         guard let url = try? FeatherPlus.accountURL(base: FeatherPlus.baseURL()) else { return }
         NSWorkspace.shared.open(url)
+    }
+
+    /// Asks ChatGPT which models this account can use, and moves a selection the account lacks to
+    /// one it has, so a reply never asks for a model the account cannot run. The built-in list
+    /// stays if that fails.
+    private func loadChatGPTModels() {
+        guard !isLoadingChatGPTModels, setUp.contains(.chatGPT) else { return }
+        isLoadingChatGPTModels = true
+        chatGPTModelsFailed = false
+        Task {
+            defer { isLoadingChatGPTModels = false }
+            do {
+                let credentials = try await ChatGPTAuth.validCredentials(store: credentialStore)
+                let fetched = try await ChatGPTModelCatalog.fetchModels(
+                    accessToken: credentials.accessToken, accountID: credentials.accountID)
+                chatGPTModels = fetched
+                didLoadChatGPTModels = true
+                if connection == .chatGPT, let available = ChatGPTModelCatalog.model(for: fetched, current: model) {
+                    model = available
+                }
+            } catch {
+                chatGPTModelsFailed = true
+            }
+        }
     }
 
     private func loadOpenCodeModels() {

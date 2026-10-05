@@ -16,7 +16,7 @@ use crate::core::plus::PlusAccount;
 use crate::credentials;
 use crate::i18n;
 use crate::platform::{self, Capability};
-use crate::providers::catalog::{self, Model, CHATGPT_MODELS};
+use crate::providers::catalog::{self, ChatGptModel, Model, CHATGPT_MODELS};
 use crate::settings::{connection_after_setup_change, key, Connection, HotkeyPreset, Settings, SettingsStore};
 use crate::shell::{self, ShellState};
 
@@ -166,6 +166,29 @@ pub async fn opencode_models() -> Result<Vec<String>, String> {
     catalog::fetch_opencode_models(&api_key).await.map_err(|error| error.message())
 }
 
+/// Loads the models the ChatGPT account can use and, when ChatGPT is in use, moves a selection the
+/// account lacks to one it has, so a reply never asks for a model the account cannot run.
+async fn load_chatgpt_models(app: &AppHandle, store: &SettingsStore) -> Result<Vec<ChatGptModel>, String> {
+    let credentials = auth::chatgpt::valid_credentials().await?;
+    let models = catalog::fetch_chatgpt_models(&credentials.access_token, credentials.account_id.as_deref())
+        .await
+        .map_err(|error| error.message())?;
+    let settings = store.current();
+    if settings.connection == Connection::ChatGpt {
+        if let Some(model) = catalog::chatgpt_model_for_account(&models, &settings.model) {
+            if model != settings.model && store.set(key::MODEL, Value::String(model)).is_ok() {
+                let _ = app.emit("settings-changed", ());
+            }
+        }
+    }
+    Ok(models)
+}
+
+#[tauri::command]
+pub async fn chatgpt_models(app: AppHandle, store: State<'_, SettingsStore>) -> Result<Vec<ChatGptModel>, String> {
+    load_chatgpt_models(&app, &store).await
+}
+
 async fn cancellable<T>(sign_in: &SignIn, future: impl std::future::Future<Output = Result<T, String>>) -> Result<T, String> {
     let cancel = sign_in.begin();
     tokio::select! {
@@ -184,6 +207,8 @@ fn open_in_browser(app: &AppHandle) -> impl FnOnce(&str) + '_ {
 pub async fn sign_in_chatgpt(app: AppHandle, store: State<'_, SettingsStore>, sign_in: State<'_, SignIn>) -> Result<CredentialStatus, String> {
     cancellable(&sign_in, auth::chatgpt::sign_in(open_in_browser(&app))).await?;
     credentials_changed(&app, &store, Some(Connection::ChatGpt));
+    // Best effort: Settings loads the list again, and the built-in one covers a failure.
+    let _ = load_chatgpt_models(&app, &store).await;
     Ok(credential_status())
 }
 

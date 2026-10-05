@@ -1021,6 +1021,16 @@
         }
       }
     },
+    "Couldn't load your ChatGPT models. Showing the defaults.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível carregar seus modelos do ChatGPT. Mostrando os padrões."
+          }
+        }
+      }
+    },
     "Sign-in timed out. Try again.": {
       "localizations": {
         "pt-BR": {
