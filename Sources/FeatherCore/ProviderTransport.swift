@@ -29,7 +29,8 @@ public enum ProviderTransport {
         }
         if let error = json["error"] as? [String: Any], let message = error["message"] as? String { return message }
         if let message = json["error"] as? String { return message }
-        return json["message"] as? String
+        // ChatGPT's backend explains a rejected request in `detail`.
+        return (json["message"] as? String) ?? (json["detail"] as? String)
     }
 
     public static func streamError(from data: Data) -> LLMError {

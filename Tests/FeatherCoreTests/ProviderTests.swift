@@ -122,4 +122,10 @@ final class ProviderTests: XCTestCase {
         let body = Data(#"{"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key"}}"#.utf8)
         XCTAssertEqual(provider.errorMessage(fromBody: body), "invalid x-api-key")
     }
+
+    func testErrorMessageFromChatGPTDetail() {
+        let provider = ChatGPTProvider(accessToken: "token")
+        let body = Data(#"{"detail":"Store must be set to false"}"#.utf8)
+        XCTAssertEqual(provider.errorMessage(fromBody: body), "Store must be set to false")
+    }
 }

@@ -51,6 +51,8 @@ pub fn error_message(body: &[u8]) -> Option<String> {
             .and_then(|value| value.as_str())
             .or_else(|| json.get("error").and_then(|value| value.as_str()))
             .or_else(|| json.get("message").and_then(|value| value.as_str()))
+            // ChatGPT's backend explains a rejected request in `detail`.
+            .or_else(|| json.get("detail").and_then(|value| value.as_str()))
             .map(str::to_owned),
         Err(_) => {
             let text = String::from_utf8_lossy(body).trim().to_owned();
@@ -74,6 +76,7 @@ mod tests {
     fn reads_nested_and_flat_error_messages() {
         assert_eq!(error_message(br#"{"error":{"message":"Bad key"}}"#).as_deref(), Some("Bad key"));
         assert_eq!(error_message(br#"{"error":"Nope"}"#).as_deref(), Some("Nope"));
+        assert_eq!(error_message(br#"{"detail":"Store must be set to false"}"#).as_deref(), Some("Store must be set to false"));
         assert_eq!(error_message(b"plain").as_deref(), Some("plain"));
         assert_eq!(error_message(b""), None);
     }
