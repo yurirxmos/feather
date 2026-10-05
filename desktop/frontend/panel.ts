@@ -62,7 +62,9 @@ export async function startPanel(root: HTMLElement): Promise<void> {
   );
   root.replaceChildren(panel);
 
-  let state: PanelState = await invoke<PanelState>("prompt_state");
+  // Drawn, wired, and sized before asking Rust for anything, so the panel stays usable and shows
+  // the reason if the state cannot be loaded.
+  let state: PanelState = EMPTY_STATE;
   let focusToken = -1;
   let restoreToken = state.restoreToken;
   let timer: number | undefined;
@@ -191,12 +193,41 @@ export async function startPanel(root: HTMLElement): Promise<void> {
     void invoke("panel_resize", { height: Math.ceil(panel.getBoundingClientRect().height) });
   }).observe(panel);
 
-  await listen<PanelState>("prompt-state", (event) => {
-    state = event.payload;
-    render();
-  });
+  render();
+  try {
+    await listen<PanelState>("prompt-state", (event) => {
+      state = event.payload;
+      render();
+    });
+    state = await invoke<PanelState>("prompt_state");
+    restoreToken = state.restoreToken;
+  } catch (error) {
+    state = { ...state, errorMessage: String(error) };
+  }
   render();
 }
+
+const EMPTY_STATE: PanelState = {
+  appName: null,
+  selectedPreview: null,
+  hasFocusedText: false,
+  hasWindowText: false,
+  windowTextWasTruncated: false,
+  options: { includeApp: true, includeFocusedText: true, includeSelection: true, includeWindowText: true, includeWindow: false },
+  isCapturing: false,
+  captureStatus: null,
+  result: "",
+  streamingResult: "",
+  answer: "",
+  streamingAnswer: "",
+  isGenerating: false,
+  generationStartedAt: null,
+  errorMessage: null,
+  notice: null,
+  focusToken: 0,
+  restoreInstruction: null,
+  restoreToken: 0,
+};
 
 function responseBlock(text: string, muted: boolean): HTMLElement {
   return h("div", { class: muted ? "response muted" : "response" }, text);
