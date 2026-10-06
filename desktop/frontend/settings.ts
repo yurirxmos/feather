@@ -37,7 +37,8 @@ type Settings = {
 };
 
 type Credentials = { apiKey: string | null; chatgptConnected: boolean; plusSignedIn: boolean };
-type PlusAccount = { email: string; plan: "starter" | "max" | null; usage: { used: number; limit: number }[]; periodEnd: string | null };
+/** Usage is model cost in micro-dollars; it is shown as `percentUsed`, never as money. */
+type PlusAccount = { email: string; plan: "monthly" | "yearly" | null; usage: { used: number; limit: number; percentUsed: number }[]; periodEnd: string | null };
 type Capability = { id: string; available: boolean };
 
 const CANCELLED = "cancelled";
@@ -292,7 +293,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
       : h(
           "ul",
           { class: "perks" },
-          ...[t("Answers your questions"), t("No API key to manage"), t("Starter or Max plan")].map((perk) => h("li", {}, perk)),
+          ...[t("Answers your questions"), t("No API key to manage"), t("$4 a month or $36 a year")].map((perk) => h("li", {}, perk)),
         );
     return h(
       "div",
@@ -350,7 +351,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
         return t("Signed in");
       case "featherPlus":
         if (!plusAccount) return t("Signed in");
-        return plusAccount.plan === "max" ? t("Max plan") : plusAccount.plan === "starter" ? t("Starter plan") : t("No plan yet");
+        return plusAccount.plan === "yearly" ? t("Yearly plan") : plusAccount.plan === "monthly" ? t("Monthly plan") : t("No plan yet");
     }
   }
 
@@ -581,7 +582,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     const account = plusAccount;
     const rows = [
       row(t("Email"), account ? h("span", { class: "selectable" }, account.email) : loadingAccount ? h("span", { class: "spinner" }) : h("span")),
-      row(t("Plan"), account ? (account.plan ? badge(account.plan === "max" ? t("Max") : t("Starter")) : h("span", { class: "secondary" }, t("No plan"))) : h("span")),
+      row(t("Plan"), account ? (account.plan ? badge(account.plan === "yearly" ? t("Plus Yearly") : t("Plus Monthly")) : h("span", { class: "secondary" }, t("No plan"))) : h("span")),
     ];
     rows.push(
       h(
@@ -617,13 +618,13 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     if (account?.plan && account.usage.length > 0) {
       views.push(
         group(
-          t("Usage this period"),
+          t("Usage this month"),
           account.usage.map((usage) =>
             h(
               "div",
               { class: "row usage" },
-              h("div", { class: "spread" }, h("span", {}, t("Requests")), h("span", { class: "secondary" }, t("{used} of {limit}", { used: usage.used.toLocaleString(), limit: usage.limit.toLocaleString() }))),
-              h("progress", { value: String(Math.min(usage.used, usage.limit)), max: String(Math.max(usage.limit, 1)), class: usage.used >= usage.limit ? "exhausted" : "" }),
+              h("div", { class: "spread" }, h("span", {}, t("This month's allowance")), h("span", { class: "secondary" }, t("{percent}% used", { percent: usage.percentUsed }))),
+              h("progress", { value: String(usage.percentUsed), max: "100", class: usage.used >= usage.limit ? "exhausted" : "" }),
             ),
           ),
           account.periodEnd ? footnote(t("Resets on {date}.", { date: formatDate(account.periodEnd) })) : null,

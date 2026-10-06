@@ -59,12 +59,12 @@ final class FeatherPlusTests: XCTestCase {
 
     func testDecodeAccountReadsPlanUsageAndJavaScriptDates() throws {
         let json = """
-        {"email":"a@example.com","plan":"max","period_end":"2026-11-01T00:00:00.000Z",
+        {"email":"a@example.com","plan":"yearly","period_end":"2026-11-01T00:00:00.000Z",
          "usage":[{"tier":"fast","used":12,"limit":4000}]}
         """
         let account = try FeatherPlus.decodeAccount(Data(json.utf8))
         XCTAssertEqual(account.email, "a@example.com")
-        XCTAssertEqual(account.plan, .max)
+        XCTAssertEqual(account.plan, .yearly)
         XCTAssertEqual(account.usage, [PlusAccount.Usage(used: 12, limit: 4000)])
         XCTAssertEqual(account.periodEnd, ISO8601DateFormatter().date(from: "2026-11-01T00:00:00Z"))
     }
@@ -104,5 +104,11 @@ final class FeatherPlusTests: XCTestCase {
         store.deletePlusToken()
         XCTAssertNil(store.plusToken())
         XCTAssertEqual(store.apiKey(), "go-key")
+    }
+
+    func testUsageIsShownAsAShareOfTheAllowance() {
+        XCTAssertEqual(PlusAccount.Usage(used: 250_000, limit: 1_000_000).percentUsed, 25)
+        XCTAssertEqual(PlusAccount.Usage(used: 1_200_000, limit: 1_000_000).percentUsed, 100)
+        XCTAssertEqual(PlusAccount.Usage(used: 5, limit: 0).percentUsed, 100)
     }
 }

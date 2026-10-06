@@ -118,7 +118,7 @@ struct PlusSettingsView: View {
                     UsageRow(usage: usage)
                 }
             } header: {
-                Text("Usage this period", bundle: .app)
+                Text("Usage this month", bundle: .app)
             } footer: {
                 if let periodEnd = account.periodEnd {
                     Text("Resets on \(periodEnd.formatted(date: .abbreviated, time: .omitted)).", bundle: .app)
@@ -236,13 +236,14 @@ private struct UsageRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text("Requests", bundle: .app)
+                Text("This month's allowance", bundle: .app)
                 Spacer()
-                Text("\(usage.used) of \(usage.limit)", bundle: .app)
+                // Usage is model cost; it is shown as a share of the allowance, never as money.
+                Text("\(usage.percentUsed)% used", bundle: .app)
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
             }
-            ProgressView(value: Double(min(usage.used, usage.limit)), total: Double(max(usage.limit, 1)))
+            ProgressView(value: Double(usage.percentUsed), total: 100)
                 .tint(usage.used >= usage.limit ? .orange : .accentColor)
         }
         .padding(.vertical, 2)
@@ -252,8 +253,8 @@ private struct UsageRow: View {
 private extension PlusAccount.Plan {
     var displayName: String {
         switch self {
-        case .starter: String(localized: "Starter", bundle: .app)
-        case .max: String(localized: "Max", bundle: .app)
+        case .monthly: String(localized: "Plus Monthly", bundle: .app)
+        case .yearly: String(localized: "Plus Yearly", bundle: .app)
         }
     }
 }

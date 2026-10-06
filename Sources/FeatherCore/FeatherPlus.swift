@@ -125,22 +125,29 @@ public enum FeatherPlus {
 
 /// The signed-in account as reported by `GET /v1/account`.
 public struct PlusAccount: Decodable, Equatable, Sendable {
+    /// Feather Plus, billed monthly or yearly. Both include the same monthly allowance.
     public enum Plan: String, Decodable, Sendable {
-        case starter
-        case max
+        case monthly
+        case yearly
     }
 
-    /// Requests used and allowed this period. The server sends one entry while a plan is active.
+    /// Model cost spent and allowed this month, in millionths of a US dollar. The server sends one
+    /// entry while a plan is active. Shown as a share used, never as money.
     public struct Usage: Decodable, Equatable, Sendable {
         public var used: Int
         public var limit: Int
+
+        /// The share of the allowance spent, as a whole percentage from 0 to 100.
+        public var percentUsed: Int {
+            min(100, Int((Double(used) / Double(max(limit, 1)) * 100).rounded()))
+        }
     }
 
     public var email: String
     /// Nil when the account has no active subscription.
     public var plan: Plan?
     public var usage: [Usage]
-    /// When the current quota period resets.
+    /// When the monthly allowance resets, also within a yearly plan.
     public var periodEnd: Date?
 
     enum CodingKeys: String, CodingKey {

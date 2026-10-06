@@ -119,7 +119,7 @@ struct ConnectionSettingsView: View {
                 HStack(spacing: 18) {
                     perk(String(localized: "Answers your questions", bundle: .app))
                     perk(String(localized: "No API key to manage", bundle: .app))
-                    perk(String(localized: "Starter or Max plan", bundle: .app))
+                    perk(String(localized: "$4 a month or $36 a year", bundle: .app))
                 }
                 .font(.callout)
                 .padding(.leading, 54)
@@ -174,8 +174,8 @@ struct ConnectionSettingsView: View {
             Text("Paste an OpenCode Go API key. Free.", bundle: .app)
         case (.featherPlus, true):
             switch plusAccount?.plan {
-            case .starter: Text("Starter plan", bundle: .app)
-            case .max: Text("Max plan", bundle: .app)
+            case .monthly: Text("Monthly plan", bundle: .app)
+            case .yearly: Text("Yearly plan", bundle: .app)
             case nil: plusAccount == nil ? Text("Signed in", bundle: .app) : Text("No plan yet", bundle: .app)
             }
         case (.chatGPT, true):

@@ -1241,26 +1241,6 @@
         }
       }
     },
-    "Starter": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Starter"
-          }
-        }
-      }
-    },
-    "Max": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Max"
-          }
-        }
-      }
-    },
     "Feather Plus": {
       "localizations": {
         "pt-BR": {
@@ -1341,32 +1321,12 @@
         }
       }
     },
-    "Usage this period": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Uso neste período"
-          }
-        }
-      }
-    },
     "Resets on %@.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Renova em %@."
-          }
-        }
-      }
-    },
-    "%lld of %lld": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$lld de %2$lld"
           }
         }
       }
@@ -1407,16 +1367,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Entrar…"
-          }
-        }
-      }
-    },
-    "Requests": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Requisições"
           }
         }
       }
@@ -1487,26 +1437,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cole uma chave de API do OpenCode Go. Grátis."
-          }
-        }
-      }
-    },
-    "Starter plan": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Plano Starter"
-          }
-        }
-      }
-    },
-    "Max plan": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Plano Max"
           }
         }
       }
@@ -1647,16 +1577,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sem chave de API para gerenciar"
-          }
-        }
-      }
-    },
-    "Starter or Max plan": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Plano Starter ou Max"
           }
         }
       }
@@ -1817,6 +1737,86 @@
           "stringUnit": {
             "state": "translated",
             "value": "Conversa anterior %1$d de %2$d"
+          }
+        }
+      }
+    },
+    "Plus Monthly": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus Mensal"
+          }
+        }
+      }
+    },
+    "Plus Yearly": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus Anual"
+          }
+        }
+      }
+    },
+    "Monthly plan": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plano mensal"
+          }
+        }
+      }
+    },
+    "Yearly plan": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plano anual"
+          }
+        }
+      }
+    },
+    "$4 a month or $36 a year": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "US$ 4 por mês ou US$ 36 por ano"
+          }
+        }
+      }
+    },
+    "Usage this month": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uso neste mês"
+          }
+        }
+      }
+    },
+    "This month's allowance": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Franquia deste mês"
+          }
+        }
+      }
+    },
+    "%lld%% used": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld%% usado"
           }
         }
       }

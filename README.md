@@ -53,13 +53,13 @@ usage are in **Settings > Feather Plus**.
 
 | Plan | Price | Includes |
 | --- | --- | --- |
-| Starter | $5/month | 500 requests per billing period |
-| Max | $20/month | 4,000 requests per billing period |
+| Plus Monthly | $4/month | About 2,000 replies a month |
+| Plus Yearly | $36/year | About 2,000 replies a month, renewed every month |
 
-Both plans use the same model; they differ only in how many requests they include. Feather
-never stores your instructions, screen context, or replies; they pass through its server to
-the model provider, which handles them under its own data policy. Only your email, plan, and
-request and token counts are kept.
+Both are the same Feather Plus, billed differently. Each month includes a set amount of model
+use, shown in Settings as a percentage used. Feather never stores your instructions, screen
+context, or replies; they pass through its server to the model provider, which handles them
+under its own data policy. Only your email, plan, and request, token, and cost counts are kept.
 
 Bringing your own OpenCode Go key or ChatGPT account stays free.
 

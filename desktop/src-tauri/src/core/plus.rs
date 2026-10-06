@@ -71,11 +71,22 @@ pub fn decode_token(body: &[u8]) -> Result<String, LlmError> {
         .ok_or_else(|| LlmError::Api("The server returned an empty token.".into()))
 }
 
-/// Requests used and allowed this period.
+/// Model cost spent and allowed this month, in millionths of a US dollar. Shown as a share used,
+/// never as money.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Usage {
     pub used: u64,
     pub limit: u64,
+    /// The share of the allowance spent, as a whole percentage from 0 to 100.
+    pub percent_used: u64,
+}
+
+impl Usage {
+    pub fn new(used: u64, limit: u64) -> Self {
+        let percent_used = ((used as f64 / limit.max(1) as f64) * 100.0).round().min(100.0) as u64;
+        Self { used, limit, percent_used }
+    }
 }
 
 /// The signed-in account as reported by `GET /v1/account`.
@@ -83,7 +94,7 @@ pub struct Usage {
 #[serde(rename_all = "camelCase")]
 pub struct PlusAccount {
     pub email: String,
-    /// `starter` or `max`; `None` when the account has no active subscription or the server sent
+    /// `monthly` or `yearly`; `None` when the account has no active subscription or the server sent
     /// a plan this version does not know.
     pub plan: Option<String>,
     /// The server sends one entry while a plan is active.
@@ -99,7 +110,7 @@ pub fn decode_account(body: &[u8]) -> Result<PlusAccount, LlmError> {
     let plan = json
         .get("plan")
         .and_then(Value::as_str)
-        .filter(|plan| matches!(*plan, "starter" | "max"))
+        .filter(|plan| matches!(*plan, "monthly" | "yearly"))
         .map(str::to_owned);
     // Malformed usage rows are skipped instead of failing the whole account.
     let usage = json
@@ -107,7 +118,7 @@ pub fn decode_account(body: &[u8]) -> Result<PlusAccount, LlmError> {
         .and_then(Value::as_array)
         .into_iter()
         .flatten()
-        .filter_map(|row| Some(Usage { used: row.get("used")?.as_u64()?, limit: row.get("limit")?.as_u64()? }))
+        .filter_map(|row| Some(Usage::new(row.get("used")?.as_u64()?, row.get("limit")?.as_u64()?)))
         .take(1)
         .collect();
     let period_end = json.get("period_end").and_then(Value::as_str).map(str::to_owned);
@@ -137,14 +148,21 @@ mod tests {
     #[test]
     fn decodes_accounts_leniently() {
         let account = decode_account(
-            br#"{"email":"a@b.c","plan":"max","usage":[{"used":3,"limit":4000},{"used":1,"limit":2}],"period_end":"2026-11-01T00:00:00.000Z"}"#,
+            br#"{"email":"a@b.c","plan":"yearly","usage":[{"used":250000,"limit":1000000},{"used":1,"limit":2}],"period_end":"2026-11-01T00:00:00.000Z"}"#,
         )
         .unwrap();
-        assert_eq!(account.plan.as_deref(), Some("max"));
-        assert_eq!(account.usage, vec![Usage { used: 3, limit: 4000 }]);
+        assert_eq!(account.plan.as_deref(), Some("yearly"));
+        assert_eq!(account.usage, vec![Usage { used: 250_000, limit: 1_000_000, percent_used: 25 }]);
 
         let unknown = decode_account(br#"{"email":"a@b.c","plan":"enterprise","usage":[{"used":"x"}]}"#).unwrap();
         assert_eq!(unknown.plan, None);
         assert!(unknown.usage.is_empty());
+    }
+
+    #[test]
+    fn usage_is_shown_as_a_share_of_the_allowance() {
+        assert_eq!(Usage::new(1_200_000, 1_000_000).percent_used, 100);
+        assert_eq!(Usage::new(5, 0).percent_used, 100);
+        assert_eq!(Usage::new(0, 1_000_000).percent_used, 0);
     }
 }
