@@ -20,6 +20,10 @@ struct PromptView: View {
                 contextPreview
             }
 
+            if let index = session.browsingIndex {
+                browsingCaption(index: index)
+            }
+
             // Paid plans answer questions; the answer is for reading and only the suggestion is inserted.
             if !session.answer.isEmpty {
                 blockLabel(String(localized: "Answer", bundle: .app))
@@ -133,6 +137,27 @@ struct PromptView: View {
         }
         .frame(maxHeight: 320)
         .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// Shown while ↑ and ↓ move through recent conversations.
+    private func browsingCaption(index: Int) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                Image(systemName: "clock.arrow.circlepath")
+                Text(String(format: String(localized: "Previous conversation %1$d of %2$d", bundle: .app), locale: .current, index + 1, session.browsingCount))
+                Spacer(minLength: 8)
+                Text("↑ ↓")
+                    .font(.system(size: 11, design: .monospaced))
+            }
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(.white.opacity(0.55))
+            if !session.lastInstruction.isEmpty {
+                Text(session.lastInstruction)
+                    .font(.system(size: 12, design: .serif))
+                    .foregroundStyle(.white.opacity(0.62))
+                    .lineLimit(1)
+            }
+        }
     }
 
     private func blockLabel(_ text: String) -> some View {

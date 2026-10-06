@@ -16,6 +16,7 @@ use crate::auth;
 use crate::controller::{PanelState, PromptController};
 use crate::core::feedback::{self, Outcome};
 use crate::core::plus::PlusAccount;
+use crate::core::recent::Direction;
 use crate::credentials;
 use crate::i18n;
 use crate::platform::{self, Capability};
@@ -342,6 +343,11 @@ pub fn quit(app: AppHandle) {
 #[tauri::command]
 pub fn prompt_state(controller: State<'_, PromptController>) -> PanelState {
     controller.state()
+}
+
+#[tauri::command]
+pub fn prompt_browse(controller: State<'_, PromptController>, direction: Direction) {
+    controller.browse(direction);
 }
 
 #[tauri::command]

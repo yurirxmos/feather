@@ -31,6 +31,13 @@ final class PromptSession: ObservableObject {
 
     var history: [Exchange] = []
     var lastInstruction = ""
+    /// Which recent conversation ↑ brought back: nil is this panel's own, 0 the newest saved one.
+    @Published var browsingIndex: Int?
+    @Published var browsingCount = 0
+    /// This panel's own conversation, put back when ↓ returns to it.
+    var ownConversation: SavedConversation?
+    /// The saved conversation shown or refined here, replaced when this one is saved.
+    var restoredFrom: SavedConversation?
     /// The turn state before the running generation, restored when it is cancelled.
     var turnBeforeGeneration: (history: [Exchange], lastInstruction: String)?
     var sessionID = UUID().uuidString
@@ -54,6 +61,10 @@ final class PromptSession: ObservableObject {
         showScreenshot = false
         history = []
         lastInstruction = ""
+        browsingIndex = nil
+        browsingCount = 0
+        ownConversation = nil
+        restoredFrom = nil
         turnBeforeGeneration = nil
         sessionID = UUID().uuidString
         isSuspendedForRecapture = false
@@ -68,6 +79,7 @@ final class PromptController: NSObject, NSWindowDelegate {
 
     private let credentialStore: any CredentialStore
     private let session = PromptSession()
+    private let recentConversations = RecentConversationStore.shared
     private lazy var panel: PromptPanel = makePanel()
     private var targetApp: NSRunningApplication?
     /// Feather's own window that was key when the shortcut was pressed, such as the welcome
@@ -105,6 +117,7 @@ final class PromptController: NSObject, NSWindowDelegate {
 
         let settings = FeatherCore.Settings.current()
         if !session.isSuspendedForRecapture {
+            saveConversation()
             session.reset(includeWindow: settings.includeScreenshot)
         } else {
             session.options.includeWindow = settings.includeScreenshot
@@ -130,7 +143,48 @@ final class PromptController: NSObject, NSWindowDelegate {
         isPresenting = false
         panel.orderOut(nil)
         restoreOwnWindow()
+        saveConversation()
         session.reset(includeWindow: false)
+    }
+
+    // MARK: Recent conversations
+
+    private var currentConversation: SavedConversation? {
+        RecentConversations.conversation(
+            history: session.history,
+            lastInstruction: session.lastInstruction,
+            answer: session.answer,
+            result: session.result
+        )
+    }
+
+    /// Keeps the finished conversation on this computer for ↑. Screen context is not part of it.
+    private func saveConversation() {
+        guard !session.isGenerating, let conversation = currentConversation else { return }
+        recentConversations.save(conversation, restoredFrom: session.restoredFrom)
+    }
+
+    /// ↑ and ↓ with an empty field move through recent conversations. Returns false when there is
+    /// nowhere to go, so the key keeps its usual meaning.
+    private func browse(_ direction: RecentConversations.Direction) -> Bool {
+        guard session.instruction.isEmpty, !session.isGenerating else { return false }
+        let saved = recentConversations.conversations
+        let index = RecentConversations.browse(from: session.browsingIndex, direction, count: saved.count)
+        guard index != session.browsingIndex else { return false }
+        if session.browsingIndex == nil {
+            session.ownConversation = currentConversation
+        }
+        let shown = index.map { saved[$0] } ?? session.ownConversation
+        session.history = shown?.history ?? []
+        session.lastInstruction = shown?.lastInstruction ?? ""
+        session.answer = shown?.answer ?? ""
+        session.result = shown?.result ?? ""
+        session.restoredFrom = index.map { saved[$0] }
+        session.browsingIndex = index
+        session.browsingCount = saved.count
+        session.errorMessage = nil
+        session.notice = nil
+        return true
     }
 
     /// Hides the panel without discarding the task, allowing the user to scroll and capture again.
@@ -268,6 +322,8 @@ final class PromptController: NSObject, NSWindowDelegate {
         )
         session.lastInstruction = instruction
         session.instruction = ""
+        // A refined conversation is this panel's own again, and replaces the one it came from.
+        session.browsingIndex = nil
         run()
     }
 
@@ -473,6 +529,10 @@ final class PromptController: NSObject, NSWindowDelegate {
             submit()
         case .regenerate:
             regenerate()
+        case .older:
+            return browse(.older)
+        case .newer:
+            return browse(.newer)
         case nil:
             return false
         }

@@ -1810,6 +1810,16 @@
           }
         }
       }
+    },
+    "Previous conversation %1$d of %2$d": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conversa anterior %1$d de %2$d"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

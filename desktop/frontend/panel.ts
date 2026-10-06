@@ -34,6 +34,8 @@ type PanelState = {
   focusToken: number;
   restoreInstruction: string | null;
   restoreToken: number;
+  /** Set while ↑ and ↓ show a recent conversation. */
+  browsing: { position: number; count: number; instruction: string } | null;
 };
 
 /** "12s" under a minute, then "1m 5s", then "1h 2m", like `ElapsedTime` in the macOS app. */
@@ -85,6 +87,7 @@ export async function startPanel(root: HTMLElement): Promise<void> {
     const blocks: (Node | null)[] = [];
     if (state.selectedPreview) blocks.push(h("p", { class: "selection-preview" }, state.selectedPreview));
     if (state.windowTextWasTruncated) blocks.push(h("p", { class: "caption" }, `ⓘ ${t("Partial context")}`));
+    if (state.browsing) blocks.push(browsingCaption(state.browsing));
     // Paid plans answer questions; the answer is for reading and only the suggestion is inserted.
     if (state.answer) blocks.push(h("p", { class: "block-label" }, t("Answer")), h("p", { class: "answer" }, state.answer));
     if (state.answer && state.result) blocks.push(h("p", { class: "block-label" }, t("Suggested text")));
@@ -182,6 +185,14 @@ export async function startPanel(root: HTMLElement): Promise<void> {
         field.value = "";
         autosize();
       }
+    } else if (
+      (event.key === "ArrowUp" || event.key === "ArrowDown") &&
+      !control && !event.shiftKey && !event.altKey &&
+      field.value === "" && !state.isGenerating
+    ) {
+      // With an empty field, ↑ and ↓ move through recent conversations.
+      event.preventDefault();
+      void invoke("prompt_browse", { direction: event.key === "ArrowUp" ? "older" : "newer" });
     } else if (control && !event.shiftKey && !event.altKey && event.key.toLowerCase() === "r") {
       event.preventDefault();
       void invoke("prompt_regenerate");
@@ -227,7 +238,22 @@ const EMPTY_STATE: PanelState = {
   focusToken: 0,
   restoreInstruction: null,
   restoreToken: 0,
+  browsing: null,
 };
+
+function browsingCaption(browsing: NonNullable<PanelState["browsing"]>): HTMLElement {
+  return h(
+    "div",
+    { class: "browsing" },
+    h(
+      "p",
+      { class: "browsing-title" },
+      h("span", {}, `↺ ${t("Previous conversation {current} of {total}", { current: browsing.position, total: browsing.count })}`),
+      h("kbd", {}, "↑ ↓"),
+    ),
+    browsing.instruction ? h("p", { class: "browsing-instruction" }, browsing.instruction) : null,
+  );
+}
 
 function responseBlock(text: string, muted: boolean): HTMLElement {
   return h("div", { class: muted ? "response muted" : "response" }, text);

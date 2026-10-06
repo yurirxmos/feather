@@ -63,7 +63,9 @@ platform. When a change cannot be mirrored, say so and explain why.
   appends `/chat/completions` (so its base is e.g. `http://localhost:11434/v1`). See
   `URL.endpoint(base:path:)` in `LLMProvider.swift`.
 - Nothing is captured outside the hotkey: screen context is read only when the user presses the
-  shortcut and is discarded when the panel closes. Do not add background capture.
+  shortcut and is discarded when the panel closes. Do not add background capture. The only thing
+  kept afterwards is the last 5 conversations (instructions and replies, never screen context) in
+  a local file, so ↑ in the panel can bring them back (`RecentConversations`).
 - Feather Plus is the paid, hosted option. Its backend is the private `feather-api` repository
   (a Cloudflare Worker, cloned next to this one); its README is the contract the app follows.
   Never add backend code here: this repository is public. Its web pages (landing, sign-in,

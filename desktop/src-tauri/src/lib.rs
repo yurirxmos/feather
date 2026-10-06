@@ -88,6 +88,7 @@ pub fn run() {
             commands::check_for_updates,
             commands::quit,
             commands::prompt_state,
+            commands::prompt_browse,
             commands::prompt_submit,
             commands::prompt_regenerate,
             commands::prompt_cancel_generation,

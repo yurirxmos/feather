@@ -2,6 +2,7 @@
 //! inserts or copies it. Mirrors `PromptController` in the macOS app. The webview only renders
 //! `PanelState` and sends intents; captured content and screenshots stay in Rust.
 
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -15,6 +16,7 @@ use crate::core::context::{ContextOptions, ScreenContext};
 use crate::core::error::LlmError;
 use crate::core::placement::{self, Anchor};
 use crate::core::prompt::{self, Exchange, Mode, RequestInput};
+use crate::core::recent::{self, Direction, SavedConversation};
 use crate::core::reply::Reply;
 use crate::core::turn::{self, Submission, CLOSING_COUNTDOWN_SECONDS};
 use crate::core::pkce;
@@ -68,6 +70,17 @@ pub struct PanelState {
     restore_instruction: Option<String>,
     /// Changes whenever `restore_instruction` is set, so the view applies it once.
     restore_token: u64,
+    /// Set while ↑ and ↓ show a recent conversation.
+    browsing: Option<Browsing>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Browsing {
+    /// 1 is the newest saved conversation.
+    position: usize,
+    count: usize,
+    instruction: String,
 }
 
 #[derive(Default)]
@@ -91,6 +104,13 @@ struct Session {
     last_instruction: String,
     /// The turn state before the running generation, restored when it is cancelled.
     turn_before_generation: Option<(Vec<Exchange>, String)>,
+    /// Which recent conversation ↑ brought back: `None` is this panel's own, 0 the newest saved one.
+    browsing_index: Option<usize>,
+    browsing_count: usize,
+    /// This panel's own conversation, put back when ↓ returns to it.
+    own_conversation: Option<SavedConversation>,
+    /// The saved conversation shown or refined here, replaced when this one is saved.
+    restored_from: Option<SavedConversation>,
     session_id: String,
     is_suspended_for_recapture: bool,
 }
@@ -106,6 +126,10 @@ impl Session {
             restore_token,
             ..Session::default()
         };
+    }
+
+    fn conversation(&self) -> Option<SavedConversation> {
+        recent::conversation(&self.history, &self.last_instruction, &self.answer, &self.result)
     }
 
     /// The last response as the model wrote it, so a refinement keeps its format.
@@ -153,6 +177,11 @@ impl Session {
             focus_token: self.focus_token,
             restore_instruction: self.restore_instruction.clone(),
             restore_token: self.restore_token,
+            browsing: self.browsing_index.map(|index| Browsing {
+                position: index + 1,
+                count: self.browsing_count,
+                instruction: self.last_instruction.clone(),
+            }),
         }
     }
 }
@@ -174,9 +203,30 @@ struct Inner {
     closing_task: Option<JoinHandle<()>>,
     /// True once the text capture of this show has finished; generation waits for it.
     captured: Option<watch::Sender<bool>>,
+    /// The last few conversations, newest first, and the file that keeps them on this computer.
+    recent: Vec<SavedConversation>,
+    recent_path: Option<PathBuf>,
 }
 
 impl Inner {
+    /// Keeps the finished conversation on this computer for ↑. Screen context is not part of it.
+    fn save_conversation(&mut self) {
+        if self.session.is_generating {
+            return;
+        }
+        let Some(conversation) = self.session.conversation() else { return };
+        let updated = recent::saving(conversation, self.session.restored_from.as_ref(), &self.recent);
+        if updated == self.recent {
+            return;
+        }
+        self.recent = updated;
+        if let Some(path) = &self.recent_path {
+            if let Err(error) = write_atomically(path, &recent::encode(&self.recent)) {
+                eprintln!("Feather could not save recent conversations: {error}");
+            }
+        }
+    }
+
     fn abort_tasks(&mut self, include_closing: bool) {
         for task in [self.capture_task.take(), self.screenshot_task.take(), self.generation_task.take()].into_iter().flatten() {
             task.abort();
@@ -200,7 +250,10 @@ pub struct PromptController {
 
 impl PromptController {
     pub fn new(app: AppHandle) -> Self {
-        Self { app, inner: Arc::default() }
+        let recent_path = app.path().app_data_dir().ok().map(|dir| dir.join("recent-conversations.json"));
+        let recent = recent::decode(recent_path.as_ref().and_then(|path| std::fs::read(path).ok()).as_deref());
+        let inner = Inner { recent, recent_path, ..Inner::default() };
+        Self { app, inner: Arc::new(Mutex::new(inner)) }
     }
 
     fn lock(&self) -> MutexGuard<'_, Inner> {
@@ -246,6 +299,7 @@ impl PromptController {
             if inner.session.is_suspended_for_recapture {
                 inner.session.options.include_window = settings.include_screenshot;
             } else {
+                inner.save_conversation();
                 inner.session.reset(settings.include_screenshot);
             }
             inner.target = target;
@@ -283,6 +337,7 @@ impl PromptController {
         inner.is_presenting = false;
         inner.target = None;
         inner.own_window = false;
+        inner.save_conversation();
         inner.session.reset(false);
         self.publish(&inner);
         drop(inner);
@@ -448,6 +503,8 @@ impl PromptController {
         let raw = session.raw_result();
         session.history = turn::history(&session.history, &session.last_instruction, &raw, session.is_generating);
         session.last_instruction = instruction;
+        // A refined conversation is this panel's own again, and replaces the one it came from.
+        session.browsing_index = None;
         drop(inner);
         self.run();
     }
@@ -473,6 +530,35 @@ impl PromptController {
             task.abort();
         }
         inner.session.roll_back_generation();
+        self.publish(&inner);
+    }
+
+    /// ↑ and ↓ with an empty field move through recent conversations.
+    pub fn browse(&self, direction: Direction) {
+        let mut inner = self.lock();
+        if inner.session.is_generating {
+            return;
+        }
+        let index = recent::browse(inner.session.browsing_index, direction, inner.recent.len());
+        if index == inner.session.browsing_index {
+            return;
+        }
+        let saved = index.map(|index| inner.recent[index].clone());
+        let count = inner.recent.len();
+        let session = &mut inner.session;
+        if session.browsing_index.is_none() {
+            session.own_conversation = session.conversation();
+        }
+        let shown = saved.clone().or_else(|| session.own_conversation.clone()).unwrap_or_default();
+        session.history = shown.history;
+        session.last_instruction = shown.last_instruction;
+        session.answer = shown.answer;
+        session.result = shown.result;
+        session.restored_from = saved;
+        session.browsing_index = index;
+        session.browsing_count = count;
+        session.error_message = None;
+        session.notice = None;
         self.publish(&inner);
     }
 
@@ -665,6 +751,16 @@ impl PromptController {
             controller.close();
         }));
     }
+}
+
+/// Writes through a temporary file, so a crash never leaves half a file behind.
+fn write_atomically(path: &std::path::Path, data: &[u8]) -> std::io::Result<()> {
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir)?;
+    }
+    let temporary = path.with_extension("json.tmp");
+    std::fs::write(&temporary, data)?;
+    std::fs::rename(&temporary, path)
 }
 
 fn now_millis() -> u64 {

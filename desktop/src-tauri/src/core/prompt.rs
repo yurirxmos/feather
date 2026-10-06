@@ -59,7 +59,7 @@ pub const MAX_FIELD_CHARACTERS: usize = 8_000;
 /// The longest response a typing assistant should need.
 const MAX_TOKENS: u32 = 16_000;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Exchange {
     pub instruction: String,
     pub result: String,

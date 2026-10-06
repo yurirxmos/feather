@@ -1,6 +1,6 @@
 import Foundation
 
-public struct Exchange: Equatable, Sendable {
+public struct Exchange: Codable, Equatable, Sendable {
     public var instruction: String
     public var result: String
 

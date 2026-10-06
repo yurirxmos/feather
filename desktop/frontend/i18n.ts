@@ -55,6 +55,7 @@ export const PT_BR: Record<string, string> = {
   Retry: "Refazer",
   Insert: "Inserir",
   Generate: "Gerar",
+  "Previous conversation {current} of {total}": "Conversa anterior {current} de {total}",
 
   // Settings
   "Feather Settings": "Configurações do Feather",

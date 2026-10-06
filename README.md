@@ -33,9 +33,11 @@ include:
 The reply streams into Feather's panel. You can insert it, copy it, regenerate
 it, or keep writing an instruction to refine it.
 
-Nothing is captured until you press the shortcut. Context, instructions, and
-responses are discarded when the panel closes. Feather logs generation timings
-only; it does not log screen contents, instructions, or responses.
+Nothing is captured until you press the shortcut, and screen context is
+discarded when the panel closes. To let you bring back a recent conversation
+with ↑, Feather keeps your last 5 instructions and replies in a file on this
+computer only; it never saves screen context there. Feather logs generation
+timings only; it does not log screen contents, instructions, or responses.
 
 ## Providers
 
@@ -134,7 +136,8 @@ with a certificate from the [SignPath Foundation](https://signpath.org).
 - **Privacy:** Feather reads your screen context only when you press the shortcut, and sends it
   only to the provider you chose (OpenCode Go, ChatGPT, or Feather Plus) to generate the reply.
   It transfers no other information to other networked systems, except the update check against
-  GitHub Releases.
+  GitHub Releases and feedback you choose to send from the menu, which carries only your message,
+  the optional email you type, and the Feather and system versions.
 
 ## Keyboard shortcuts
 
