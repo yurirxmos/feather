@@ -73,10 +73,10 @@ platform. When a change cannot be mirrored, say so and explain why.
   - `FeatherPlus.swift` (requests, account decoding) and `FeatherPlusProvider.swift` (every plan
     uses the server's model, so the model it sends is a placeholder) live in `FeatherCore`; `PlusAuth.swift` (browser
     sign-in with PKCE over a 127.0.0.1 loopback redirect) and `PlusSettingsView.swift` in the app.
-  - It rolled out in stages and both are launched: `FeatherPlus.accountsLaunched` shows the pane
-    (sign-in, plan, usage) and `providerLaunched` lets it generate replies. Setting one back to
-    false hides that stage in release builds, except for testers with the `plusEnabled` or
-    `plusProviderEnabled` defaults. Debug builds always show the pane. Every build talks to
+  - It rolls out in stages: `FeatherPlus.accountsLaunched` shows the pane (sign-in, plan, usage)
+    and `providerLaunched` lets it generate replies. Both are off while paid plans are not ready
+    (feather-api also keeps new subscriptions closed), so release builds hide them, except for
+    testers with the `plusEnabled` or `plusProviderEnabled` defaults. Debug builds always show the pane. Every build talks to
     production; set `plusBaseURL` to `http://127.0.0.1:8787` to use `wrangler dev` instead.
 
 ## Conventions

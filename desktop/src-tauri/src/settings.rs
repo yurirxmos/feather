@@ -260,7 +260,15 @@ mod tests {
     fn plus_placeholder_models_are_ignored_elsewhere() {
         let settings = resolve(json!({ "connection": "chatGPT", "model": "premium" }));
         assert_eq!(settings.model, crate::providers::catalog::CHATGPT_DEFAULT_MODEL);
-        assert_eq!(resolve(json!({ "connection": "featherPlus", "model": "custom" })).model, plus::DEFAULT_MODEL);
+        let tester = json!({ "connection": "featherPlus", "model": "custom", "plusProviderEnabled": true });
+        assert_eq!(resolve(tester).model, plus::DEFAULT_MODEL);
+    }
+
+    #[test]
+    fn a_stored_plus_choice_needs_the_tester_setting_before_launch() {
+        const { assert!(!plus::PROVIDER_LAUNCHED) };
+        assert_eq!(resolve(json!({ "connection": "featherPlus" })).connection, Connection::OpenCodeGo);
+        assert_eq!(resolve(json!({ "connection": "featherPlus", "plusProviderEnabled": true })).connection, Connection::FeatherPlus);
     }
 
     #[test]
