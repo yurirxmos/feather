@@ -19,6 +19,7 @@ env:
   # Public half of the EdDSA key that signs updates; the private half is the
   # SPARKLE_PRIVATE_ED_KEY secret.
   SPARKLE_PUBLIC_ED_KEY: dTvHI52c2/Ykj+t9pMxH4pjOchlhLj093RGRXbwCU6c=
+  CODESIGN_IDENTITY: "Developer ID Application: Yuri Ramos da Silva (YH99T2BXD9)"
 
 jobs:
   build:
@@ -41,19 +42,21 @@ jobs:
 
       - name: Import signing certificate
         env:
-          RELEASE_CERTIFICATE_BASE64: ${{ secrets.RELEASE_CERTIFICATE_BASE64 }}
-          RELEASE_CERTIFICATE_PASSWORD: ${{ secrets.RELEASE_CERTIFICATE_PASSWORD }}
+          DEVELOPER_ID_CERTIFICATE_BASE64: ${{ secrets.DEVELOPER_ID_CERTIFICATE_BASE64 }}
+          DEVELOPER_ID_CERTIFICATE_PASSWORD: ${{ secrets.DEVELOPER_ID_CERTIFICATE_PASSWORD }}
         run: |
-          # A self-signed certificate that never changes: macOS ties the Accessibility and Screen
+          # The Developer ID certificate never changes: macOS ties the Accessibility and Screen
           # Recording grants to it, so they survive updates. Every release must use it.
-          test -n "$RELEASE_CERTIFICATE_BASE64"
+          test -n "$DEVELOPER_ID_CERTIFICATE_BASE64"
           keychain="$RUNNER_TEMP/release.keychain-db"
           keychain_password="$(openssl rand -hex 16)"
-          printf '%s' "$RELEASE_CERTIFICATE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.p12"
+          printf '%s' "$DEVELOPER_ID_CERTIFICATE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.p12"
+          curl -sfo "$RUNNER_TEMP/DeveloperIDG2CA.cer" https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer
           security create-keychain -p "$keychain_password" "$keychain"
           security set-keychain-settings -lut 21600 "$keychain"
           security unlock-keychain -p "$keychain_password" "$keychain"
-          security import "$RUNNER_TEMP/release.p12" -k "$keychain" -P "$RELEASE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security import "$RUNNER_TEMP/DeveloperIDG2CA.cer" -k "$keychain"
+          security import "$RUNNER_TEMP/release.p12" -k "$keychain" -P "$DEVELOPER_ID_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: -s -k "$keychain_password" "$keychain" >/dev/null
           # codesign only finds identities in keychains on the search list.
           security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
@@ -63,23 +66,50 @@ jobs:
         env:
           VERSION: ${{ env.RELEASE_TAG }}
           BUILD_NUMBER: ${{ github.run_number }}
-          CODESIGN_IDENTITY: Feather Release Signing
           # Each architecture has its own feed: generate_appcast refuses two archives that share
           # one bundle version.
           SPARKLE_FEED_URL: https://github.com/${{ github.repository }}/releases/latest/download/appcast-${{ matrix.architecture }}.xml
         run: |
           VERSION="${VERSION#v}" scripts/bundle.sh
-          codesign -d -r- dist/Feather.app 2>&1 | grep -q "certificate leaf"
+          codesign -dvv dist/Feather.app 2>&1 | grep -q "TeamIdentifier=YH99T2BXD9"
+          codesign -dvv dist/Feather.app 2>&1 | grep -q "flags=.*runtime"
           lipo -archs dist/Feather.app/Contents/MacOS/Feather | grep -qx "${{ matrix.architecture }}"
 
+      - name: Write notarization key
+        env:
+          NOTARY_API_KEY: ${{ secrets.NOTARY_API_KEY }}
+        run: |
+          test -n "$NOTARY_API_KEY"
+          printf '%s' "$NOTARY_API_KEY" > "$RUNNER_TEMP/notary.p8"
+
+      - name: Notarize app
+        env:
+          NOTARY_API_KEY_ID: ${{ secrets.NOTARY_API_KEY_ID }}
+          NOTARY_API_ISSUER_ID: ${{ secrets.NOTARY_API_ISSUER_ID }}
+        run: |
+          # Stapled to the app itself, so Gatekeeper accepts it offline and after Sparkle installs it.
+          ditto -c -k --keepParent dist/Feather.app "$RUNNER_TEMP/Feather.zip"
+          xcrun notarytool submit "$RUNNER_TEMP/Feather.zip" --wait \
+            --key "$RUNNER_TEMP/notary.p8" --key-id "$NOTARY_API_KEY_ID" --issuer "$NOTARY_API_ISSUER_ID"
+          xcrun stapler staple dist/Feather.app
+          spctl -a -t exec -vv dist/Feather.app
+
       - name: Package app
+        env:
+          NOTARY_API_KEY_ID: ${{ secrets.NOTARY_API_KEY_ID }}
+          NOTARY_API_ISSUER_ID: ${{ secrets.NOTARY_API_ISSUER_ID }}
         run: |
           # A disk image with an Applications shortcut so users can drag Feather into place.
+          DMG="dist/Feather-${{ matrix.architecture }}.dmg"
           STAGING="$(mktemp -d)"
           cp -R dist/Feather.app "$STAGING/"
           ln -s /Applications "$STAGING/Applications"
-          hdiutil create -volname Feather -srcfolder "$STAGING" -ov -format UDZO \
-            "dist/Feather-${{ matrix.architecture }}.dmg"
+          hdiutil create -volname Feather -srcfolder "$STAGING" -ov -format UDZO "$DMG"
+          codesign --force --sign "$CODESIGN_IDENTITY" --timestamp "$DMG"
+          xcrun notarytool submit "$DMG" --wait \
+            --key "$RUNNER_TEMP/notary.p8" --key-id "$NOTARY_API_KEY_ID" --issuer "$NOTARY_API_ISSUER_ID"
+          xcrun stapler staple "$DMG"
+          rm "$RUNNER_TEMP/notary.p8"
 
       - name: Upload release asset
         uses: actions/upload-artifact@v4
@@ -141,6 +171,6 @@ jobs:
           else
             gh release create "$RELEASE_TAG" $assets \
               --title "Feather ${RELEASE_TAG#v}" \
-              --notes "Download Feather-arm64.dmg for Apple silicon or Feather-x86_64.dmg for Intel, then drag Feather into Applications. Feather is not notarized yet: the first time you open it, go to System Settings > Privacy & Security and choose Open Anyway. Later versions install from Feather itself." \
+              --notes "Download Feather-arm64.dmg for Apple silicon or Feather-x86_64.dmg for Intel, then drag Feather into Applications. Later versions install from Feather itself." \
               --generate-notes
           fi

@@ -2,7 +2,7 @@
 # Builds dist/Feather.app from the SwiftPM executable.
 #
 # Accessibility and Screen Recording grants are tied to the code signature. Set
-# CODESIGN_IDENTITY to a stable identity (e.g. "Apple Development: Name (TEAMID)"); with the
+# CODESIGN_IDENTITY to a stable identity (e.g. "Developer ID Application: Name (TEAMID)"); with the
 # ad-hoc default ("-") macOS forgets the grants after every rebuild.
 #
 # Release builds also set SPARKLE_FEED_URL and SPARKLE_PUBLIC_ED_KEY to turn on automatic updates;
@@ -64,15 +64,20 @@ if [[ -n "${SPARKLE_FEED_URL:-}" && -n "${SPARKLE_PUBLIC_ED_KEY:-}" ]]; then
     /usr/libexec/PlistBuddy -c "Add :SURequireSignedFeed bool true" "$PLIST"
 fi
 
-# Sign inside out, as Sparkle's documentation describes, instead of relying on --deep. No hardened
-# runtime: its library validation rejects Sparkle when the identity has no Team ID (ad-hoc or
-# self-signed). Notarization will need it back together with a Developer ID.
+# Sign inside out, as Sparkle's documentation describes, instead of relying on --deep. A Developer ID
+# identity gets the hardened runtime and a secure timestamp, which notarization requires. Other
+# identities (ad-hoc, or the old self-signed one) skip the runtime: its library validation rejects
+# Sparkle when the identity has no Team ID.
+SIGN=(codesign --force --sign "$IDENTITY")
+if [[ "$IDENTITY" == "Developer ID Application:"* ]]; then
+    SIGN+=(--options runtime --timestamp)
+fi
 SPARKLE="$APP/Contents/Frameworks/Sparkle.framework/Versions/B"
-codesign --force --sign "$IDENTITY" "$SPARKLE/XPCServices/Installer.xpc"
-codesign --force --preserve-metadata=entitlements --sign "$IDENTITY" "$SPARKLE/XPCServices/Downloader.xpc"
-codesign --force --sign "$IDENTITY" "$SPARKLE/Autoupdate"
-codesign --force --sign "$IDENTITY" "$SPARKLE/Updater.app"
-codesign --force --sign "$IDENTITY" "$APP/Contents/Frameworks/Sparkle.framework"
-codesign --force --sign "$IDENTITY" "$APP"
+"${SIGN[@]}" "$SPARKLE/XPCServices/Installer.xpc"
+"${SIGN[@]}" --preserve-metadata=entitlements "$SPARKLE/XPCServices/Downloader.xpc"
+"${SIGN[@]}" "$SPARKLE/Autoupdate"
+"${SIGN[@]}" "$SPARKLE/Updater.app"
+"${SIGN[@]}" "$APP/Contents/Frameworks/Sparkle.framework"
+"${SIGN[@]}" "$APP"
 codesign --verify --deep --strict "$APP"
 echo "Built $APP (signed with: $IDENTITY)"

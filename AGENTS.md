@@ -39,11 +39,13 @@ platform. When a change cannot be mirrored, say so and explain why.
     **Full changelog** compare link between the two tags.
   - Check that the release is published (not a draft or prerelease) and has both appcasts and the
     desktop installers attached before announcing it.
-- Release builds are signed with the self-signed "Feather Release Signing" certificate
-  (`RELEASE_CERTIFICATE_*` secrets) and updates with the Sparkle EdDSA key
-  (`SPARKLE_PRIVATE_ED_KEY`). Never replace either: a new certificate resets users' Accessibility
-  and Screen Recording grants, and a new EdDSA key makes installed apps reject every update.
-  No hardened runtime: its library validation refuses Sparkle without a Team ID.
+- Release builds are signed with the "Developer ID Application: Yuri Ramos da Silva (YH99T2BXD9)"
+  certificate (`DEVELOPER_ID_CERTIFICATE_*` secrets) with the hardened runtime, notarized with an
+  App Store Connect API key (`NOTARY_API_*` secrets), and stapled; updates are signed with the
+  Sparkle EdDSA key (`SPARKLE_PRIVATE_ED_KEY`). Never replace the certificate or the EdDSA key: a
+  new certificate resets users' Accessibility and Screen Recording grants, and a new EdDSA key
+  makes installed apps reject every update. Releases up to v0.4.0 used a self-signed certificate
+  (`RELEASE_CERTIFICATE_*`); moving to Developer ID reset those grants once.
 - `desktop/` is the Windows and Linux app (Tauri); see `desktop/AGENTS.md`. The same `v*` tag
   runs `.github/workflows/release-desktop.yml`, which attaches its installers and
   `latest-desktop.json` to the release the macOS workflow publishes, and never creates one.

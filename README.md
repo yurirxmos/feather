@@ -104,13 +104,8 @@ system. Preview builds are also published on the
 - `Feather-x86_64.dmg` for Intel Macs, macOS 14 or later
 - `Feather-windows-x64-setup.exe` for Windows 10 or later, 64-bit
 
-The preview builds are signed with Feather's own certificate and are not notarized
-yet. macOS may block the first launch. To open Feather anyway:
-
-1. In Finder, Control-click `Feather.app` and choose **Open**.
-2. If macOS still blocks it, open **System Settings > Privacy & Security**.
-3. Scroll to the Security section and choose **Open Anyway** beside Feather.
-4. Confirm **Open** in the dialog.
+The Mac builds are signed with an Apple Developer ID and notarized by Apple, so
+they open like any other app downloaded from the internet.
 
 After Feather opens, grant **Accessibility** and **Screen Recording** in its
 Settings page. You can also grant them manually in **System Settings > Privacy
