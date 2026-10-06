@@ -1,5 +1,6 @@
 import AppKit
 import FeatherCore
+import ServiceManagement
 import SwiftUI
 
 @main
@@ -28,6 +29,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         HotkeyManager.shared.onPress = { [weak self] in self?.openPrompt() }
         registerHotkey()
         setUpStatusItem()
+        enableLaunchAtLoginByDefault()
         NotificationCenter.default.addObserver(
             self, selector: #selector(defaultsChanged), name: UserDefaults.didChangeNotification, object: nil
         )
@@ -42,6 +44,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             showSettings()
         }
         updater.checkForUpdatesInBackground()
+    }
+
+    /// Feather opens at login unless the user turns it off. The default is applied once per install,
+    /// so turning it off in Settings or System Settings sticks. Debug builds leave the login items alone.
+    private func enableLaunchAtLoginByDefault() {
+        #if !DEBUG
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: SettingsKey.launchAtLoginDefaultApplied) else { return }
+        do {
+            if SMAppService.mainApp.status != .enabled {
+                try SMAppService.mainApp.register()
+            }
+            defaults.set(true, forKey: SettingsKey.launchAtLoginDefaultApplied)
+        } catch {
+            NSLog("Feather could not open at login by default: \(error.localizedDescription)")
+        }
+        #endif
     }
 
     private func setUpStatusItem() {

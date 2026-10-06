@@ -9,6 +9,9 @@ public enum SettingsKey {
     /// Whether the first-run welcome guide has been finished or dismissed. Absent until the guide has
     /// run once; `Settings.onboardingCompleted(stored:)` treats an absent value as not done.
     public static let onboardingCompleted = "onboardingCompleted"
+    /// Whether Feather has turned on opening at login, which it does once per install so that
+    /// turning it off later sticks. Not shown in Settings.
+    public static let launchAtLoginDefaultApplied = "launchAtLoginDefaultApplied"
     /// Development override for the Feather Plus server. Not shown in Settings.
     public static let plusBaseURL = "plusBaseURL"
     /// Shows Feather Plus in release builds before launch. Not shown in Settings.

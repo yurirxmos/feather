@@ -19,6 +19,9 @@ pub mod key {
     /// Whether the first-run welcome guide has been finished or dismissed. Absent until the guide has
     /// run once; `onboarding_completed` treats an absent value as not done.
     pub const ONBOARDING_COMPLETED: &str = "onboardingCompleted";
+    /// Whether Feather has turned on starting at login, which it does once per install so that
+    /// turning it off later sticks. Not shown in Settings.
+    pub const LAUNCH_AT_LOGIN_DEFAULT_APPLIED: &str = "launchAtLoginDefaultApplied";
     /// Development override for the Feather Plus server. Not shown in Settings.
     pub const PLUS_BASE_URL: &str = "plusBaseURL";
     /// Shows Feather Plus in release builds before launch. Not shown in Settings.
@@ -188,6 +191,11 @@ impl SettingsStore {
         Settings::resolve(&self.values.lock().expect("settings lock"))
     }
 
+    /// A stored flag that `Settings` does not expose, such as `LAUNCH_AT_LOGIN_DEFAULT_APPLIED`.
+    pub fn flag(&self, name: &str) -> Option<bool> {
+        self.values.lock().expect("settings lock").get(name).and_then(Value::as_bool)
+    }
+
     /// Changes one user-editable setting. Switching providers also resets a model that only made
     /// sense for the previous one.
     pub fn set(&self, name: &str, value: Value) -> Result<Settings, String> {
@@ -202,7 +210,7 @@ impl SettingsStore {
                 serde_json::from_value::<HotkeyPreset>(value.clone()).map_err(|_| "Unknown shortcut.".to_owned())?;
             }
             key::MODEL | key::CUSTOM_INSTRUCTIONS if value.is_string() => {}
-            key::INCLUDE_SCREENSHOT | key::ONBOARDING_COMPLETED if value.is_boolean() => {}
+            key::INCLUDE_SCREENSHOT | key::ONBOARDING_COMPLETED | key::LAUNCH_AT_LOGIN_DEFAULT_APPLIED if value.is_boolean() => {}
             _ => return Err(format!("{name} cannot be changed here.")),
         }
         values.insert(name.to_owned(), value);

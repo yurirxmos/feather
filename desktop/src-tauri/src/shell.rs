@@ -7,6 +7,8 @@ use tauri::image::Image;
 use tauri::menu::{IconMenuItem, IconMenuItemBuilder, MenuBuilder};
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Emitter, Manager};
+use serde_json::Value;
+use tauri_plugin_autostart::ManagerExt as _;
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 use tauri_plugin_updater::UpdaterExt;
@@ -14,7 +16,7 @@ use tauri_plugin_updater::UpdaterExt;
 use crate::controller::PromptController;
 use crate::credentials;
 use crate::i18n::t;
-use crate::settings::{onboarding_completed, Connection, SettingsStore};
+use crate::settings::{key, onboarding_completed, Connection, SettingsStore};
 
 pub const SETTINGS_LABEL: &str = "settings";
 
@@ -36,6 +38,20 @@ pub fn has_credentials(app: &AppHandle) -> bool {
 /// Whether the first-run welcome guide is still pending. It runs once on every install.
 pub fn needs_onboarding(app: &AppHandle) -> bool {
     !onboarding_completed(app.state::<SettingsStore>().current().onboarding_completed)
+}
+
+/// Feather starts at login unless the user turns it off. The default is applied once per install,
+/// so turning it off in Settings or the system's startup apps sticks. Debug builds leave startup
+/// alone. Mirrors `enableLaunchAtLoginByDefault` in the macOS app.
+pub fn enable_launch_at_login_by_default(app: &AppHandle) {
+    let store = app.state::<SettingsStore>();
+    if cfg!(debug_assertions) || store.flag(key::LAUNCH_AT_LOGIN_DEFAULT_APPLIED).unwrap_or(false) {
+        return;
+    }
+    let autolaunch = app.autolaunch();
+    if autolaunch.is_enabled().unwrap_or(false) || autolaunch.enable().is_ok() {
+        let _ = store.set(key::LAUNCH_AT_LOGIN_DEFAULT_APPLIED, Value::Bool(true));
+    }
 }
 
 pub fn show_settings(app: &AppHandle) {
