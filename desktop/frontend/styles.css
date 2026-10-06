@@ -157,7 +157,10 @@ button { cursor: default; }
 .group { margin-bottom: 22px; }
 .group h2 { margin: 0 0 8px 4px; color: var(--secondary); font-size: 12px; font-weight: 600; }
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; }
-.card > textarea { display: block; width: 100%; min-height: 88px; padding: 10px 12px; border: 0; border-radius: 8px; background: transparent; resize: vertical; outline: 0; }
+.card > textarea { display: block; width: 100%; min-height: 110px; max-height: 260px; padding: 10px 12px; border: 0; border-radius: 8px; background: transparent; resize: vertical; outline: 0; line-height: 1.45; }
+.card > textarea::placeholder { color: var(--secondary); opacity: .7; }
+.suggestions { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px; border-top: 1px solid var(--line); }
+.settings-body .suggestions button:not(.section):not(.quit):not(.link) { min-height: 24px; padding: 0 10px; border-radius: 12px; font-size: 12.5px; }
 .row { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 8px 14px; }
 .row + .row { border-top: 1px solid var(--line); }
 p.row { margin: 0; }

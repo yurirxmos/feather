@@ -188,15 +188,6 @@ struct SettingsView: View {
     private var generalView: some View {
         Form {
             Section {
-                Toggle(isOn: launchAtLoginBinding) {
-                    Text("Open Feather at login", bundle: .app)
-                    Text("Starts Feather in the background when you sign in to your computer.", bundle: .app)
-                }
-            } header: {
-                Text("Startup", bundle: .app)
-            }
-
-            Section {
                 Picker(String(localized: "Open Feather", bundle: .app), selection: $hotkey) {
                     ForEach(HotkeyPreset.allCases) { preset in
                         Text(preset.symbol).tag(preset)
@@ -204,6 +195,17 @@ struct SettingsView: View {
                 }
             } header: {
                 Text("Shortcut", bundle: .app)
+            }
+
+            Section {
+                InstructionsEditor(text: $customInstructions)
+            } header: {
+                Text("Instructions", bundle: .app)
+            } footer: {
+                Text("Feather follows these in every reply. Write your own or add a suggestion.", bundle: .app)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .sectionFooter()
             }
 
             Section {
@@ -221,22 +223,18 @@ struct SettingsView: View {
             }
 
             Section {
-                Button(String(localized: "Show Welcome Guide…", bundle: .app)) {
-                    onboardingCompleted = false
+                Toggle(isOn: launchAtLoginBinding) {
+                    Text("Open Feather at login", bundle: .app)
+                    Text("Starts Feather in the background when you sign in to your computer.", bundle: .app)
                 }
+            } header: {
+                Text("Startup", bundle: .app)
             }
 
             Section {
-                TextEditor(text: $customInstructions)
-                    .font(.body)
-                    .frame(minHeight: 88)
-            } header: {
-                Text("Instructions", bundle: .app)
-            } footer: {
-                Text("Set writing preferences for every response, such as “Do not use emojis or em dashes.”", bundle: .app)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .sectionFooter()
+                Button(String(localized: "Show Welcome Guide…", bundle: .app)) {
+                    onboardingCompleted = false
+                }
             }
         }
         .formStyle(.grouped)
@@ -257,6 +255,58 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
+    }
+}
+
+/// The custom instructions field: a roomy editor with a placeholder and one-click suggestions.
+private struct InstructionsEditor: View {
+    @Binding var text: String
+
+    private static var suggestions: [(label: String, instruction: String)] {
+        [
+            (String(localized: "No emojis", bundle: .app), String(localized: "Do not use emojis.", bundle: .app)),
+            (String(localized: "No em dashes", bundle: .app), String(localized: "Do not use em dashes.", bundle: .app)),
+            (String(localized: "Keep it short", bundle: .app), String(localized: "Keep replies short and to the point.", bundle: .app)),
+            (String(localized: "Friendly tone", bundle: .app), String(localized: "Write in a warm, friendly tone.", bundle: .app)),
+        ]
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            TextEditor(text: $text)
+                .font(.body)
+                .scrollContentBackground(.hidden)
+                .padding(.vertical, 4)
+                .frame(minHeight: 110, maxHeight: 220)
+                .overlay(alignment: .topLeading) {
+                    if text.isEmpty {
+                        Text("For example: Write in a friendly tone and keep replies short.", bundle: .app)
+                            .foregroundStyle(.tertiary)
+                            .padding(.leading, 5)
+                            .padding(.top, 4)
+                            .allowsHitTesting(false)
+                    }
+                }
+                .accessibilityLabel(String(localized: "Instructions", bundle: .app))
+            HStack(spacing: 6) {
+                ForEach(Self.suggestions, id: \.instruction) { suggestion in
+                    Button {
+                        add(suggestion.instruction)
+                    } label: {
+                        Label(suggestion.label, systemImage: "plus")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .disabled(text.contains(suggestion.instruction))
+                }
+            }
+        }
+    }
+
+    /// Appends the instruction on its own line.
+    private func add(_ instruction: String) {
+        let current = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        text = current.isEmpty ? instruction : current + "\n" + instruction
     }
 }
 

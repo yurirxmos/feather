@@ -141,6 +141,96 @@
         }
       }
     },
+    "Do not use em dashes.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não use travessões."
+          }
+        }
+      }
+    },
+    "Do not use emojis.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não use emojis."
+          }
+        }
+      }
+    },
+    "Feather follows these in every reply. Write your own or add a suggestion.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Feather segue estas instruções em todas as respostas. Escreva as suas ou adicione uma sugestão."
+          }
+        }
+      }
+    },
+    "For example: Write in a friendly tone and keep replies short.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por exemplo: Escreva em tom amigável e mantenha as respostas curtas."
+          }
+        }
+      }
+    },
+    "Friendly tone": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tom amigável"
+          }
+        }
+      }
+    },
+    "Keep it short": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seja breve"
+          }
+        }
+      }
+    },
+    "Keep replies short and to the point.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantenha as respostas curtas e diretas."
+          }
+        }
+      }
+    },
+    "No em dashes": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem travessões"
+          }
+        }
+      }
+    },
+    "No emojis": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem emojis"
+          }
+        }
+      }
+    },
     "Open Feather at login": {
       "localizations": {
         "pt-BR": {
@@ -721,16 +811,6 @@
         }
       }
     },
-    "Set writing preferences for every response, such as “Do not use emojis or em dashes.”": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Defina preferências de escrita para todas as respostas, como “Não use emojis nem travessões.”"
-          }
-        }
-      }
-    },
     "Settings…": {
       "localizations": {
         "pt-BR": {
@@ -777,6 +857,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "O modelo levou mais de 1 minuto para responder. Tente novamente ou escolha um modelo mais rápido nos Ajustes."
+          }
+        }
+      }
+    },
+    "Write in a warm, friendly tone.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escreva em um tom caloroso e amigável."
           }
         }
       }

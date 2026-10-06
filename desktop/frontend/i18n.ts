@@ -98,8 +98,17 @@ export const PT_BR: Record<string, string> = {
   "Nothing is captured until you press the shortcut, and the context is discarded when the panel closes.":
     "Nada é capturado até você pressionar o atalho, e o contexto é descartado quando o painel fecha.",
   Instructions: "Instruções",
-  "Set writing preferences for every response, such as “Do not use emojis or em dashes.”":
-    "Defina preferências de escrita para todas as respostas, como “Não use emojis nem travessões.”",
+  "Feather follows these in every reply. Write your own or add a suggestion.":
+    "O Feather segue estas instruções em todas as respostas. Escreva as suas ou adicione uma sugestão.",
+  "For example: Write in a friendly tone and keep replies short.": "Por exemplo: Escreva em tom amigável e mantenha as respostas curtas.",
+  "No emojis": "Sem emojis",
+  "Do not use emojis.": "Não use emojis.",
+  "No em dashes": "Sem travessões",
+  "Do not use em dashes.": "Não use travessões.",
+  "Keep it short": "Seja breve",
+  "Keep replies short and to the point.": "Mantenha as respostas curtas e diretas.",
+  "Friendly tone": "Tom amigável",
+  "Write in a warm, friendly tone.": "Escreva em um tom caloroso e amigável.",
   About: "Sobre",
   Version: "Versão",
   "Check for Updates…": "Procurar Atualizações…",

@@ -163,10 +163,33 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
       checked: settings.includeScreenshot,
       onchange: (event) => void set("includeScreenshot", (event.target as HTMLInputElement).checked),
     });
-    const instructions = h("textarea", { rows: "4", "aria-label": t("Instructions") });
+    const instructions = h("textarea", {
+      rows: "5",
+      "aria-label": t("Instructions"),
+      placeholder: t("For example: Write in a friendly tone and keep replies short."),
+    });
     instructions.value = settings.customInstructions;
     let saveTimer: number | undefined;
+    // One-click instructions, mirroring `InstructionsEditor` in the macOS app.
+    const suggestions = [
+      [t("No emojis"), t("Do not use emojis.")],
+      [t("No em dashes"), t("Do not use em dashes.")],
+      [t("Keep it short"), t("Keep replies short and to the point.")],
+      [t("Friendly tone"), t("Write in a warm, friendly tone.")],
+    ].map(([label, instruction]) => {
+      const add = () => {
+        const current = instructions.value.trim();
+        instructions.value = current ? `${current}\n${instruction}` : instruction;
+        instructions.dispatchEvent(new Event("input"));
+      };
+      return { instruction, button: h("button", { type: "button", onclick: add }, `+ ${label}`) };
+    });
+    const updateSuggestions = () => {
+      for (const { instruction, button } of suggestions) button.disabled = instructions.value.includes(instruction);
+    };
+    updateSuggestions();
     instructions.addEventListener("input", () => {
+      updateSuggestions();
       window.clearTimeout(saveTimer);
       saveTimer = window.setTimeout(async () => {
         settings = await invoke<Settings>("set_setting", { name: "customInstructions", value: instructions.value });
@@ -174,15 +197,12 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     });
 
     return [
-      group(t("Startup"), [
-        h(
-          "label",
-          { class: "row toggle", for: "launch-at-login" },
-          h("span", { class: "label" }, t("Open Feather at login"), h("small", {}, t("Starts Feather in the background when you sign in to your computer."))),
-          launchAtLogin,
-        ),
-      ]),
       group(t("Shortcut"), [row(t("Open Feather"), hotkey)], shortcutNote()),
+      group(
+        t("Instructions"),
+        [instructions, h("div", { class: "suggestions" }, ...suggestions.map(({ button }) => button))],
+        footnote(t("Feather follows these in every reply. Write your own or add a suggestion.")),
+      ),
       group(
         t("Context"),
         [
@@ -195,7 +215,14 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
         ],
         footnote(t("Nothing is captured until you press the shortcut, and the context is discarded when the panel closes.")),
       ),
-      group(t("Instructions"), [instructions], footnote(t("Set writing preferences for every response, such as “Do not use emojis or em dashes.”"))),
+      group(t("Startup"), [
+        h(
+          "label",
+          { class: "row toggle", for: "launch-at-login" },
+          h("span", { class: "label" }, t("Open Feather at login"), h("small", {}, t("Starts Feather in the background when you sign in to your computer."))),
+          launchAtLogin,
+        ),
+      ]),
       group(t("About"), [
         row(t("Version"), h("span", { class: "secondary" }, info.version)),
         h("div", { class: "row" }, h("button", { type: "button", onclick: () => void invoke("check_for_updates") }, t("Check for Updates…"))),
