@@ -64,18 +64,14 @@ final class FeatherPlusProviderTests: XCTestCase {
         XCTAssertEqual((provider as? FeatherPlusProvider)?.baseURL, "https://plus.example.com")
     }
 
-    func testStoredPlusConnectionNeedsTheTesterDefaultBeforeLaunch() throws {
+    func testStoredPlusConnectionIsKeptNowThatPlusLaunched() throws {
         let name = "FeatherPlusProviderTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: name))
         defer { defaults.removePersistentDomain(forName: name) }
         defaults.set(ConnectionKind.featherPlus.rawValue, forKey: SettingsKey.connection)
         defaults.set("premium", forKey: SettingsKey.model)
 
-        XCTAssertFalse(FeatherPlus.providerLaunched)
-        XCTAssertFalse(FeatherPlus.isProviderEnabled(defaults))
-        XCTAssertEqual(Settings.current(defaults).connection, .openCodeGo, "a stored Plus choice is ignored before launch")
-
-        defaults.set(true, forKey: SettingsKey.plusProviderEnabled)
+        XCTAssertTrue(FeatherPlus.providerLaunched)
         XCTAssertTrue(FeatherPlus.isProviderEnabled(defaults))
         XCTAssertEqual(Settings.current(defaults).connection, .featherPlus)
         XCTAssertEqual(Settings.current(defaults).model, FeatherPlusProvider.defaultModel, "Plus always uses its own model")

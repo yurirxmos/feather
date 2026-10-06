@@ -53,8 +53,8 @@ usage are in **Settings > Feather Plus**.
 
 | Plan | Price | Includes |
 | --- | --- | --- |
-| Plus Monthly | $4/month | About 2,000 replies a month |
-| Plus Yearly | $36/year | About 2,000 replies a month, renewed every month |
+| Plus Monthly | $4/month | Hundreds of replies a month |
+| Plus Yearly | $36/year | Hundreds of replies a month, renewed every month |
 
 Both are the same Feather Plus, billed differently. Each month includes a set amount of model
 use, shown in Settings as a percentage used. Feather never stores your instructions, screen

@@ -16,10 +16,10 @@ pub const DEFAULT_BASE_URL: &str = "https://feather-api.rxmos.dev";
 pub const CALLBACK_PATH: &str = "/callback";
 
 // Feather Plus rolls out in two stages: accounts (sign-in, plan, usage), then generating through
-// it. Both are off while paid plans are not ready, so release builds offer only the free
-// connections, except for testers with the `plusEnabled` or `plusProviderEnabled` setting.
-pub const ACCOUNTS_LAUNCHED: bool = false;
-pub const PROVIDER_LAUNCHED: bool = false;
+// it. Both are on; whether new subscriptions can start is decided on the server (feather-web's
+// /admin), so the app never needs a release to open or close sales.
+pub const ACCOUNTS_LAUNCHED: bool = true;
+pub const PROVIDER_LAUNCHED: bool = true;
 
 /// The placeholder model sent to Feather Plus; the server picks the real one.
 pub const DEFAULT_MODEL: &str = "fast";

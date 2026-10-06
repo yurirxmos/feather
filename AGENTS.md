@@ -78,10 +78,11 @@ platform. When a change cannot be mirrored, say so and explain why.
     uses the server's model, so the model it sends is a placeholder) live in `FeatherCore`; `PlusAuth.swift` (browser
     sign-in with PKCE over a 127.0.0.1 loopback redirect) and `PlusSettingsView.swift` in the app.
   - It rolls out in stages: `FeatherPlus.accountsLaunched` shows the pane (sign-in, plan, usage)
-    and `providerLaunched` lets it generate replies. Both are off while paid plans are not ready
-    (feather-api also keeps new subscriptions closed), so release builds hide them, except for
-    testers with the `plusEnabled` or `plusProviderEnabled` defaults. Debug builds always show the pane. Every build talks to
-    production; set `plusBaseURL` to `http://127.0.0.1:8787` to use `wrangler dev` instead.
+    and `providerLaunched` lets it generate replies. Both are on. Whether new subscriptions can
+    start, and which model provider answers, are set on the server from feather-web's /admin
+    page, so opening or closing sales needs no release. Debug builds always show the pane. Every
+    build talks to production; set `plusBaseURL` to `http://127.0.0.1:8787` to use `wrangler dev`
+    instead.
 
 ## Conventions
 

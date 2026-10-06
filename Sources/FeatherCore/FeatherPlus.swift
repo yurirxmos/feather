@@ -12,10 +12,10 @@ public enum FeatherPlus {
     public static let callbackPath = "/callback"
 
     // Feather Plus rolls out in two stages: accounts (sign-in, plan, usage), then generating
-    // through it. Both are off while paid plans are not ready, so release builds offer only the
-    // free connections, except for testers with the `plusEnabled` or `plusProviderEnabled` default.
-    public static let accountsLaunched = false
-    public static let providerLaunched = false
+    // through it. Both are on; whether new subscriptions can start is decided on the server
+    // (feather-web's /admin), so the app never needs a release to open or close sales.
+    public static let accountsLaunched = true
+    public static let providerLaunched = true
 
     /// Whether Settings shows the Feather Plus pane. Debug builds always do.
     public static func isEnabled(_ defaults: UserDefaults = .standard) -> Bool {

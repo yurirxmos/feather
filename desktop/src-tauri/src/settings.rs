@@ -265,10 +265,9 @@ mod tests {
     }
 
     #[test]
-    fn a_stored_plus_choice_needs_the_tester_setting_before_launch() {
-        const { assert!(!plus::PROVIDER_LAUNCHED) };
-        assert_eq!(resolve(json!({ "connection": "featherPlus" })).connection, Connection::OpenCodeGo);
-        assert_eq!(resolve(json!({ "connection": "featherPlus", "plusProviderEnabled": true })).connection, Connection::FeatherPlus);
+    fn a_stored_plus_choice_is_kept_now_that_plus_launched() {
+        const { assert!(plus::PROVIDER_LAUNCHED) };
+        assert_eq!(resolve(json!({ "connection": "featherPlus" })).connection, Connection::FeatherPlus);
     }
 
     #[test]
