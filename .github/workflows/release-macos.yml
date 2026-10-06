@@ -37,6 +37,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # SwiftUI lays some views out by the SDK the app links against: the macOS 15 SDK wraps
+      # Settings footers into a narrow column. Build with the newest Xcode 26 on the runner.
+      - name: Select Xcode 26
+        run: |
+          xcode="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)"
+          test -n "$xcode"
+          sudo xcode-select -s "$xcode"
+          xcrun --show-sdk-version
+
       - name: Run tests
         run: swift test
 
@@ -74,6 +83,7 @@ jobs:
           codesign -dvv dist/Feather.app 2>&1 | grep -q "TeamIdentifier=YH99T2BXD9"
           codesign -dvv dist/Feather.app 2>&1 | grep -q "flags=.*runtime"
           lipo -archs dist/Feather.app/Contents/MacOS/Feather | grep -qx "${{ matrix.architecture }}"
+          vtool -show-build dist/Feather.app/Contents/MacOS/Feather | grep -Eq "sdk 2[6-9]"
 
       - name: Write notarization key
         env:
@@ -100,7 +110,7 @@ jobs:
           NOTARY_API_ISSUER_ID: ${{ secrets.NOTARY_API_ISSUER_ID }}
         run: |
           # A disk image with an Applications shortcut so users can drag Feather into place.
-          DMG="dist/Feather-${{ matrix.architecture }}.dmg"
+          DMG="dist/Feather-${RELEASE_TAG#v}-${{ matrix.architecture }}.dmg"
           STAGING="$(mktemp -d)"
           cp -R dist/Feather.app "$STAGING/"
           ln -s /Applications "$STAGING/Applications"
@@ -115,7 +125,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Feather-${{ matrix.architecture }}
-          path: dist/Feather-${{ matrix.architecture }}.dmg
+          path: dist/Feather-*-${{ matrix.architecture }}.dmg
           if-no-files-found: error
 
   publish:
@@ -146,7 +156,7 @@ jobs:
             dir="appcast/$arch"
             feed="release-assets/appcast-$arch.xml"
             mkdir -p "$dir"
-            cp "release-assets/Feather-$arch.dmg" "$dir/"
+            cp "release-assets/Feather-${RELEASE_TAG#v}-$arch.dmg" "$dir/"
             "$bin/generate_appcast" --ed-key-file "$key" \
               --download-url-prefix "https://github.com/$GITHUB_REPOSITORY/releases/download/$RELEASE_TAG/" \
               --link "https://github.com/$GITHUB_REPOSITORY/releases/tag/$RELEASE_TAG" \
@@ -171,6 +181,6 @@ jobs:
           else
             gh release create "$RELEASE_TAG" $assets \
               --title "Feather ${RELEASE_TAG#v}" \
-              --notes "Download Feather-arm64.dmg for Apple silicon or Feather-x86_64.dmg for Intel, then drag Feather into Applications. Later versions install from Feather itself." \
+              --notes "Download Feather-${RELEASE_TAG#v}-arm64.dmg for Apple silicon or Feather-${RELEASE_TAG#v}-x86_64.dmg for Intel, then drag Feather into Applications. Later versions install from Feather itself." \
               --generate-notes
           fi

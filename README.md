@@ -100,9 +100,10 @@ screenshot option is disabled. Relaunch Feather after granting it.
 system. Preview builds are also published on the
 [GitHub Releases](https://github.com/yurirxmos/feather/releases) page:
 
-- `Feather-arm64.dmg` for Apple Silicon Macs, macOS 14 or later
-- `Feather-x86_64.dmg` for Intel Macs, macOS 14 or later
-- `Feather-windows-x64-setup.exe` for Windows 10 or later, 64-bit
+- `Feather-<version>-arm64.dmg` for Apple Silicon Macs, macOS 14 or later
+- `Feather-<version>-x86_64.dmg` for Intel Macs, macOS 14 or later
+- `Feather-<version>-windows-x64-setup.exe` for Windows 10 or later, 64-bit
+- `Feather-<version>-linux-x86_64.AppImage` for Linux
 
 The Mac builds are signed with an Apple Developer ID and notarized by Apple, so
 they open like any other app downloaded from the internet.
