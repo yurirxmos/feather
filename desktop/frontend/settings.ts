@@ -810,6 +810,24 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     settings = await invoke<Settings>("get_settings");
     render();
   });
+  // A reply for this window, such as the welcome guide's practice box, arrives here instead of
+  // being pasted. Re-renders on focus can move the box, so fall back to it during the guide.
+  await listen<string>("insert-text", ({ payload: text }) => {
+    const active = document.activeElement;
+    const field =
+      active instanceof HTMLTextAreaElement || (active instanceof HTMLInputElement && active.type === "text")
+        ? active
+        : onboardingStep !== null && STEPS[onboardingStep] === "try"
+          ? sample
+          : null;
+    if (!field) {
+      void navigator.clipboard.writeText(text);
+      return;
+    }
+    field.focus();
+    field.setRangeText(text, field.selectionStart ?? field.value.length, field.selectionEnd ?? field.value.length, "end");
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+  });
   // Plans change in the browser (checkout, the portal), so refresh when the window regains focus.
   await getCurrentWindow().onFocusChanged(({ payload: focused }) => {
     if (focused) void refreshCredentials();

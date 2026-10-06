@@ -24,6 +24,7 @@ use crate::insert;
 use crate::platform::{self, Rect, Target};
 use crate::providers::{stream, Provider};
 use crate::settings::{Connection, SettingsStore};
+use crate::shell::SETTINGS_LABEL;
 
 pub const PANEL_LABEL: &str = "panel";
 const PANEL_WIDTH: f64 = 600.0;
@@ -160,6 +161,9 @@ impl Session {
 struct Inner {
     session: Session,
     target: Option<Target>,
+    /// Whether Feather's own Settings window, such as the welcome guide's practice box, had focus
+    /// when the shortcut was pressed. Replies go straight into its field instead of being pasted.
+    own_window: bool,
     /// Bumped whenever the panel hides, so late capture results are dropped.
     epoch: u64,
     is_presenting: bool,
@@ -233,6 +237,8 @@ impl PromptController {
     fn show(&self) {
         // Remember the target before the panel takes keyboard focus.
         let target = platform::foreground_target();
+        let own_window = target.is_none()
+            && self.app.get_webview_window(SETTINGS_LABEL).and_then(|window| window.is_focused().ok()).unwrap_or(false);
         let settings = self.settings();
         let provider = self.provider_for_preconnect(settings.connection, &settings.plus_base_url);
         {
@@ -243,6 +249,7 @@ impl PromptController {
                 inner.session.reset(settings.include_screenshot);
             }
             inner.target = target;
+            inner.own_window = own_window;
             inner.is_presenting = true;
         }
         // Connecting can take seconds on a cold or flaky network; do it while the user types.
@@ -275,6 +282,7 @@ impl PromptController {
         inner.epoch += 1;
         inner.is_presenting = false;
         inner.target = None;
+        inner.own_window = false;
         inner.session.reset(false);
         self.publish(&inner);
         drop(inner);
@@ -603,11 +611,17 @@ impl PromptController {
     }
 
     fn insert(&self) {
-        let (text, target) = {
+        let (text, target, own_window) = {
             let inner = self.lock();
-            (inner.session.result.clone(), inner.target.clone())
+            (inner.session.result.clone(), inner.target.clone(), inner.own_window)
         };
         if text.is_empty() {
+            return;
+        }
+        if let Some(settings) = self.app.get_webview_window(SETTINGS_LABEL).filter(|_| own_window) {
+            self.close();
+            let _ = settings.set_focus();
+            let _ = self.app.emit_to(SETTINGS_LABEL, "insert-text", text);
             return;
         }
         let Some(target) = target.filter(|_| insert::can_paste()) else {

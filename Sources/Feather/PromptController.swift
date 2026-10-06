@@ -70,6 +70,10 @@ final class PromptController: NSObject, NSWindowDelegate {
     private let session = PromptSession()
     private lazy var panel: PromptPanel = makePanel()
     private var targetApp: NSRunningApplication?
+    /// Feather's own window that was key when the shortcut was pressed, such as the welcome
+    /// guide's practice box. Replies go straight into its field: ⌘V posted to Feather itself
+    /// pastes nowhere, because the menu-bar app has no Edit menu.
+    private weak var ownWindow: NSWindow?
     private var captureTask: Task<Void, Never>?
     private var screenshotTask: Task<Void, Never>?
     private var generationTask: Task<Void, Never>?
@@ -95,7 +99,9 @@ final class PromptController: NSObject, NSWindowDelegate {
     private func show() {
         // Remember the target before the panel takes keyboard focus.
         let front = NSWorkspace.shared.frontmostApplication
-        targetApp = front?.processIdentifier == ProcessInfo.processInfo.processIdentifier ? nil : front
+        let isFeather = front?.processIdentifier == ProcessInfo.processInfo.processIdentifier
+        targetApp = isFeather ? nil : front
+        ownWindow = isFeather ? NSApp.keyWindow : nil
 
         let settings = FeatherCore.Settings.current()
         if !session.isSuspendedForRecapture {
@@ -123,6 +129,7 @@ final class PromptController: NSObject, NSWindowDelegate {
         removeKeyMonitor()
         isPresenting = false
         panel.orderOut(nil)
+        restoreOwnWindow()
         session.reset(includeWindow: false)
     }
 
@@ -138,6 +145,13 @@ final class PromptController: NSObject, NSWindowDelegate {
         session.isSuspendedForRecapture = true
         isPresenting = false
         panel.orderOut(nil)
+        restoreOwnWindow()
+    }
+
+    /// Gives the keyboard back to Feather's own window; closing a key panel does not.
+    private func restoreOwnWindow() {
+        guard NSApp.isActive, let ownWindow, ownWindow.isVisible else { return }
+        ownWindow.makeKeyAndOrderFront(nil)
     }
 
     private func makePanel() -> PromptPanel {
@@ -383,7 +397,12 @@ final class PromptController: NSObject, NSWindowDelegate {
     private func insert() {
         let text = session.result
         guard !text.isEmpty else { return }
-        guard TextInserter.canPaste else {
+        if let field = ownWindow?.firstResponder as? NSTextView {
+            close()
+            field.insertText(text, replacementRange: field.selectedRange())
+            return
+        }
+        guard targetApp != nil, TextInserter.canPaste else {
             TextInserter.copy(text)
             startClosingCountdown()
             return
