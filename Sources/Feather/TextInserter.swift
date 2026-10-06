@@ -3,7 +3,8 @@ import Carbon.HIToolbox
 
 /// Puts generated text into the target app's focused field by pasting, then restores the
 /// user's clipboard. Pasting works in web apps (Gmail, WhatsApp Web, Slack) where writing
-/// `kAXSelectedTextAttribute` does not.
+/// `kAXSelectedTextAttribute` does not. Both the pasted reply and the restored contents are marked
+/// transient (nspasteboard.org), so clipboard managers leave an insert out of their history.
 enum TextInserter {
     /// Posting ⌘V needs the same Accessibility trust as reading the focused field.
     static var canPaste: Bool { AccessibilityContext.isTrusted }
@@ -16,7 +17,10 @@ enum TextInserter {
         let pasteboard = NSPasteboard.general
         let saved = snapshot(of: pasteboard)
         pasteboard.clearContents()
-        pasteboard.setString(text, forType: .string)
+        let item = NSPasteboardItem()
+        item.setString(text, forType: .string)
+        item.setData(Data(), forType: transientType)
+        pasteboard.writeObjects([item])
         let ourChangeCount = pasteboard.changeCount
 
         postCommandV()
@@ -33,6 +37,9 @@ enum TextInserter {
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
     }
+
+    /// Tells clipboard managers to skip an item (http://nspasteboard.org).
+    private static let transientType = NSPasteboard.PasteboardType("org.nspasteboard.TransientType")
 
     private static func postCommandV() {
         let source = CGEventSource(stateID: .combinedSessionState)
@@ -61,6 +68,7 @@ enum TextInserter {
         let restored = items.map { entry in
             let item = NSPasteboardItem()
             for (type, data) in entry { item.setData(data, forType: type) }
+            item.setData(Data(), forType: transientType)
             return item
         }
         pasteboard.writeObjects(restored)

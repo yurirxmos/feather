@@ -1,11 +1,12 @@
 //! Puts generated text into the target app's focused field by pasting, then restores the user's
 //! clipboard. Pasting works in web apps (Gmail, WhatsApp Web, Slack) where setting a field's value
-//! through accessibility does not.
+//! through accessibility does not. Both the pasted reply and the restored contents are kept out of
+//! clipboard history (Windows' Win+V and clipboard managers), so an insert leaves no trace there.
 
 use std::sync::{LazyLock, Mutex};
 use std::time::Duration;
 
-use arboard::{Clipboard, ImageData};
+use arboard::{Clipboard, ImageData, Set};
 
 use crate::platform::{self, Target};
 
@@ -37,7 +38,7 @@ pub fn paste(text: &str, target: &Target) {
         Err(_) => clipboard.get_image().map(Saved::Image).unwrap_or(Saved::Nothing),
     })
     .unwrap_or(Saved::Nothing);
-    if !copy(text) {
+    if with_clipboard(|clipboard| unrecorded(clipboard).text(text).is_ok()) != Some(true) {
         return;
     }
     let ours = platform::clipboard_change_token();
@@ -55,11 +56,24 @@ pub fn paste(text: &str, target: &Target) {
             return;
         }
         let _ = match saved {
-            Saved::Text(previous) => clipboard.set_text(previous),
-            Saved::Image(image) => clipboard.set_image(image),
+            Saved::Text(previous) => unrecorded(clipboard).text(previous),
+            Saved::Image(image) => unrecorded(clipboard).image(image),
             Saved::Nothing => clipboard.clear(),
         };
     });
+}
+
+/// A clipboard write that clipboard history skips.
+fn unrecorded(clipboard: &mut Clipboard) -> Set<'_> {
+    let set = clipboard.set();
+    // Covers Win+V history, the cloud clipboard, and third-party clipboard managers.
+    #[cfg(windows)]
+    let set = arboard::SetExtWindows::exclude_from_monitoring(set);
+    #[cfg(target_os = "linux")]
+    let set = arboard::SetExtLinux::exclude_from_history(set);
+    #[cfg(target_os = "macos")]
+    let set = arboard::SetExtApple::exclude_from_history(set);
+    set
 }
 
 fn with_clipboard<T>(action: impl FnOnce(&mut Clipboard) -> T) -> Option<T> {
