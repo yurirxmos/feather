@@ -6,7 +6,7 @@ use std::sync::Mutex;
 use tauri::image::Image;
 use tauri::menu::{IconMenuItem, IconMenuItemBuilder, MenuBuilder};
 use tauri::tray::TrayIconBuilder;
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 use serde_json::Value;
 use tauri_plugin_autostart::ManagerExt as _;
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
@@ -19,6 +19,7 @@ use crate::i18n::t;
 use crate::settings::{key, onboarding_completed, Connection, SettingsStore};
 
 pub const SETTINGS_LABEL: &str = "settings";
+pub const FEEDBACK_LABEL: &str = "feedback";
 
 /// The tray item whose title shows the current shortcut, and whether that shortcut is registered.
 #[derive(Default)]
@@ -62,6 +63,35 @@ pub fn show_settings(app: &AppHandle) {
     }
 }
 
+/// Brings back an open feedback form, or opens a fresh one, so a sent message never lingers.
+/// Mirrors `showFeedback` in the macOS app.
+pub fn show_feedback(app: &AppHandle) {
+    if let Some(window) = app.get_webview_window(FEEDBACK_LABEL) {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+        return;
+    }
+    let built = WebviewWindowBuilder::new(app, FEEDBACK_LABEL, WebviewUrl::App("index.html".into()))
+        .title(t("Send Feedback"))
+        .inner_size(440.0, 420.0)
+        .resizable(false)
+        .maximizable(false)
+        .minimizable(false)
+        .center()
+        .focused(true)
+        .build();
+    if let Err(error) = built {
+        eprintln!("Feather: could not open the feedback window: {error}");
+    }
+}
+
+pub fn close_feedback(app: &AppHandle) {
+    if let Some(window) = app.get_webview_window(FEEDBACK_LABEL) {
+        let _ = window.close();
+    }
+}
+
 /// The command-line option that opens the prompt in the running Feather.
 pub const PROMPT_FLAG: &str = "--prompt";
 
@@ -82,8 +112,9 @@ pub fn build_tray(app: &AppHandle) -> tauri::Result<()> {
     let open = item("open", open_title(app), include_bytes!("../icons/menu/open.png"))?;
     let settings = item("settings", t("Settings…"), include_bytes!("../icons/menu/settings.png"))?;
     let updates = item("updates", t("Check for Updates…"), include_bytes!("../icons/menu/updates.png"))?;
+    let feedback = item("feedback", t("Send Feedback…"), include_bytes!("../icons/menu/feedback.png"))?;
     let quit = item("quit", t("Quit"), include_bytes!("../icons/menu/quit.png"))?;
-    let menu = MenuBuilder::new(app).item(&open).separator().item(&settings).item(&updates).separator().item(&quit).build()?;
+    let menu = MenuBuilder::new(app).item(&open).separator().item(&settings).item(&updates).item(&feedback).separator().item(&quit).build()?;
     *app.state::<ShellState>().open_item.lock().expect("shell lock") = Some(open);
 
     let mut tray = TrayIconBuilder::with_id("feather").tooltip("Feather").menu(&menu).on_menu_event(|app, event| {
@@ -91,6 +122,7 @@ pub fn build_tray(app: &AppHandle) -> tauri::Result<()> {
             "open" => open_prompt(app),
             "settings" => show_settings(app),
             "updates" => check_for_updates(app.clone(), true),
+            "feedback" => show_feedback(app),
             "quit" => app.exit(0),
             _ => {}
         }
@@ -104,7 +136,7 @@ pub fn build_tray(app: &AppHandle) -> tauri::Result<()> {
 
 fn open_title(app: &AppHandle) -> String {
     let label = app.state::<SettingsStore>().current().hotkey.label();
-    t("Open Feather ({shortcut})").replace("{shortcut}", label)
+    t("Open ({shortcut})").replace("{shortcut}", label)
 }
 
 /// Registers the shortcut from Settings, replacing any earlier one.

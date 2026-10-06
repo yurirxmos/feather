@@ -3,6 +3,7 @@
 
 pub mod context;
 pub mod error;
+pub mod feedback;
 pub mod pkce;
 pub mod placement;
 pub mod plus;

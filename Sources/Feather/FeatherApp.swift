@@ -21,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let credentialStore: any CredentialStore = KeychainCredentialStore.shared
     private lazy var promptController = PromptController(credentialStore: credentialStore)
     private var settingsWindow: NSWindow?
+    private var feedbackWindow: NSWindow?
     private var registeredHotkey: HotkeyPreset?
     private var hotkeyMenuItem: NSMenuItem?
     private let updater = AppUpdater()
@@ -85,6 +86,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             updates.image = menuSymbol("arrow.triangle.2.circlepath")
             menu.addItem(updates)
         }
+        let feedback = NSMenuItem(title: String(localized: "Send Feedback…", bundle: .app), action: #selector(showFeedback), keyEquivalent: "")
+        feedback.target = self
+        feedback.image = menuSymbol("bubble.left")
+        menu.addItem(feedback)
         menu.addItem(.separator())
         let quit = NSMenuItem(title: String(localized: "Quit", bundle: .app), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         quit.image = menuSymbol("power")
@@ -113,7 +118,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func updateHotkeyMenuTitle() {
         let symbol = FeatherCore.Settings.current().hotkey.symbol
-        hotkeyMenuItem?.title = String(localized: "Open Feather (\(symbol))", bundle: .app)
+        hotkeyMenuItem?.title = String(localized: "Open (\(symbol))", bundle: .app)
     }
 
     @objc private func defaultsChanged() {
@@ -150,5 +155,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         NSApp.activate(ignoringOtherApps: true)
         settingsWindow?.makeKeyAndOrderFront(nil)
+    }
+
+    /// Brings back an open form, or starts a fresh one, so a sent message never lingers.
+    @objc private func showFeedback() {
+        NSApp.activate(ignoringOtherApps: true)
+        if let window = feedbackWindow, window.isVisible {
+            window.makeKeyAndOrderFront(nil)
+            return
+        }
+        let window = NSWindow(
+            contentRect: .zero,
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = String(localized: "Send Feedback", bundle: .app)
+        let hosting = NSHostingController(rootView: FeedbackView { [weak window] in window?.close() })
+        // The window follows the form's height, which changes when an error or the thanks shows.
+        hosting.sizingOptions = [.preferredContentSize]
+        window.contentViewController = hosting
+        window.setContentSize(hosting.view.fittingSize)
+        window.isReleasedWhenClosed = false
+        window.center()
+        feedbackWindow = window
+        window.makeKeyAndOrderFront(nil)
     }
 }

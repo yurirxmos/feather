@@ -247,3 +247,21 @@ progress.exhausted { accent-color: var(--orange); }
 .welcome-icon { display: grid; width: 64px; height: 64px; margin: 24px 0 20px; place-items: center; border-radius: 16px; background: linear-gradient(#349aff, #0a70f0); }
 .welcome-icon .feather-mark { width: 36px; height: 36px; }
 .onboarding-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px; border-top: 1px solid var(--line); background: var(--sidebar); }
+
+/* Feedback ----------------------------------------------------------------------------------- */
+
+.feedback-body { height: 100vh; }
+.feedback { display: flex; flex-direction: column; gap: 14px; padding: 20px; }
+.feedback > p { margin: 0; line-height: 1.45; }
+.feedback .card > textarea { height: 140px; min-height: 140px; resize: none; }
+.feedback .field { display: flex; flex-direction: column; gap: 4px; }
+.feedback .field small, .feedback-actions small { font-size: 12px; line-height: 1.4; }
+.feedback input[type="email"] { min-height: 30px; padding: 0 8px; border: 1px solid var(--control-line); border-radius: 5px; background: var(--control); }
+.feedback .error-text { margin: 0; }
+.feedback .error-text:empty { display: none; }
+.feedback-actions { display: flex; align-items: center; gap: 8px; }
+.feedback-actions small { flex: 1; margin-right: 4px; }
+.feedback-thanks { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; height: 100vh; padding: 20px; text-align: center; }
+.feedback-thanks h1 { margin: 0; font-size: 16px; font-weight: 600; }
+.feedback-thanks p { margin: 0 0 4px; }
+.feedback-thanks .check { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--green); color: #fff; font-size: 22px; font-weight: 700; }

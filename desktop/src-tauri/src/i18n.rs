@@ -35,6 +35,8 @@ const TRANSLATIONS: &[(&str, &str)] = &[
     ("ChatGPT session refresh failed ({status}).", "A renovação da sessão do ChatGPT falhou ({status})."),
     ("ChatGPT token exchange failed ({status}).", "A troca de token do ChatGPT falhou ({status})."),
     ("Check for Updates…", "Procurar Atualizações…"),
+    ("Check the email address, or leave it empty.", "Confira o endereço de e-mail ou deixe o campo vazio."),
+    ("Couldn't send your feedback. Check your connection and try again.", "Não foi possível enviar seu feedback. Confira sua conexão e tente de novo."),
     ("Closing in {seconds}…", "Fechando em {seconds}…"),
     ("Connected to ChatGPT", "Conectado ao ChatGPT"),
     ("Copied to clipboard.", "Copiado para a área de transferência."),
@@ -59,7 +61,8 @@ const TRANSLATIONS: &[(&str, &str)] = &[
     ),
     ("Install", "Instalar"),
     ("Later", "Depois"),
-    ("Open Feather ({shortcut})", "Abrir o Feather ({shortcut})"),
+    ("Keep your message under 5,000 characters.", "Mantenha sua mensagem com menos de 5.000 caracteres."),
+    ("Open ({shortcut})", "Abrir ({shortcut})"),
     (
         "Port 1455 is in use. Close other apps signing in to ChatGPT and try again.",
         "A porta 1455 está em uso. Feche outros apps que estejam entrando no ChatGPT e tente novamente.",
@@ -70,6 +73,8 @@ const TRANSLATIONS: &[(&str, &str)] = &[
         "Secure credential storage is unavailable. Check that your system keyring is running.",
         "O armazenamento seguro de credenciais está indisponível. Verifique se o chaveiro do sistema está em execução.",
     ),
+    ("Send Feedback", "Enviar feedback"),
+    ("Send Feedback…", "Enviar feedback…"),
     ("Set a model in Settings.", "Defina um modelo nas Configurações."),
     ("Settings…", "Configurações…"),
     ("Sign in to Feather Plus in Settings.", "Entre no Feather Plus nas Configurações."),
@@ -86,6 +91,7 @@ const TRANSLATIONS: &[(&str, &str)] = &[
     ),
     ("The update could not be installed: {error}", "Não foi possível instalar a atualização: {error}"),
     ("You can close this window and return to Feather.", "Você pode fechar esta janela e voltar ao Feather."),
+    ("You've sent a lot of feedback today. Try again tomorrow.", "Você já enviou muitos feedbacks hoje. Tente de novo amanhã."),
     ("Your session expired. Sign in again.", "Sua sessão expirou. Entre novamente."),
 ];
 

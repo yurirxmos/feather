@@ -83,6 +83,8 @@ pub fn run() {
             commands::plus_sign_out,
             commands::open_plus_account_page,
             commands::capabilities,
+            commands::send_feedback,
+            commands::close_feedback,
             commands::check_for_updates,
             commands::quit,
             commands::prompt_state,

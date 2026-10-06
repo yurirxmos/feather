@@ -170,4 +170,19 @@ export const PT_BR: Record<string, string> = {
     "Clique na caixa abaixo e abra o Feather pelo menu da bandeja ou pelo seu próprio atalho. Diga o que você quer, e o Feather escreve aqui.",
   "Windows needs no extra permissions. Apps that run as administrator cannot be read or pasted into unless Feather also runs as administrator.":
     "O Windows não precisa de permissões extras. Apps que rodam como administrador não podem ser lidos nem receber texto colado, a menos que o Feather também rode como administrador.",
+
+  // Feedback
+  "Send Feedback": "Enviar feedback",
+  "Tell us what works, what doesn't, or what you'd like Feather to do.":
+    "Conte o que funciona, o que não funciona ou o que você gostaria que o Feather fizesse.",
+  "Your feedback": "Seu feedback",
+  "Email (optional)": "E-mail (opcional)",
+  "Only if you'd like a reply.": "Só se quiser uma resposta.",
+  "Sends your message and the Feather and system versions. Nothing from your screen.":
+    "Envia sua mensagem e as versões do Feather e do sistema. Nada da sua tela.",
+  Send: "Enviar",
+  "Keep your message under 5,000 characters.": "Mantenha sua mensagem com menos de 5.000 caracteres.",
+  "Thanks for your feedback!": "Obrigado pelo feedback!",
+  "It goes straight to the people who build Feather.": "Ele vai direto para quem faz o Feather.",
+  Done: "OK",
 };

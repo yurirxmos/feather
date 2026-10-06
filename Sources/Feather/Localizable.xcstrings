@@ -631,12 +631,12 @@
         }
       }
     },
-    "Open Feather (%@)": {
+    "Open (%@)": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Abrir o Feather (%@)"
+            "value": "Abrir (%@)"
           }
         }
       }
@@ -1657,6 +1657,156 @@
           "stringUnit": {
             "state": "translated",
             "value": "Plano Starter ou Max"
+          }
+        }
+      }
+    },
+    "Check the email address, or leave it empty.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confira o endereço de e-mail ou deixe o campo vazio."
+          }
+        }
+      }
+    },
+    "Couldn't send your feedback. Check your connection and try again.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível enviar seu feedback. Confira sua conexão e tente de novo."
+          }
+        }
+      }
+    },
+    "Done": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        }
+      }
+    },
+    "Email (optional)": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "E-mail (opcional)"
+          }
+        }
+      }
+    },
+    "It goes straight to the people who build Feather.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ele vai direto para quem faz o Feather."
+          }
+        }
+      }
+    },
+    "Only if you'd like a reply.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Só se quiser uma resposta."
+          }
+        }
+      }
+    },
+    "Send": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar"
+          }
+        }
+      }
+    },
+    "Send Feedback": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar feedback"
+          }
+        }
+      }
+    },
+    "Send Feedback…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar feedback…"
+          }
+        }
+      }
+    },
+    "Sends your message and the Feather and system versions. Nothing from your screen.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Envia sua mensagem e as versões do Feather e do sistema. Nada da sua tela."
+          }
+        }
+      }
+    },
+    "Tell us what works, what doesn't, or what you'd like Feather to do.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conte o que funciona, o que não funciona ou o que você gostaria que o Feather fizesse."
+          }
+        }
+      }
+    },
+    "Thanks for your feedback!": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Obrigado pelo feedback!"
+          }
+        }
+      }
+    },
+    "You've sent a lot of feedback today. Try again tomorrow.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você já enviou muitos feedbacks hoje. Tente de novo amanhã."
+          }
+        }
+      }
+    },
+    "Your feedback": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seu feedback"
+          }
+        }
+      }
+    },
+    "Keep your message under 5,000 characters.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantenha sua mensagem com menos de 5.000 caracteres."
           }
         }
       }

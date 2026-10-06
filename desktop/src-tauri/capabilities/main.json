@@ -2,7 +2,7 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "main-capability",
   "description": "What Feather's webviews may call. Shortcuts, updates, dialogs, and opening links run in Rust.",
-  "windows": ["panel", "settings"],
+  "windows": ["panel", "settings", "feedback"],
   "permissions": [
     "core:default",
     "core:window:allow-start-dragging",

@@ -3,6 +3,7 @@
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use serde::Serialize;
 use serde_json::Value;
@@ -13,11 +14,13 @@ use tokio::sync::Notify;
 
 use crate::auth;
 use crate::controller::{PanelState, PromptController};
+use crate::core::feedback::{self, Outcome};
 use crate::core::plus::PlusAccount;
 use crate::credentials;
 use crate::i18n;
 use crate::platform::{self, Capability};
 use crate::providers::catalog::{self, ChatGptModel, Model, CHATGPT_MODELS};
+use crate::providers::stream::CLIENT;
 use crate::settings::{connection_after_setup_change, key, Connection, HotkeyPreset, Settings, SettingsStore};
 use crate::shell::{self, ShellState};
 
@@ -290,6 +293,40 @@ pub fn open_plus_account_page(app: AppHandle, store: State<'_, SettingsStore>) -
 #[tauri::command]
 pub fn capabilities() -> Vec<Capability> {
     platform::capabilities()
+}
+
+/// Sends feedback through `feather-api`. Fails with a message to show under the form.
+#[tauri::command]
+pub async fn send_feedback(app: AppHandle, store: State<'_, SettingsStore>, message: String, email: String) -> Result<(), String> {
+    if !feedback::can_send(&message) {
+        return Err(i18n::t("Keep your message under 5,000 characters."));
+    }
+    let platform = match (platform::name(), platform::session_name()) {
+        ("windows", _) => "Windows".to_owned(),
+        ("linux", Some(session)) => format!("Linux ({session})"),
+        ("linux", None) => "Linux".to_owned(),
+        (other, _) => other.to_owned(),
+    };
+    let version = app.package_info().version.to_string();
+    let body = feedback::body(&message, &email, &version, &platform);
+    let outcome = match feedback::url(&store.current().plus_base_url) {
+        Ok(url) => match CLIENT.post(url).json(&body).timeout(Duration::from_secs(20)).send().await {
+            Ok(response) => feedback::outcome(response.status().as_u16()),
+            Err(_) => Outcome::Failed,
+        },
+        Err(_) => Outcome::Failed,
+    };
+    match outcome {
+        Outcome::Sent => Ok(()),
+        Outcome::Invalid => Err(i18n::t("Check the email address, or leave it empty.")),
+        Outcome::RateLimited => Err(i18n::t("You've sent a lot of feedback today. Try again tomorrow.")),
+        Outcome::Failed => Err(i18n::t("Couldn't send your feedback. Check your connection and try again.")),
+    }
+}
+
+#[tauri::command]
+pub fn close_feedback(app: AppHandle) {
+    shell::close_feedback(&app);
 }
 
 #[tauri::command]
