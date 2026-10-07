@@ -130,6 +130,9 @@ struct PlusSettingsView: View {
                 .imageScale(.large)
         }
         .buttonStyle(.borderless)
+        // The window focuses its first control on opening, and the account leads General, so a
+        // ring would sit on these icons every time Settings opens.
+        .focusEffectDisabled()
         // A tooltip names the action; the trailing "…" belongs on buttons that open something.
         .help(label.hasSuffix("…") ? String(label.dropLast()) : label)
         .accessibilityLabel(label)
