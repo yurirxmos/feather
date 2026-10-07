@@ -29,6 +29,9 @@ type Settings = {
   hotkey: string;
   includeScreenshot: boolean;
   customInstructions: string;
+  replyTone: string;
+  replyLength: string;
+  replyLanguage: string;
   plusEnabled: boolean;
   plusProviderEnabled: boolean;
   hotkeyRegistered: boolean;
@@ -88,8 +91,6 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     items[(index + (event.key === "ArrowDown" ? 1 : items.length - 1)) % items.length]?.focus();
   });
   let authError: string | null = null;
-  // The Replies tab's Style choices, a preview kept only while Settings is open.
-  const replyStylePreview = { tone: "natural", length: "matchRequest", language: "conversation", emojis: false };
   let plusAccount: PlusAccount | null = null;
   let loadingAccount = false;
   let plusError: string | null = null;
@@ -283,52 +284,38 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     ];
   }
 
-  /**
-   * How replies read: tone, length, language, and emojis, mirroring `ReplyStyleSection` in the macOS
-   * app. A preview: the choices are kept only while Settings is open and don't reach the prompt yet.
-   */
+  /** How replies read: tone, length, and language, mirroring `ReplyStyleSection` in the macOS app. */
   function replyStyle(): HTMLElement {
-    const picker = (label: string, key: "tone" | "length" | "language", options: [string, string][]) =>
+    const picker = (label: string, name: "replyTone" | "replyLength" | "replyLanguage", options: [string, string][]) =>
       row(
         label,
         h(
           "select",
-          { "aria-label": label, onchange: (event) => (replyStylePreview[key] = (event.target as HTMLSelectElement).value) },
-          ...options.map(([value, text]) => h("option", { value, selected: replyStylePreview[key] === value }, text)),
+          { "aria-label": label, onchange: (event) => void set(name, (event.target as HTMLSelectElement).value) },
+          ...options.map(([value, text]) => h("option", { value, selected: settings[name] === value }, text)),
         ),
       );
-    const emojis = h("input", {
-      type: "checkbox",
-      id: "use-emojis",
-      checked: replyStylePreview.emojis,
-      onchange: (event) => (replyStylePreview.emojis = (event.target as HTMLInputElement).checked),
-    });
-    return h(
-      "section",
-      { class: "group" },
-      h("h2", {}, t("Style"), " ", h("span", { class: "status preview" }, h("span", { class: "dot orange", "aria-hidden": "true" }), t("Preview"))),
-      h(
-        "div",
-        { class: "card" },
-        picker(t("Tone"), "tone", [
+    return group(
+      t("Style"),
+      [
+        picker(t("Tone"), "replyTone", [
           ["natural", t("Natural")],
           ["friendly", t("Friendly")],
           ["professional", t("Professional")],
           ["casual", t("Casual")],
         ]),
-        picker(t("Length"), "length", [
+        picker(t("Length"), "replyLength", [
           ["matchRequest", t("Match the request")],
           ["short", t("Short")],
           ["detailed", t("Detailed")],
         ]),
-        picker(t("Language"), "language", [
+        picker(t("Language"), "replyLanguage", [
           ["conversation", t("Same as the conversation")],
           ["english", t("English")],
           ["portuguese", t("Portuguese")],
         ]),
-        h("label", { class: "row toggle", for: "use-emojis" }, h("span", { class: "label" }, t("Use emojis")), emojis),
-      ),
-      footnote(t("A preview: these options don't change replies yet.")),
+      ],
+      footnote(t("Applies to every reply. Your instructions above can refine it.")),
     );
   }
 

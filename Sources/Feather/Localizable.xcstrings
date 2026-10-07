@@ -2011,16 +2011,6 @@
         }
       }
     },
-    "Use emojis": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Usar emojis"
-          }
-        }
-      }
-    },
     "Style": {
       "localizations": {
         "pt-BR": {
@@ -2031,22 +2021,12 @@
         }
       }
     },
-    "Preview": {
+    "Applies to every reply. Your instructions above can refine it.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Prévia"
-          }
-        }
-      }
-    },
-    "A preview: these options don't change replies yet.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Uma prévia: estas opções ainda não mudam as respostas."
+            "value": "Vale para todas as respostas. Suas instruções acima podem ajustar."
           }
         }
       }

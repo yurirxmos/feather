@@ -10,5 +10,6 @@ pub mod plus;
 pub mod prompt;
 pub mod recent;
 pub mod reply;
+pub mod reply_style;
 pub mod sse;
 pub mod turn;

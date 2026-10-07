@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use crate::core::plus;
+use crate::core::reply_style::{Language, Length, ReplyStyle, Tone};
 use crate::providers::default_model_for;
 
 pub mod key {
@@ -16,6 +17,10 @@ pub mod key {
     pub const HOTKEY: &str = "hotkey";
     pub const INCLUDE_SCREENSHOT: &str = "includeScreenshot";
     pub const CUSTOM_INSTRUCTIONS: &str = "customInstructions";
+    /// The Style choices in Settings > Replies; see `ReplyStyle`.
+    pub const REPLY_TONE: &str = "replyTone";
+    pub const REPLY_LENGTH: &str = "replyLength";
+    pub const REPLY_LANGUAGE: &str = "replyLanguage";
     /// Whether the first-run welcome guide has been finished or dismissed. Absent until the guide has
     /// run once; `onboarding_completed` treats an absent value as not done.
     pub const ONBOARDING_COMPLETED: &str = "onboardingCompleted";
@@ -112,6 +117,9 @@ pub struct Settings {
     pub hotkey: HotkeyPreset,
     pub include_screenshot: bool,
     pub custom_instructions: String,
+    pub reply_tone: Tone,
+    pub reply_length: Length,
+    pub reply_language: Language,
     pub plus_base_url: String,
     /// Whether Settings shows the Feather Plus pane.
     pub plus_enabled: bool,
@@ -125,6 +133,10 @@ impl Settings {
     pub fn resolve(values: &Map<String, Value>) -> Settings {
         let string = |key: &str| values.get(key).and_then(Value::as_str).map(str::trim).filter(|value| !value.is_empty());
         let flag = |key: &str| values.get(key).and_then(Value::as_bool);
+        // An unknown stored choice falls back to the default.
+        fn choice<T: serde::de::DeserializeOwned + Default>(values: &Map<String, Value>, key: &str) -> T {
+            values.get(key).and_then(|value| serde_json::from_value(value.clone()).ok()).unwrap_or_default()
+        }
 
         let plus_enabled = cfg!(debug_assertions) || plus::ACCOUNTS_LAUNCHED || flag(key::PLUS_ENABLED).unwrap_or(false);
         let plus_provider_enabled =
@@ -153,11 +165,20 @@ impl Settings {
                 .unwrap_or(HotkeyPreset::ControlShiftSpace),
             include_screenshot: flag(key::INCLUDE_SCREENSHOT).unwrap_or(true),
             custom_instructions: string(key::CUSTOM_INSTRUCTIONS).unwrap_or_default().to_owned(),
+            reply_tone: choice(values, key::REPLY_TONE),
+            reply_length: choice(values, key::REPLY_LENGTH),
+            reply_language: choice(values, key::REPLY_LANGUAGE),
             plus_base_url: string(key::PLUS_BASE_URL).unwrap_or(plus::DEFAULT_BASE_URL).to_owned(),
             plus_enabled,
             plus_provider_enabled,
             onboarding_completed: flag(key::ONBOARDING_COMPLETED),
         }
+    }
+}
+
+impl Settings {
+    pub fn reply_style(&self) -> ReplyStyle {
+        ReplyStyle { tone: self.reply_tone, length: self.reply_length, language: self.reply_language }
     }
 }
 
@@ -209,6 +230,15 @@ impl SettingsStore {
             key::HOTKEY => {
                 serde_json::from_value::<HotkeyPreset>(value.clone()).map_err(|_| "Unknown shortcut.".to_owned())?;
             }
+            key::REPLY_TONE => {
+                serde_json::from_value::<Tone>(value.clone()).map_err(|_| "Unknown tone.".to_owned())?;
+            }
+            key::REPLY_LENGTH => {
+                serde_json::from_value::<Length>(value.clone()).map_err(|_| "Unknown length.".to_owned())?;
+            }
+            key::REPLY_LANGUAGE => {
+                serde_json::from_value::<Language>(value.clone()).map_err(|_| "Unknown language.".to_owned())?;
+            }
             key::MODEL | key::CUSTOM_INSTRUCTIONS if value.is_string() => {}
             key::INCLUDE_SCREENSHOT | key::ONBOARDING_COMPLETED | key::LAUNCH_AT_LOGIN_DEFAULT_APPLIED if value.is_boolean() => {}
             _ => return Err(format!("{name} cannot be changed here.")),
@@ -247,6 +277,13 @@ mod tests {
         assert_eq!(settings.model, crate::providers::OPENCODE_GO_DEFAULT_MODEL);
         assert!(settings.include_screenshot);
         assert_eq!(settings.hotkey, HotkeyPreset::ControlShiftSpace);
+    }
+
+    #[test]
+    fn reply_style_reads_stored_choices_and_ignores_unknown_ones() {
+        assert_eq!(resolve(json!({})).reply_style(), ReplyStyle::default());
+        let settings = resolve(json!({ "replyTone": "casual", "replyLength": "detailed", "replyLanguage": "klingon" }));
+        assert_eq!(settings.reply_style(), ReplyStyle { tone: Tone::Casual, length: Length::Detailed, language: Language::Conversation });
     }
 
     #[test]

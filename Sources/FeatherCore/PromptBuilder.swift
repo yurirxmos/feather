@@ -60,8 +60,8 @@ public enum PromptBuilder {
 
         Output only the reply in the format above: no preamble, no surrounding quotes, and no \
         Markdown in the suggestion unless the destination clearly supports it. Match the \
-        language, tone, and conventions of the conversation on screen unless the instruction \
-        says otherwise. Use the available window text, screenshot, window title, and focused \
+        language, tone, and conventions of the conversation on screen unless the instruction or \
+        the writing preferences say otherwise. Use the available window text, screenshot, window title, and focused \
         field text as context. Context may be partial; never invent missing content or claim to \
         have seen content that was not provided. If the focused field already contains a draft, \
         rewrite or continue it as instructed rather than repeating it verbatim.
@@ -113,7 +113,8 @@ public enum PromptBuilder {
 
         Output only the final text: no preamble, explanations, surrounding quotes, or Markdown \
         unless the destination clearly supports it. Match the language, tone, and conventions of \
-        the conversation on screen unless the instruction says otherwise. Use the available window \
+        the conversation on screen unless the instruction or the writing preferences say \
+        otherwise. Use the available window \
         text, screenshot, window title, and focused field text as context. Context may be partial; \
         never invent missing content or claim to have seen content that was not provided. If the \
         focused field already contains a draft, rewrite or continue it as instructed rather than \

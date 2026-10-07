@@ -370,78 +370,65 @@ private struct InstructionsEditor: View {
     }
 }
 
-/// How replies read: tone, length, language, and emojis.
-///
-/// A preview: the choices are kept only while Settings is open and don't reach the prompt yet.
+/// How replies read: tone, length, and language. Each choice reaches the prompt as a writing
+/// preference (`ReplyStyle`).
 private struct ReplyStyleSection: View {
-    private enum Tone: String, CaseIterable, Identifiable {
-        case natural, friendly, professional, casual
-        var id: String { rawValue }
-        var title: String {
-            switch self {
-            case .natural: String(localized: "Natural", bundle: .app)
-            case .friendly: String(localized: "Friendly", bundle: .app)
-            case .professional: String(localized: "Professional", bundle: .app)
-            case .casual: String(localized: "Casual", bundle: .app)
-            }
-        }
-    }
-
-    private enum Length: String, CaseIterable, Identifiable {
-        case matchRequest, short, detailed
-        var id: String { rawValue }
-        var title: String {
-            switch self {
-            case .matchRequest: String(localized: "Match the request", bundle: .app)
-            case .short: String(localized: "Short", bundle: .app)
-            case .detailed: String(localized: "Detailed", bundle: .app)
-            }
-        }
-    }
-
-    private enum Language: String, CaseIterable, Identifiable {
-        case conversation, english, portuguese
-        var id: String { rawValue }
-        var title: String {
-            switch self {
-            case .conversation: String(localized: "Same as the conversation", bundle: .app)
-            case .english: String(localized: "English", bundle: .app)
-            case .portuguese: String(localized: "Portuguese", bundle: .app)
-            }
-        }
-    }
-
-    @State private var tone: Tone = .natural
-    @State private var length: Length = .matchRequest
-    @State private var language: Language = .conversation
-    @State private var useEmojis = false
+    @AppStorage(SettingsKey.replyTone) private var tone: ReplyTone = .natural
+    @AppStorage(SettingsKey.replyLength) private var length: ReplyLength = .matchRequest
+    @AppStorage(SettingsKey.replyLanguage) private var language: ReplyLanguage = .conversation
 
     var body: some View {
         Section {
             Picker(String(localized: "Tone", bundle: .app), selection: $tone) {
-                ForEach(Tone.allCases) { Text($0.title).tag($0) }
+                ForEach(ReplyTone.allCases) { Text($0.title).tag($0) }
             }
             .pointingHandCursor()
             Picker(String(localized: "Length", bundle: .app), selection: $length) {
-                ForEach(Length.allCases) { Text($0.title).tag($0) }
+                ForEach(ReplyLength.allCases) { Text($0.title).tag($0) }
             }
             .pointingHandCursor()
             Picker(String(localized: "Language", bundle: .app), selection: $language) {
-                ForEach(Language.allCases) { Text($0.title).tag($0) }
+                ForEach(ReplyLanguage.allCases) { Text($0.title).tag($0) }
             }
             .pointingHandCursor()
-            Toggle(String(localized: "Use emojis", bundle: .app), isOn: $useEmojis)
-                .pointingHandCursor()
         } header: {
-            HStack(spacing: 6) {
-                Text("Style", bundle: .app)
-                StatusBadge(text: String(localized: "Preview", bundle: .app), color: .orange)
-            }
+            Text("Style", bundle: .app)
         } footer: {
-            Text("A preview: these options don't change replies yet.", bundle: .app)
+            Text("Applies to every reply. Your instructions above can refine it.", bundle: .app)
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .sectionFooter()
+        }
+    }
+}
+
+private extension ReplyTone {
+    var title: String {
+        switch self {
+        case .natural: String(localized: "Natural", bundle: .app)
+        case .friendly: String(localized: "Friendly", bundle: .app)
+        case .professional: String(localized: "Professional", bundle: .app)
+        case .casual: String(localized: "Casual", bundle: .app)
+        }
+    }
+}
+
+private extension ReplyLength {
+    var title: String {
+        switch self {
+        case .matchRequest: String(localized: "Match the request", bundle: .app)
+        case .short: String(localized: "Short", bundle: .app)
+        case .detailed: String(localized: "Detailed", bundle: .app)
+        }
+    }
+}
+
+private extension ReplyLanguage {
+    var title: String {
+        switch self {
+        case .conversation: String(localized: "Same as the conversation", bundle: .app)
+        case .english: String(localized: "English", bundle: .app)
+        case .portuguese: String(localized: "Portuguese", bundle: .app)
         }
     }
 }

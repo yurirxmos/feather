@@ -610,6 +610,7 @@ impl PromptController {
             let request = {
                 let inner = controller.lock();
                 let session = &inner.session;
+                let writing_preferences = settings.reply_style().writing_preferences(&settings.custom_instructions);
                 prompt::request(RequestInput {
                     instruction: &session.last_instruction,
                     context: &session.context,
@@ -617,7 +618,7 @@ impl PromptController {
                     history: &session.history,
                     model: &settings.model,
                     session_id: &session.session_id,
-                    custom_instructions: &settings.custom_instructions,
+                    custom_instructions: &writing_preferences,
                     mode,
                 })
             };

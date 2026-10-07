@@ -134,10 +134,8 @@ export const PT_BR: Record<string, string> = {
   Tone: "Tom",
   Length: "Tamanho",
   Language: "Idioma",
-  "Use emojis": "Usar emojis",
   Style: "Estilo",
-  Preview: "Prévia",
-  "A preview: these options don't change replies yet.": "Uma prévia: estas opções ainda não mudam as respostas.",
+  "Applies to every reply. Your instructions above can refine it.": "Vale para todas as respostas. Suas instruções acima podem ajustar.",
   Model: "Modelo",
   "Couldn't load the models. Check your key and connection.":
     "Não foi possível carregar os modelos. Verifique sua chave e a conexão.",

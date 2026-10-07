@@ -397,7 +397,7 @@ final class PromptController: NSObject, NSWindowDelegate {
                 model: settings.model,
                 sessionID: session.sessionID,
                 includeContext: true,
-                customInstructions: settings.customInstructions,
+                customInstructions: settings.replyStyle.writingPreferences(customInstructions: settings.customInstructions),
                 mode: mode
             )
             let requestStartedAt = ContinuousClock.now

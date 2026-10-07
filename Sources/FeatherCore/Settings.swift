@@ -6,6 +6,10 @@ public enum SettingsKey {
     public static let hotkey = "hotkey"
     public static let includeScreenshot = "includeScreenshot"
     public static let customInstructions = "customInstructions"
+    /// The Style choices in Settings > Replies; see `ReplyStyle`.
+    public static let replyTone = "replyTone"
+    public static let replyLength = "replyLength"
+    public static let replyLanguage = "replyLanguage"
     /// Whether the first-run welcome guide has been finished or dismissed. Absent until the guide has
     /// run once; `Settings.onboardingCompleted(stored:)` treats an absent value as not done.
     public static let onboardingCompleted = "onboardingCompleted"
@@ -36,6 +40,7 @@ public struct Settings: Equatable, Sendable {
     public var hotkey: HotkeyPreset
     public var includeScreenshot: Bool
     public var customInstructions: String
+    public var replyStyle: ReplyStyle
     public var plusBaseURL: String
 
     public init(
@@ -44,6 +49,7 @@ public struct Settings: Equatable, Sendable {
         hotkey: HotkeyPreset,
         includeScreenshot: Bool,
         customInstructions: String = "",
+        replyStyle: ReplyStyle = .standard,
         plusBaseURL: String = FeatherPlus.defaultBaseURL
     ) {
         self.connection = connection
@@ -51,6 +57,7 @@ public struct Settings: Equatable, Sendable {
         self.hotkey = hotkey
         self.includeScreenshot = includeScreenshot
         self.customInstructions = customInstructions
+        self.replyStyle = replyStyle
         self.plusBaseURL = plusBaseURL
     }
 
@@ -70,6 +77,11 @@ public struct Settings: Equatable, Sendable {
             includeScreenshot: defaults.object(forKey: SettingsKey.includeScreenshot) as? Bool ?? true,
             customInstructions: defaults.string(forKey: SettingsKey.customInstructions)?
                 .trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
+            replyStyle: ReplyStyle(
+                tone: defaults.string(forKey: SettingsKey.replyTone).flatMap(ReplyTone.init(rawValue:)) ?? .natural,
+                length: defaults.string(forKey: SettingsKey.replyLength).flatMap(ReplyLength.init(rawValue:)) ?? .matchRequest,
+                language: defaults.string(forKey: SettingsKey.replyLanguage).flatMap(ReplyLanguage.init(rawValue:)) ?? .conversation
+            ),
             plusBaseURL: FeatherPlus.baseURL(defaults)
         )
     }
