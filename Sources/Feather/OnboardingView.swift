@@ -86,6 +86,7 @@ struct OnboardingView: View {
                         Label(String(localized: "Back", bundle: .app), systemImage: "chevron.left")
                     }
                     .buttonStyle(.link)
+                    .pointingHandCursor()
                     Spacer()
                 }
                 .padding(.horizontal, 24)
@@ -159,6 +160,7 @@ struct OnboardingView: View {
                 Color.clear.frame(width: 80, height: 1)
             } else {
                 Button(String(localized: "Back", bundle: .app), action: goBack)
+                    .pointingHandCursor()
                     .frame(width: 80, alignment: .leading)
             }
             Spacer()
@@ -168,6 +170,7 @@ struct OnboardingView: View {
             Button(nextTitle, action: goNext)
                 .keyboardShortcut(.defaultAction)
                 .disabled(step == .connect && !isConnected)
+                .pointingHandCursor()
                 .frame(width: 80, alignment: .trailing)
         }
         .padding(.horizontal, 20)

@@ -236,6 +236,7 @@ struct ConnectionSettingsView: View {
         // A tooltip names the action; the trailing "…" belongs on buttons that open something.
         .help(label.hasSuffix("…") ? String(label.dropLast()) : label)
         .accessibilityLabel(label)
+        .pointingHandCursor()
     }
 
     private func actions(_ kind: ConnectionKind) -> some View {
@@ -260,6 +261,7 @@ struct ConnectionSettingsView: View {
         .fixedSize()
         .help(String(localized: "More", bundle: .app))
         .accessibilityLabel(String(localized: "More", bundle: .app))
+        .pointingHandCursor()
     }
 
     private var keyField: some View {
@@ -272,9 +274,11 @@ struct ConnectionSettingsView: View {
                 newKey = ""
                 isEnteringKey = false
             }
+            .pointingHandCursor()
             Button(String(localized: "Save", bundle: .app), action: saveKey)
                 .keyboardShortcut(.defaultAction)
                 .disabled(trimmedNewKey.isEmpty)
+                .pointingHandCursor()
         }
         .padding(.leading, 40)
     }
@@ -294,6 +298,7 @@ struct ConnectionSettingsView: View {
                     }
                 }
                 .disabled(isLoadingChatGPTModels)
+                .pointingHandCursor()
                 if isLoadingChatGPTModels {
                     ProgressView()
                         .controlSize(.small)
@@ -304,6 +309,7 @@ struct ConnectionSettingsView: View {
                     .buttonStyle(.borderless)
                     .help(String(localized: "Refresh", bundle: .app))
                     .accessibilityLabel(String(localized: "Refresh", bundle: .app))
+                    .pointingHandCursor()
                 }
             }
         case .openCodeGo:
@@ -314,6 +320,7 @@ struct ConnectionSettingsView: View {
                     }
                 }
                 .disabled(isLoadingModels)
+                .pointingHandCursor()
                 if isLoadingModels {
                     ProgressView()
                         .controlSize(.small)
@@ -324,6 +331,7 @@ struct ConnectionSettingsView: View {
                     .buttonStyle(.borderless)
                     .help(String(localized: "Refresh", bundle: .app))
                     .accessibilityLabel(String(localized: "Refresh", bundle: .app))
+                    .pointingHandCursor()
                 }
             }
         }

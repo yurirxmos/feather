@@ -85,6 +85,7 @@ private struct PermissionRow: View {
                     .foregroundStyle(.secondary)
             } else {
                 Button(String(localized: "Grant…", bundle: .app), action: grant)
+                    .pointingHandCursor()
             }
         }
         .padding(.vertical, 2)

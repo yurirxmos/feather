@@ -105,6 +105,8 @@ struct SettingsView: View {
                 }
             }
             .padding(.vertical, 2)
+            .contentShape(Rectangle())
+            .pointingHandCursor()
             .tag(section)
         }
         .listStyle(.sidebar)
@@ -120,6 +122,7 @@ struct SettingsView: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
+                .pointingHandCursor()
                 .padding(.horizontal, 18)
                 .padding(.vertical, 12)
             }
@@ -193,6 +196,7 @@ struct SettingsView: View {
                         Text(preset.symbol).tag(preset)
                     }
                 }
+                .pointingHandCursor()
             } header: {
                 Text("Shortcut", bundle: .app)
             }
@@ -213,6 +217,7 @@ struct SettingsView: View {
                     Text("Include a screenshot of the active window", bundle: .app)
                     Text("Gives the model visual context. Requires Screen Recording.", bundle: .app)
                 }
+                .pointingHandCursor()
             } header: {
                 Text("Context", bundle: .app)
             } footer: {
@@ -227,6 +232,7 @@ struct SettingsView: View {
                     Text("Open Feather at login", bundle: .app)
                     Text("Starts Feather in the background when you sign in to your computer.", bundle: .app)
                 }
+                .pointingHandCursor()
             } header: {
                 Text("Startup", bundle: .app)
             }
@@ -235,6 +241,7 @@ struct SettingsView: View {
                 Button(String(localized: "Show Welcome Guide…", bundle: .app)) {
                     onboardingCompleted = false
                 }
+                .pointingHandCursor()
             }
         }
         .formStyle(.grouped)
@@ -298,6 +305,7 @@ private struct InstructionsEditor: View {
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     .disabled(text.contains(suggestion.instruction))
+                    .pointingHandCursor()
                 }
             }
         }

@@ -73,6 +73,7 @@ struct FeedbackView: View {
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 12)
                 Button(String(localized: "Cancel", bundle: .app), role: .cancel, action: close)
+                    .pointingHandCursor()
                     .keyboardShortcut(.cancelAction)
                 Button {
                     Task { await send() }
@@ -85,6 +86,7 @@ struct FeedbackView: View {
                 }
                 .keyboardShortcut(.defaultAction)
                 .disabled(sending || !Feedback.canSend(message))
+                .pointingHandCursor()
             }
         }
         .onAppear { messageFocused = true }
@@ -101,6 +103,7 @@ struct FeedbackView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
             Button(String(localized: "Done", bundle: .app), action: close)
+                .pointingHandCursor()
                 .keyboardShortcut(.defaultAction)
                 .padding(.top, 4)
         }

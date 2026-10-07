@@ -18,7 +18,10 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; }
 button, input, select, textarea { font: inherit; color: inherit; }
-button { cursor: default; }
+/* Everything clickable shows the pointing hand, as the macOS app does (`pointingHandCursor`). */
+button:not(:disabled), select:not(:disabled), summary, [role="menuitem"],
+input[type="checkbox"]:not(:disabled), input[type="radio"]:not(:disabled), label:has(> input[type="checkbox"]:not(:disabled)) { cursor: pointer; }
+button:disabled { cursor: default; }
 .spinner {
   display: inline-block; width: 12px; height: 12px; flex: none;
   border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%;
@@ -226,7 +229,7 @@ p.row { margin: 0; }
 .settings-body input[type="password"] { min-width: 200px; }
 .settings-body code { font: 13px var(--mono); }
 .settings-body input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
-.toggle { cursor: default; }
+.toggle { cursor: pointer; }
 .segmented { display: inline-flex; padding: 2px; border-radius: 7px; background: var(--hover); border: 1px solid var(--line); }
 .settings-body .segmented button:not(.section):not(.quit):not(.link) { border: 0; background: none; min-height: 26px; padding: 0 14px; border-radius: 5px; color: var(--secondary); }
 .settings-body .segmented button.selected:not(.section):not(.quit):not(.link) { background: var(--control); color: var(--text); font-weight: 600; box-shadow: 0 1px 2px rgb(0 0 0 / .25); }

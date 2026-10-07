@@ -322,6 +322,7 @@ private struct ContextChip: View {
             .strikethrough(!isOn)
             .contentShape(Capsule())
             .onTapGesture(perform: action)
+            .pointingHandCursor()
     }
 }
 
@@ -374,6 +375,7 @@ private struct GeneratingIndicator: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .pointingHandCursor()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -393,6 +395,7 @@ private struct KeyHint: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(label)
+            .pointingHandCursor()
         } else {
             content
         }

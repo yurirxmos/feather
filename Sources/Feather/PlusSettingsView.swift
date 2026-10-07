@@ -58,9 +58,11 @@ struct PlusSettingsView: View {
                         Button(String(localized: "Cancel", bundle: .app)) {
                             signInTask?.cancel()
                         }
+                        .pointingHandCursor()
                     } else {
                         Button(String(localized: "Sign in", bundle: .app), action: signIn)
                             .keyboardShortcut(.defaultAction)
+                            .pointingHandCursor()
                     }
                 }
                 .padding(.top, 4)
@@ -102,8 +104,10 @@ struct PlusSettingsView: View {
             HStack {
                 Button(account?.plan == nil ? String(localized: "Choose a plan…", bundle: .app) : String(localized: "Manage subscription…", bundle: .app), action: openBilling)
                     .disabled(account == nil)
+                    .pointingHandCursor()
                 Spacer()
                 Button(String(localized: "Sign out", bundle: .app), action: signOut)
+                    .pointingHandCursor()
             }
         } header: {
             Text("Account", bundle: .app)
@@ -139,6 +143,7 @@ struct PlusSettingsView: View {
                 if token != nil {
                     Button(String(localized: "Retry", bundle: .app), action: loadAccount)
                         .buttonStyle(.link)
+                        .pointingHandCursor()
                 }
             }
             .font(.callout)
