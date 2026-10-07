@@ -151,6 +151,7 @@ button:disabled { cursor: default; }
   color: #fff; font-size: 12px;
 }
 .section-icon.general { background: linear-gradient(#9ca3af, #6b7280); }
+.section-icon.replies { background: linear-gradient(#4ade80, #16a34a); }
 .section-icon.connection { background: linear-gradient(#60a5fa, #2563eb); }
 .section-icon.system { background: linear-gradient(#818cf8, #4f46e5); }
 .section-icon .glyph { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
@@ -162,6 +163,7 @@ button:disabled { cursor: default; }
 .sidebar-action .sparkle { width: 14px; height: 14px; fill: var(--orange); }
 
 .detail { overflow-y: auto; padding: 22px 28px 32px; }
+.group h2 .status.preview { margin-left: 4px; font-weight: 500; }
 .detail h1 { margin: 0 0 18px; font-size: 22px; font-weight: 600; }
 .group { margin-bottom: 22px; }
 .group h2 { margin: 0 0 8px 4px; color: var(--secondary); font-size: 12px; font-weight: 600; }

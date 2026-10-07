@@ -4,6 +4,7 @@ import SwiftUI
 
 private enum SettingsSection: String, CaseIterable, Identifiable {
     case general
+    case replies
     case connection
     case permissions
 
@@ -13,6 +14,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
         switch self {
         case .connection: String(localized: "Connection", bundle: .app)
         case .general: String(localized: "General", bundle: .app)
+        case .replies: String(localized: "Replies", bundle: .app)
         case .permissions: String(localized: "Permissions", bundle: .app)
         }
     }
@@ -21,6 +23,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
         switch self {
         case .connection: "network"
         case .general: "gearshape"
+        case .replies: "text.bubble"
         case .permissions: "lock.shield"
         }
     }
@@ -29,6 +32,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
         switch self {
         case .connection: .blue
         case .general: .gray
+        case .replies: .green
         case .permissions: .indigo
         }
     }
@@ -154,7 +158,7 @@ struct SettingsView: View {
     private func needsAttention(_ section: SettingsSection) -> Bool {
         switch section {
         case .connection: !isConnected
-        case .general: false
+        case .general, .replies: false
         case .permissions: !permissions.allGranted
         }
     }
@@ -196,6 +200,7 @@ struct SettingsView: View {
                 credentialsChanged: refreshProviders
             )
         case .general: generalView
+        case .replies: repliesView
         case .permissions: permissionsView
         }
     }
@@ -240,6 +245,31 @@ struct SettingsView: View {
             }
 
             Section {
+                Toggle(isOn: launchAtLoginBinding) {
+                    Text("Open Feather at login", bundle: .app)
+                    Text("Starts Feather in the background when you sign in to your computer.", bundle: .app)
+                }
+                .pointingHandCursor()
+            } header: {
+                Text("Startup", bundle: .app)
+            }
+
+            Section {
+                Button(String(localized: "Show Welcome Guide…", bundle: .app)) {
+                    onboardingCompleted = false
+                }
+                .pointingHandCursor()
+            }
+        }
+        .formStyle(.grouped)
+        .onAppear { launchAtLogin = SMAppService.mainApp.status == .enabled }
+    }
+
+    // MARK: - Replies
+
+    private var repliesView: some View {
+        Form {
+            Section {
                 InstructionsEditor(text: $customInstructions)
             } header: {
                 Text("Instructions", bundle: .app)
@@ -265,25 +295,9 @@ struct SettingsView: View {
                     .sectionFooter()
             }
 
-            Section {
-                Toggle(isOn: launchAtLoginBinding) {
-                    Text("Open Feather at login", bundle: .app)
-                    Text("Starts Feather in the background when you sign in to your computer.", bundle: .app)
-                }
-                .pointingHandCursor()
-            } header: {
-                Text("Startup", bundle: .app)
-            }
-
-            Section {
-                Button(String(localized: "Show Welcome Guide…", bundle: .app)) {
-                    onboardingCompleted = false
-                }
-                .pointingHandCursor()
-            }
+            ReplyStyleSection()
         }
         .formStyle(.grouped)
-        .onAppear { launchAtLogin = SMAppService.mainApp.status == .enabled }
     }
 
     // MARK: - Permissions
@@ -353,6 +367,82 @@ private struct InstructionsEditor: View {
     private func add(_ instruction: String) {
         let current = text.trimmingCharacters(in: .whitespacesAndNewlines)
         text = current.isEmpty ? instruction : current + "\n" + instruction
+    }
+}
+
+/// How replies read: tone, length, language, and emojis.
+///
+/// A preview: the choices are kept only while Settings is open and don't reach the prompt yet.
+private struct ReplyStyleSection: View {
+    private enum Tone: String, CaseIterable, Identifiable {
+        case natural, friendly, professional, casual
+        var id: String { rawValue }
+        var title: String {
+            switch self {
+            case .natural: String(localized: "Natural", bundle: .app)
+            case .friendly: String(localized: "Friendly", bundle: .app)
+            case .professional: String(localized: "Professional", bundle: .app)
+            case .casual: String(localized: "Casual", bundle: .app)
+            }
+        }
+    }
+
+    private enum Length: String, CaseIterable, Identifiable {
+        case matchRequest, short, detailed
+        var id: String { rawValue }
+        var title: String {
+            switch self {
+            case .matchRequest: String(localized: "Match the request", bundle: .app)
+            case .short: String(localized: "Short", bundle: .app)
+            case .detailed: String(localized: "Detailed", bundle: .app)
+            }
+        }
+    }
+
+    private enum Language: String, CaseIterable, Identifiable {
+        case conversation, english, portuguese
+        var id: String { rawValue }
+        var title: String {
+            switch self {
+            case .conversation: String(localized: "Same as the conversation", bundle: .app)
+            case .english: String(localized: "English", bundle: .app)
+            case .portuguese: String(localized: "Portuguese", bundle: .app)
+            }
+        }
+    }
+
+    @State private var tone: Tone = .natural
+    @State private var length: Length = .matchRequest
+    @State private var language: Language = .conversation
+    @State private var useEmojis = false
+
+    var body: some View {
+        Section {
+            Picker(String(localized: "Tone", bundle: .app), selection: $tone) {
+                ForEach(Tone.allCases) { Text($0.title).tag($0) }
+            }
+            .pointingHandCursor()
+            Picker(String(localized: "Length", bundle: .app), selection: $length) {
+                ForEach(Length.allCases) { Text($0.title).tag($0) }
+            }
+            .pointingHandCursor()
+            Picker(String(localized: "Language", bundle: .app), selection: $language) {
+                ForEach(Language.allCases) { Text($0.title).tag($0) }
+            }
+            .pointingHandCursor()
+            Toggle(String(localized: "Use emojis", bundle: .app), isOn: $useEmojis)
+                .pointingHandCursor()
+        } header: {
+            HStack(spacing: 6) {
+                Text("Style", bundle: .app)
+                StatusBadge(text: String(localized: "Preview", bundle: .app), color: .orange)
+            }
+        } footer: {
+            Text("A preview: these options don't change replies yet.", bundle: .app)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .sectionFooter()
+        }
     }
 }
 

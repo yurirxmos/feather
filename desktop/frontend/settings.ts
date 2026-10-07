@@ -11,7 +11,7 @@ import openAILogo from "../../Sources/Feather/ProviderLogos/openai_logo.svg";
 import openCodeLogo from "../../Sources/Feather/ProviderLogos/opencode_logo.png";
 
 type Connection = "openCodeGo" | "chatGPT" | "featherPlus";
-type Section = "general" | "connection" | "system";
+type Section = "general" | "replies" | "connection" | "system";
 
 type AppInfo = {
   locale: string;
@@ -88,6 +88,8 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     items[(index + (event.key === "ArrowDown" ? 1 : items.length - 1)) % items.length]?.focus();
   });
   let authError: string | null = null;
+  // The Replies tab's Style choices, a preview kept only while Settings is open.
+  const replyStylePreview = { tone: "natural", length: "matchRequest", language: "conversation", emojis: false };
   let plusAccount: PlusAccount | null = null;
   let loadingAccount = false;
   let plusError: string | null = null;
@@ -117,11 +119,11 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
   }
 
   function sections(): Section[] {
-    return ["general", "connection", "system"];
+    return ["general", "replies", "connection", "system"];
   }
 
   function title(item: Section): string {
-    return { general: t("General"), connection: t("Connection"), system: t("System") }[item];
+    return { general: t("General"), replies: t("Replies"), connection: t("Connection"), system: t("System") }[item];
   }
 
   /** Until the account has a Feather Plus plan, the sidebar offers Upgrade. */
@@ -177,7 +179,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
       ),
     );
 
-    const views: Record<Section, () => HTMLElement[]> = { general, connection, system };
+    const views: Record<Section, () => HTMLElement[]> = { general, replies, connection, system };
     detail.replaceChildren(h("h1", {}, title(section)), ...views[section]());
   }
 
@@ -198,6 +200,28 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
         void set("launchAtLogin", (event.target as HTMLInputElement).checked).catch(render);
       },
     });
+    return [
+      ...(settings.plusEnabled ? [account()] : []),
+      group(t("Shortcut"), [row(t("Open Feather"), hotkey)], shortcutNote()),
+      group(t("Startup"), [
+        h(
+          "label",
+          { class: "row toggle", for: "launch-at-login" },
+          h("span", { class: "label" }, t("Open Feather at login"), h("small", {}, t("Starts Feather in the background when you sign in to your computer."))),
+          launchAtLogin,
+        ),
+      ]),
+      group(t("About"), [
+        row(t("Version"), h("span", { class: "secondary" }, info.version)),
+        h("div", { class: "row" }, h("button", { type: "button", onclick: () => void invoke("check_for_updates") }, t("Check for Updates…"))),
+        h("div", { class: "row" }, h("button", { type: "button", onclick: () => void set("onboardingCompleted", false).then(startOnboarding) }, t("Show Welcome Guide…"))),
+      ]),
+    ];
+  }
+
+  // MARK: Replies
+
+  function replies(): HTMLElement[] {
     const screenshot = h("input", {
       type: "checkbox",
       id: "include-screenshot",
@@ -238,8 +262,6 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     });
 
     return [
-      ...(settings.plusEnabled ? [account()] : []),
-      group(t("Shortcut"), [row(t("Open Feather"), hotkey)], shortcutNote()),
       group(
         t("Instructions"),
         [instructions, h("div", { class: "suggestions" }, ...suggestions.map(({ button }) => button))],
@@ -257,20 +279,57 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
         ],
         footnote(t("Nothing is captured until you press the shortcut, and the context is discarded when the panel closes.")),
       ),
-      group(t("Startup"), [
-        h(
-          "label",
-          { class: "row toggle", for: "launch-at-login" },
-          h("span", { class: "label" }, t("Open Feather at login"), h("small", {}, t("Starts Feather in the background when you sign in to your computer."))),
-          launchAtLogin,
-        ),
-      ]),
-      group(t("About"), [
-        row(t("Version"), h("span", { class: "secondary" }, info.version)),
-        h("div", { class: "row" }, h("button", { type: "button", onclick: () => void invoke("check_for_updates") }, t("Check for Updates…"))),
-        h("div", { class: "row" }, h("button", { type: "button", onclick: () => void set("onboardingCompleted", false).then(startOnboarding) }, t("Show Welcome Guide…"))),
-      ]),
+      replyStyle(),
     ];
+  }
+
+  /**
+   * How replies read: tone, length, language, and emojis, mirroring `ReplyStyleSection` in the macOS
+   * app. A preview: the choices are kept only while Settings is open and don't reach the prompt yet.
+   */
+  function replyStyle(): HTMLElement {
+    const picker = (label: string, key: "tone" | "length" | "language", options: [string, string][]) =>
+      row(
+        label,
+        h(
+          "select",
+          { "aria-label": label, onchange: (event) => (replyStylePreview[key] = (event.target as HTMLSelectElement).value) },
+          ...options.map(([value, text]) => h("option", { value, selected: replyStylePreview[key] === value }, text)),
+        ),
+      );
+    const emojis = h("input", {
+      type: "checkbox",
+      id: "use-emojis",
+      checked: replyStylePreview.emojis,
+      onchange: (event) => (replyStylePreview.emojis = (event.target as HTMLInputElement).checked),
+    });
+    return h(
+      "section",
+      { class: "group" },
+      h("h2", {}, t("Style"), " ", h("span", { class: "status preview" }, h("span", { class: "dot orange", "aria-hidden": "true" }), t("Preview"))),
+      h(
+        "div",
+        { class: "card" },
+        picker(t("Tone"), "tone", [
+          ["natural", t("Natural")],
+          ["friendly", t("Friendly")],
+          ["professional", t("Professional")],
+          ["casual", t("Casual")],
+        ]),
+        picker(t("Length"), "length", [
+          ["matchRequest", t("Match the request")],
+          ["short", t("Short")],
+          ["detailed", t("Detailed")],
+        ]),
+        picker(t("Language"), "language", [
+          ["conversation", t("Same as the conversation")],
+          ["english", t("English")],
+          ["portuguese", t("Portuguese")],
+        ]),
+        h("label", { class: "row toggle", for: "use-emojis" }, h("span", { class: "label" }, t("Use emojis")), emojis),
+      ),
+      footnote(t("A preview: these options don't change replies yet.")),
+    );
   }
 
   // MARK: Connection
@@ -944,7 +1003,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
 }
 
 function sectionGlyph(section: Section): Node {
-  return document.createTextNode({ general: "⚙", connection: "⇄", system: "⛨" }[section]);
+  return document.createTextNode({ general: "⚙", replies: "❝", connection: "⇄", system: "⛨" }[section]);
 }
 
 function group(title: string | null, rows: HTMLElement[], foot: HTMLElement | null = null): HTMLElement {
