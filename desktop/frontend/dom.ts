@@ -53,6 +53,20 @@ export function sparkleIcon(className = "sparkle"): SVGSVGElement {
   return svg;
 }
 
+/** A head over shoulders, like SF Symbols' `person.crop.circle`, for the Account tab, on a 24x24 grid. */
+export function personIcon(className = "glyph"): SVGSVGElement {
+  const svg = document.createElementNS(SVG, "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("class", className);
+  svg.setAttribute("aria-hidden", "true");
+  for (const d of ["M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z", "M4.5 20.5c1.2-3.6 4-5.5 7.5-5.5s6.3 1.9 7.5 5.5"]) {
+    const path = document.createElementNS(SVG, "path");
+    path.setAttribute("d", d);
+    svg.append(path);
+  }
+  return svg;
+}
+
 /** A circle around three dots, like SF Symbols' `ellipsis.circle` on the macOS app's row menus. */
 export function moreIcon(): SVGSVGElement {
   const svg = document.createElementNS(SVG, "svg");

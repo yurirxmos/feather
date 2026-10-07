@@ -1411,16 +1411,6 @@
         }
       }
     },
-    "Sign in to Feather Plus": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Entrar no Feather Plus"
-          }
-        }
-      }
-    },
     "Use your Feather Plus account.": {
       "localizations": {
         "pt-BR": {
@@ -1857,6 +1847,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld%% usado"
+          }
+        }
+      }
+    },
+    "Not signed in": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não conectado"
+          }
+        }
+      }
+    },
+    "Sign in to see your plan and usage.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entre para ver seu plano e uso."
+          }
+        }
+      }
+    },
+    "See Feather Plus plans on the website": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver os planos do Feather Plus no site"
           }
         }
       }

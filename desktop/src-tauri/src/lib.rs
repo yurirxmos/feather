@@ -81,7 +81,7 @@ pub fn run() {
             commands::cancel_sign_in,
             commands::plus_account,
             commands::plus_sign_out,
-            commands::open_plus_account_page,
+            commands::open_plus_page,
             commands::capabilities,
             commands::send_feedback,
             commands::close_feedback,

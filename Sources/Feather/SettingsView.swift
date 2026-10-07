@@ -5,7 +5,7 @@ import SwiftUI
 private enum SettingsSection: String, CaseIterable, Identifiable {
     case general
     case connection
-    case plus
+    case account
     case permissions
 
     var id: String { rawValue }
@@ -14,7 +14,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
         switch self {
         case .connection: String(localized: "Connection", bundle: .app)
         case .general: String(localized: "General", bundle: .app)
-        case .plus: String(localized: "Feather Plus", bundle: .app)
+        case .account: String(localized: "Account", bundle: .app)
         case .permissions: String(localized: "Permissions", bundle: .app)
         }
     }
@@ -23,7 +23,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
         switch self {
         case .connection: "network"
         case .general: "gearshape"
-        case .plus: "sparkles"
+        case .account: "person.crop.circle"
         case .permissions: "lock.shield"
         }
     }
@@ -32,7 +32,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
         switch self {
         case .connection: .blue
         case .general: .gray
-        case .plus: .orange
+        case .account: .orange
         case .permissions: .indigo
         }
     }
@@ -50,12 +50,11 @@ struct SettingsView: View {
     @AppStorage(SettingsKey.onboardingCompleted) private var onboardingCompleted = true
     @State private var providersSetUp: Set<ConnectionKind> = []
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
-    /// The Feather Plus pane invites you in until you have a plan; after that it is your account.
-    @State private var plusShowsAccount: Bool
+    /// Whether the signed-in account has a Feather Plus plan; until it does, the sidebar offers Become Plus.
+    @State private var hasPlusPlan = false
 
     init(credentialStore: any CredentialStore = KeychainCredentialStore.shared) {
         self.credentialStore = credentialStore
-        _plusShowsAccount = State(initialValue: credentialStore.plusToken() != nil)
     }
 
     var body: some View {
@@ -74,12 +73,13 @@ struct SettingsView: View {
             sidebar
         } detail: {
             detailView
-                .navigationTitle(title(of: selectedSection ?? .general))
+                .navigationTitle((selectedSection ?? .general).title)
         }
         .toolbar(removing: .sidebarToggle)
         .frame(minWidth: 680, minHeight: 480)
         .onAppear {
             refreshProviders()
+            refreshPlan()
             if !isConnected {
                 selectedSection = .connection
             } else if !permissions.allGranted {
@@ -90,6 +90,10 @@ struct SettingsView: View {
             // Feather Plus sign-in happens in its own pane; refresh when coming back.
             refreshProviders()
         }
+        // Plans are bought in the browser, so check again on returning to the app.
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            refreshPlan()
+        }
     }
 
     // MARK: - Sidebar
@@ -98,7 +102,7 @@ struct SettingsView: View {
         List(visibleSections, selection: $selectedSection) { section in
             HStack(spacing: 8) {
                 SectionIcon(symbol: section.symbol, tint: section.tint)
-                Text(title(of: section))
+                Text(section.title)
                 Spacer(minLength: 0)
                 if needsAttention(section) {
                     Circle()
@@ -116,6 +120,24 @@ struct SettingsView: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             VStack(spacing: 0) {
                 Divider()
+                if FeatherPlus.isEnabled(), !hasPlusPlan {
+                    Button(action: becomePlus) {
+                        Label {
+                            Text("Become Plus", bundle: .app)
+                        } icon: {
+                            Image(systemName: "sparkles")
+                                .foregroundStyle(.orange)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                    .help(String(localized: "See Feather Plus plans on the website", bundle: .app))
+                    .pointingHandCursor()
+                    .padding(.horizontal, 18)
+                    .padding(.top, 12)
+                }
                 Button {
                     NSApp.terminate(nil)
                 } label: {
@@ -133,19 +155,14 @@ struct SettingsView: View {
         .navigationSplitViewColumnWidth(min: 190, ideal: 200, max: 240)
     }
 
-    private func title(of section: SettingsSection) -> String {
-        guard section == .plus else { return section.title }
-        return plusShowsAccount ? String(localized: "Account", bundle: .app) : String(localized: "Become Plus", bundle: .app)
-    }
-
     private var visibleSections: [SettingsSection] {
-        SettingsSection.allCases.filter { $0 != .plus || FeatherPlus.isEnabled() }
+        SettingsSection.allCases.filter { $0 != .account || FeatherPlus.isEnabled() }
     }
 
     private func needsAttention(_ section: SettingsSection) -> Bool {
         switch section {
         case .connection: !isConnected
-        case .general, .plus: false
+        case .general, .account: false
         case .permissions: !permissions.allGranted
         }
     }
@@ -159,17 +176,35 @@ struct SettingsView: View {
         providersSetUp = Settings.providersSetUp(in: credentialStore, plusAvailable: FeatherPlus.isProviderEnabled())
     }
 
+    private func refreshPlan() {
+        guard FeatherPlus.isEnabled(), let token = credentialStore.plusToken() else {
+            hasPlusPlan = false
+            return
+        }
+        Task {
+            // A failed check keeps the last answer; the Account pane reports errors.
+            if let account = try? await PlusAuth.account(token: token) {
+                hasPlusPlan = account.plan != nil
+            }
+        }
+    }
+
+    /// Opens the plans on the website, signed in to this account when there is one.
+    private func becomePlus() {
+        Task { await PlusAuth.openWebsite(path: FeatherPlus.pricingPath, store: credentialStore) }
+    }
+
     @ViewBuilder
     private var detailView: some View {
         switch selectedSection ?? .general {
         case .connection:
             ConnectionSettingsView(
                 credentialStore: credentialStore,
-                openPlus: { selectedSection = .plus },
+                openPlus: { selectedSection = .account },
                 credentialsChanged: refreshProviders
             )
         case .general: generalView
-        case .plus: PlusSettingsView(credentialStore: credentialStore, showsAccount: $plusShowsAccount)
+        case .account: PlusSettingsView(credentialStore: credentialStore, hasPlan: $hasPlusPlan)
         case .permissions: permissionsView
         }
     }

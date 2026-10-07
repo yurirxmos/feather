@@ -285,9 +285,14 @@ pub fn plus_sign_out(app: AppHandle, store: State<'_, SettingsStore>) -> Credent
     credential_status()
 }
 
+/// Opens the website's plans (`pricing`) or account page (`account`), signed in to the app's
+/// account when there is one.
 #[tauri::command]
-pub fn open_plus_account_page(app: AppHandle, store: State<'_, SettingsStore>) -> Result<(), String> {
-    let url = crate::core::plus::account_url(&store.current().plus_base_url).map_err(|error| error.message())?;
+pub async fn open_plus_page(app: AppHandle, store: State<'_, SettingsStore>, page: String) -> Result<(), String> {
+    let base = store.current().plus_base_url;
+    let path = if page == "pricing" { crate::core::plus::PRICING_PATH } else { crate::core::plus::ACCOUNT_PATH };
+    let code = auth::plus::web_code(&base).await;
+    let url = crate::core::plus::website_url(&base, path, code.as_deref()).map_err(|error| error.message())?;
     app.opener().open_url(url, None::<&str>).map_err(|error| error.to_string())
 }
 

@@ -87,6 +87,18 @@ pub async fn account(base: &str, token: &str) -> Result<plus::PlusAccount, PlusE
     plus::decode_account(&bytes).map_err(|error| PlusError::Other(error.message()))
 }
 
+/// A single-use code that signs the website in to the same account, or `None` without a token or
+/// when the server can't give one; the page then opens signed out.
+pub async fn web_code(base: &str) -> Option<String> {
+    let token = credentials::plus_token()?;
+    let url = crate::core::error::endpoint(base, "/v1/auth/web").ok()?;
+    let response = CLIENT.post(url).bearer_auth(token).timeout(Duration::from_secs(10)).send().await.ok()?;
+    if !response.status().is_success() {
+        return None;
+    }
+    plus::decode_web_code(&response.bytes().await.ok()?)
+}
+
 /// Forgets the token locally right away, then asks the server to revoke it. Revocation is best
 /// effort: a token that is no longer stored anywhere is useless even if it survives.
 pub fn sign_out(base: &str) {

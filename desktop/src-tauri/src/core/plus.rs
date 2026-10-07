@@ -43,9 +43,28 @@ pub fn authorize_url(base: &str, redirect_uri: &str, state: &str, code_challenge
     Ok(url.into())
 }
 
-/// The page where a signed-in user picks, changes, or cancels a plan.
-pub fn account_url(base: &str) -> Result<String, LlmError> {
-    Ok(endpoint(base, "/account")?.into())
+/// The website's plans, opened by Become Plus.
+pub const PRICING_PATH: &str = "/#pricing";
+/// The website's account page, where a subscriber changes or cancels a plan.
+pub const ACCOUNT_PATH: &str = "/account";
+
+/// Opens `path` on the website. With a web code from `POST /v1/auth/web`, a browser that isn't
+/// signed in yet arrives signed in to the app's account.
+pub fn website_url(base: &str, path: &str, code: Option<&str>) -> Result<String, LlmError> {
+    let mut url = endpoint(base, "/auth/app")?;
+    {
+        let mut query = url.query_pairs_mut();
+        if let Some(code) = code {
+            query.append_pair("code", code);
+        }
+        query.append_pair("next", path);
+    }
+    Ok(url.into())
+}
+
+pub fn decode_web_code(body: &[u8]) -> Option<String> {
+    let json: Value = serde_json::from_slice(body).ok()?;
+    json.get("code").and_then(Value::as_str).filter(|code| !code.is_empty()).map(str::to_owned)
 }
 
 /// Extracts the authorization code from a loopback request target such as
@@ -135,6 +154,18 @@ mod tests {
         assert!(url.starts_with("https://api.example.com/auth/authorize?response_type=code"));
         assert!(url.contains("redirect_uri=http%3A%2F%2F127.0.0.1%3A5000%2Fcallback"));
         assert!(url.contains("code_challenge_method=S256"));
+    }
+
+    #[test]
+    fn website_url_keeps_the_path_inside_the_query() {
+        assert_eq!(
+            website_url("https://feather-api.rxmos.dev", PRICING_PATH, Some("abc")).unwrap(),
+            "https://feather-api.rxmos.dev/auth/app?code=abc&next=%2F%23pricing"
+        );
+        assert_eq!(website_url("https://feather-api.rxmos.dev", ACCOUNT_PATH, None).unwrap(), "https://feather-api.rxmos.dev/auth/app?next=%2Faccount");
+        assert!(website_url("not a url", "/", None).is_err());
+        assert_eq!(decode_web_code(br#"{"code":"abc"}"#).as_deref(), Some("abc"));
+        assert_eq!(decode_web_code(br#"{"code":""}"#), None);
     }
 
     #[test]

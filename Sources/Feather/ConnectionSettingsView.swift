@@ -486,8 +486,7 @@ struct ConnectionSettingsView: View {
     }
 
     private func openBilling() {
-        guard let url = try? FeatherPlus.accountURL(base: FeatherPlus.baseURL()) else { return }
-        NSWorkspace.shared.open(url)
+        Task { await PlusAuth.openWebsite(path: FeatherPlus.pricingPath, store: credentialStore) }
     }
 
     /// Asks ChatGPT which models this account can use, and moves a selection the account lacks to

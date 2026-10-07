@@ -51,6 +51,23 @@ final class FeatherPlusTests: XCTestCase {
         XCTAssertEqual(revoke.value(forHTTPHeaderField: "Authorization"), "Bearer fth_x")
     }
 
+    func testWebCodeRequestUsesBearerToken() throws {
+        let request = try FeatherPlus.webCodeRequest(base: "http://127.0.0.1:8787", token: "fth_x")
+        XCTAssertEqual(request.httpMethod, "POST")
+        XCTAssertEqual(request.url?.path, "/v1/auth/web")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer fth_x")
+        XCTAssertEqual(try FeatherPlus.decodeWebCode(Data(#"{"code":"abc"}"#.utf8)), "abc")
+        XCTAssertThrowsError(try FeatherPlus.decodeWebCode(Data(#"{"code":""}"#.utf8)))
+    }
+
+    func testWebsiteURLKeepsThePathInsideTheQuery() throws {
+        let signedIn = try FeatherPlus.websiteURL(base: "https://feather-api.rxmos.dev", path: FeatherPlus.pricingPath, code: "abc")
+        XCTAssertEqual(signedIn.absoluteString, "https://feather-api.rxmos.dev/auth/app?code=abc&next=/%23pricing")
+        let signedOut = try FeatherPlus.websiteURL(base: "https://feather-api.rxmos.dev", path: FeatherPlus.accountPath, code: nil)
+        XCTAssertEqual(signedOut.absoluteString, "https://feather-api.rxmos.dev/auth/app?next=/account")
+        XCTAssertThrowsError(try FeatherPlus.websiteURL(base: "not a url", path: "/", code: nil))
+    }
+
     func testDecodeTokenRejectsEmptyToken() throws {
         XCTAssertEqual(try FeatherPlus.decodeToken(Data(#"{"token":"fth_abc"}"#.utf8)), "fth_abc")
         XCTAssertThrowsError(try FeatherPlus.decodeToken(Data(#"{"token":""}"#.utf8)))

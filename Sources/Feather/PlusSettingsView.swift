@@ -2,11 +2,12 @@ import AppKit
 import FeatherCore
 import SwiftUI
 
-/// The Feather Plus pane: sign-in, the active plan, and this period's usage.
+/// The Account pane: sign-in, the active plan, and this period's usage. Buying a plan happens on
+/// the website, from Become Plus in the sidebar.
 struct PlusSettingsView: View {
     let credentialStore: any CredentialStore
-    /// Tells the sidebar whether this pane is the account (signed in, with a plan) or the invitation.
-    @Binding var showsAccount: Bool
+    /// Tells the sidebar whether the account has a plan, so it can hide Become Plus.
+    @Binding var hasPlan: Bool
     @AppStorage(SettingsKey.connection) private var connection: ConnectionKind = .openCodeGo
     @AppStorage(SettingsKey.model) private var model = OpenCodeGoProvider.defaultModel
     @State private var token: String?
@@ -21,20 +22,28 @@ struct PlusSettingsView: View {
 
     var body: some View {
         Form {
-            if token == nil {
-                signedOutContent
-            } else {
-                signedInContent
+            Section {
+                if token == nil {
+                    signedOutRow
+                } else {
+                    profile
+                }
+            } footer: {
+                footer
+                    .sectionFooter()
+            }
+
+            if let account, account.plan != nil, !account.usage.isEmpty {
+                usage(account)
             }
         }
         .formStyle(.grouped)
         .onAppear {
             token = credentialStore.plusToken()
-            showsAccount = isAccountView
             loadAccount()
         }
-        .onChange(of: isAccountView) { _, value in
-            showsAccount = value
+        .onChange(of: account) { _, value in
+            hasPlan = value?.plan != nil
         }
         // Plans change in the browser (checkout, the portal), so refresh on returning to the app.
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
@@ -47,110 +56,53 @@ struct PlusSettingsView: View {
         .modifier(UseFeatherPlusAlert(isPresented: $isAskingToUsePlus, current: connection, accept: useFeatherPlus))
     }
 
-    /// Signed in with a plan, or still loading it; no plan reads as an invitation to become Plus.
-    private var isAccountView: Bool {
-        token != nil && (account == nil || account?.plan != nil)
-    }
-
     // MARK: - Signed out
 
-    @ViewBuilder
-    private var signedOutContent: some View {
-        Section {
-            invitation {
-                if signInTask != nil {
-                    ProgressView()
-                        .controlSize(.small)
-                    Button(String(localized: "Cancel", bundle: .app)) {
-                        signInTask?.cancel()
-                    }
+    private var signedOutRow: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "person.crop.circle.fill")
+                .resizable()
+                .frame(width: 44, height: 44)
+                .foregroundStyle(.tertiary)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Not signed in", bundle: .app)
+                    .font(.headline)
+                Text("Sign in to see your plan and usage.", bundle: .app)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 12)
+            if signInTask != nil {
+                ProgressView()
+                    .controlSize(.small)
+                Button(String(localized: "Cancel", bundle: .app)) {
+                    signInTask?.cancel()
+                }
+                .pointingHandCursor()
+            } else {
+                Button(String(localized: "Sign in…", bundle: .app), action: signIn)
+                    .keyboardShortcut(.defaultAction)
                     .pointingHandCursor()
-                } else {
-                    Button(String(localized: "Sign in to Feather Plus", bundle: .app), action: signIn)
-                        .buttonStyle(.borderedProminent)
-                        .keyboardShortcut(.defaultAction)
-                        .pointingHandCursor()
-                }
             }
-        } footer: {
-            footer
-                .sectionFooter()
         }
-    }
-
-    /// The Plus card from the Connection pane, with what to do next under it.
-    private func invitation<Actions: View>(@ViewBuilder actions: () -> Actions) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .center, spacing: 14) {
-                ProviderIcon(kind: .featherPlus, size: 40)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Feather Plus", bundle: .app)
-                        .font(.title3.weight(.semibold))
-                    Text("No API key, and it also answers questions. Paid plan.", bundle: .app)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            HStack(spacing: 18) {
-                perk(String(localized: "Answers your questions", bundle: .app))
-                perk(String(localized: "No API key to manage", bundle: .app))
-                perk(String(localized: "$4 a month or $36 a year", bundle: .app))
-            }
-            .font(.callout)
-            .padding(.leading, 54)
-            HStack(spacing: 10) {
-                actions()
-            }
-            .padding(.leading, 54)
-        }
-        .padding(.vertical, 8)
-    }
-
-    private func perk(_ text: String) -> some View {
-        Label {
-            Text(text)
-        } icon: {
-            Image(systemName: "checkmark")
-                .foregroundStyle(Color.accentColor)
-                .fontWeight(.semibold)
-        }
+        .padding(.vertical, 6)
     }
 
     // MARK: - Signed in
 
-    @ViewBuilder
-    private var signedInContent: some View {
-        // Without a plan the invitation leads, and the account sits under it.
-        if let account, account.plan == nil {
-            Section {
-                invitation {
-                    Button(String(localized: "Choose a plan…", bundle: .app), action: openBilling)
-                        .buttonStyle(.borderedProminent)
-                        .pointingHandCursor()
-                }
-            }
-        }
-
+    private func usage(_ account: PlusAccount) -> some View {
         Section {
-            profile
+            ForEach(account.usage, id: \.limit) { usage in
+                UsageRow(usage: usage)
+            }
+        } header: {
+            Text("Usage this month", bundle: .app)
         } footer: {
-            footer
-                .sectionFooter()
-        }
-
-        if let account, account.plan != nil, !account.usage.isEmpty {
-            Section {
-                ForEach(account.usage, id: \.limit) { usage in
-                    UsageRow(usage: usage)
-                }
-            } header: {
-                Text("Usage this month", bundle: .app)
-            } footer: {
-                if let periodEnd = account.periodEnd {
-                    Text("Resets on \(periodEnd.formatted(date: .abbreviated, time: .omitted)).", bundle: .app)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .sectionFooter()
-                }
+            if let periodEnd = account.periodEnd {
+                Text("Resets on \(periodEnd.formatted(date: .abbreviated, time: .omitted)).", bundle: .app)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .sectionFooter()
             }
         }
     }
@@ -267,8 +219,7 @@ struct PlusSettingsView: View {
     }
 
     private func openBilling() {
-        guard let url = try? FeatherPlus.accountURL(base: FeatherPlus.baseURL()) else { return }
-        NSWorkspace.shared.open(url)
+        Task { await PlusAuth.openWebsite(path: FeatherPlus.accountPath, store: credentialStore) }
     }
 
     private func useFeatherPlus() {

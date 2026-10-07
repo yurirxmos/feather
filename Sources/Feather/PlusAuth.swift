@@ -79,6 +79,21 @@ enum PlusAuth {
         return try FeatherPlus.decodeAccount(data)
     }
 
+    /// Opens `path` on the website, signed in to the app's account when there is one. Without a
+    /// token, or when the code can't be had, it still opens the page, just signed out.
+    static func openWebsite(path: String, store: any CredentialStore = KeychainCredentialStore.shared, base: String = FeatherPlus.baseURL()) async {
+        var code: String?
+        if let token = store.plusToken(), var request = try? FeatherPlus.webCodeRequest(base: base, token: token) {
+            request.timeoutInterval = 10
+            if let (data, response) = try? await URLSession.shared.data(for: request),
+               let status = (response as? HTTPURLResponse)?.statusCode, (200..<300).contains(status) {
+                code = try? FeatherPlus.decodeWebCode(data)
+            }
+        }
+        guard let url = try? FeatherPlus.websiteURL(base: base, path: path, code: code) else { return }
+        NSWorkspace.shared.open(url)
+    }
+
     /// Forgets the token locally right away, then asks the server to revoke it. Revocation is
     /// best effort: a token that is no longer stored anywhere is useless even if it survives.
     static func signOut(store: any CredentialStore = KeychainCredentialStore.shared, base: String = FeatherPlus.baseURL()) {

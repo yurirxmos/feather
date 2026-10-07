@@ -57,9 +57,20 @@ public enum FeatherPlus {
         return url
     }
 
-    /// The page where a signed-in user picks, changes, or cancels a plan.
-    public static func accountURL(base: String) throws -> URL {
-        try .endpoint(base: base, path: "/account")
+    /// The website's plans, opened by Become Plus.
+    public static let pricingPath = "/#pricing"
+    /// The website's account page, where a subscriber changes or cancels a plan.
+    public static let accountPath = "/account"
+
+    /// Opens `path` on the website. With a web code from `webCodeRequest`, a browser that isn't
+    /// signed in yet arrives signed in to the app's account.
+    public static func websiteURL(base: String, path: String, code: String?) throws -> URL {
+        guard var components = URLComponents(url: try .endpoint(base: base, path: "/auth/app"), resolvingAgainstBaseURL: false) else {
+            throw LLMError.invalidBaseURL
+        }
+        components.queryItems = (code.map { [URLQueryItem(name: "code", value: $0)] } ?? []) + [URLQueryItem(name: "next", value: path)]
+        guard let url = components.url else { throw LLMError.invalidBaseURL }
+        return url
     }
 
     /// Extracts the authorization code from a loopback request target such as
@@ -91,6 +102,21 @@ public enum FeatherPlus {
         var request = URLRequest(url: try .endpoint(base: base, path: "/v1/account"))
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         return request
+    }
+
+    /// Asks for a single-use code that signs the website in to the same account.
+    public static func webCodeRequest(base: String, token: String) throws -> URLRequest {
+        var request = URLRequest(url: try .endpoint(base: base, path: "/v1/auth/web"))
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        return request
+    }
+
+    public static func decodeWebCode(_ data: Data) throws -> String {
+        struct Response: Decodable { let code: String }
+        let code = try JSONDecoder().decode(Response.self, from: data).code
+        guard !code.isEmpty else { throw LLMError.api(message: "The server returned an empty code.") }
+        return code
     }
 
     public static func revokeRequest(base: String, token: String) throws -> URLRequest {

@@ -4,14 +4,14 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { h, featherIcon, moreIcon, rowIcon, sparkleIcon } from "./dom";
+import { h, featherIcon, moreIcon, personIcon, rowIcon, sparkleIcon } from "./dom";
 import { formatDate, t } from "./i18n";
 // The original logos, shared with the macOS app (its `ProviderLogos` resources).
 import openAILogo from "../../Sources/Feather/ProviderLogos/openai_logo.svg";
 import openCodeLogo from "../../Sources/Feather/ProviderLogos/opencode_logo.png";
 
 type Connection = "openCodeGo" | "chatGPT" | "featherPlus";
-type Section = "general" | "connection" | "plus" | "system";
+type Section = "general" | "connection" | "account" | "system";
 
 type AppInfo = {
   locale: string;
@@ -117,17 +117,16 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
   }
 
   function sections(): Section[] {
-    return (["general", "connection", "plus", "system"] as Section[]).filter((item) => item !== "plus" || settings.plusEnabled);
-  }
-
-  /** The Feather Plus tab invites you in until you have a plan, then it is simply your account. */
-  function plusTitle(): string {
-    const hasPlan = credentials.plusSignedIn && (plusAccount === null || plusAccount.plan !== null);
-    return hasPlan ? t("Account") : t("Become Plus");
+    return (["general", "connection", "account", "system"] as Section[]).filter((item) => item !== "account" || settings.plusEnabled);
   }
 
   function title(item: Section): string {
-    return { general: t("General"), connection: t("Connection"), plus: plusTitle(), system: t("System") }[item];
+    return { general: t("General"), connection: t("Connection"), account: t("Account"), system: t("System") }[item];
+  }
+
+  /** Until the account has a Feather Plus plan, the sidebar offers Become Plus. */
+  function offersPlus(): boolean {
+    return settings.plusEnabled && !plusAccount?.plan;
   }
 
   function render(): void {
@@ -163,10 +162,22 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
           ),
         ),
       ),
-      h("button", { type: "button", class: "quit", onclick: () => void invoke("quit") }, `⏻  ${t("Quit Feather")}`),
+      h(
+        "div",
+        { class: "sidebar-foot" },
+        offersPlus()
+          ? h(
+              "button",
+              { type: "button", class: "sidebar-action", title: t("See Feather Plus plans on the website"), onclick: () => void invoke("open_plus_page", { page: "pricing" }) },
+              sparkleIcon(),
+              t("Become Plus"),
+            )
+          : null,
+        h("button", { type: "button", class: "sidebar-action", onclick: () => void invoke("quit") }, `⏻  ${t("Quit Feather")}`),
+      ),
     );
 
-    const views: Record<Section, () => HTMLElement[]> = { general, connection, plus, system };
+    const views: Record<Section, () => HTMLElement[]> = { general, connection, account, system };
     detail.replaceChildren(h("h1", {}, title(section)), ...views[section]());
   }
 
@@ -413,7 +424,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     }
     let status: HTMLElement;
     if (id === "featherPlus" && plusAccount && !plusAccount.plan) {
-      status = iconButton("card", t("Choose a plan…"), () => void invoke("open_plus_account_page"));
+      status = iconButton("card", t("Choose a plan…"), () => void invoke("open_plus_page", { page: "pricing" }));
     } else if (settings.connection === id) {
       status = h("span", { class: "row-action in-use", "data-tip": t("In use"), tabindex: "0", role: "img", "aria-label": t("In use") }, rowIcon("check"));
     } else {
@@ -445,7 +456,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
         },
       ],
       chatGPT: [{ label: t("Disconnect"), destructive: true, run: async () => ((credentials = await invoke<Credentials>("disconnect_chatgpt")), render()) }],
-      featherPlus: [{ label: t("Manage…"), run: () => ((section = "plus"), render(), loadAccount()) }],
+      featherPlus: [{ label: t("Manage…"), run: () => ((section = "account"), render(), loadAccount()) }],
     }[id];
     const open = openMenu === id;
     const button = h(
@@ -630,23 +641,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
       });
   }
 
-  // MARK: Feather Plus
-
-  /** Feather Plus's pitch, as on the Connection tab, with what to do next under it. */
-  function plusPitch(actions: Node[]): HTMLElement {
-    return h(
-      "div",
-      { class: "row plus-card" },
-      h(
-        "div",
-        { class: "plus-card-head" },
-        providerIcon("featherPlus"),
-        h("span", { class: "label" }, h("strong", {}, t("Feather Plus")), h("small", {}, t("No API key, and it also answers questions. Paid plan."))),
-      ),
-      h("ul", { class: "perks" }, ...[t("Answers your questions"), t("No API key to manage"), t("$4 a month or $36 a year")].map((perk) => h("li", {}, perk))),
-      h("div", { class: "plus-card-actions" }, ...actions),
-    );
-  }
+  // MARK: Account
 
   /** Who is signed in, with the plan under the address and the actions as icons, like the provider rows. */
   function profileRow(account: PlusAccount | null): HTMLElement {
@@ -664,8 +659,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
       h(
         "span",
         { class: "inline row-actions" },
-        // Without a plan the card above already leads to the plans.
-        account?.plan ? iconButton("card", t("Manage subscription…"), () => void invoke("open_plus_account_page")) : null,
+        account?.plan ? iconButton("card", t("Manage subscription…"), () => void invoke("open_plus_page", { page: "account" })) : null,
         iconButton("signOut", t("Sign out"), async () => {
           credentials = await invoke<Credentials>("plus_sign_out");
           plusAccount = null;
@@ -678,13 +672,21 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     );
   }
 
-  function plus(): HTMLElement[] {
+  /** The Account tab: sign-in, the plan, and this month's usage. Plans are bought on the website, from Become Plus. */
+  function account(): HTMLElement[] {
     if (!credentials.plusSignedIn) {
       const busy = signingIn === "plus";
       const actions = busy
         ? [h("span", { class: "spinner", "aria-hidden": "true" }), h("button", { type: "button", onclick: () => void invoke("cancel_sign_in") }, t("Cancel"))]
-        : [h("button", { type: "button", class: "primary", onclick: signInPlus }, t("Sign in to Feather Plus"))];
-      return [group(null, [plusPitch(actions)], plusError ? error(plusError) : footnote(t("Sign-in continues in your browser.")))];
+        : [h("button", { type: "button", onclick: signInPlus }, t("Sign in…"))];
+      const row = h(
+        "div",
+        { class: "row profile" },
+        h("span", { class: "avatar signed-out", "aria-hidden": "true" }, personIcon()),
+        h("span", { class: "label" }, h("strong", {}, t("Not signed in")), h("span", { class: "secondary" }, t("Sign in to see your plan and usage."))),
+        h("span", { class: "inline row-actions" }, ...actions),
+      );
+      return [group(null, [row], plusError ? error(plusError) : footnote(t("Sign-in continues in your browser.")))];
     }
 
     const account = plusAccount;
@@ -692,12 +694,6 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
       ? h("p", { class: "footnote error-text" }, `⚠ ${plusError} `, h("button", { type: "button", class: "link", onclick: loadAccount }, t("Retry")))
       : null;
     const views: HTMLElement[] = [];
-    // Without a plan the invitation leads; the account sits under it.
-    if (account && !account.plan) {
-      views.push(
-        group(null, [plusPitch([h("button", { type: "button", class: "primary", onclick: () => void invoke("open_plus_account_page") }, t("Choose a plan…"))])]),
-      );
-    }
     views.push(group(null, [profileRow(account)], plusFooter));
     if (account?.plan && account.usage.length > 0) {
       views.push(
@@ -915,7 +911,8 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
   async function refreshCredentials(): Promise<void> {
     credentials = await invoke<Credentials>("credential_status");
     render();
-    if (section === "plus" || section === "connection") loadAccount();
+    // The sidebar's Become Plus depends on the plan, so it is checked on every tab.
+    if (settings.plusEnabled) loadAccount();
   }
 
   await listen("settings-changed", async () => {
@@ -948,12 +945,12 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
   render();
   if (settings.connection === "openCodeGo") loadModels();
   if (settings.connection === "chatGPT") loadChatgptModels();
-  if (section === "connection") loadAccount();
+  if (settings.plusEnabled) loadAccount();
 }
 
 function sectionGlyph(section: Section): Node {
-  if (section === "plus") return sparkleIcon("glyph sparkle");
-  return document.createTextNode({ general: "⚙", connection: "⇄", system: "⛨" }[section as Exclude<Section, "plus">]);
+  if (section === "account") return personIcon();
+  return document.createTextNode({ general: "⚙", connection: "⇄", system: "⛨" }[section as Exclude<Section, "account">]);
 }
 
 function group(title: string | null, rows: HTMLElement[], foot: HTMLElement | null = null): HTMLElement {
