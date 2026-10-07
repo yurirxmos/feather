@@ -4,7 +4,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { h, featherIcon } from "./dom";
+import { h, featherIcon, moreIcon } from "./dom";
 import { formatDate, t } from "./i18n";
 // The original logos, shared with the macOS app (its `ProviderLogos` resources).
 import openAILogo from "../../Sources/Feather/ProviderLogos/openai_logo.svg";
@@ -64,6 +64,29 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
   let loadingChatgptModels = false;
   let chatgptModelsFailed = false;
   let signingIn: "chatGPT" | "plus" | null = null;
+  /** The provider row whose ⋯ menu is open. */
+  let openMenu: Connection | null = null;
+
+  // The ⋯ menu closes on a click elsewhere or Escape, and arrow keys move between its items.
+  document.addEventListener("click", () => {
+    if (openMenu === null) return;
+    openMenu = null;
+    render();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (openMenu === null) return;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      openMenu = null;
+      render();
+      return;
+    }
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+    event.preventDefault();
+    const items = [...document.querySelectorAll<HTMLButtonElement>(".row-menu [role=menuitem]")];
+    const index = items.indexOf(document.activeElement as HTMLButtonElement);
+    items[(index + (event.key === "ArrowDown" ? 1 : items.length - 1)) % items.length]?.focus();
+  });
   let authError: string | null = null;
   let plusAccount: PlusAccount | null = null;
   let loadingAccount = false;
@@ -391,24 +414,69 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     return h("span", { class: "inline" }, status, ...providerActions(id));
   }
 
-  /** The row's secondary actions, as quiet link buttons. */
+  /**
+   * The row's secondary actions, in a menu behind a ⋯ button, like the macOS app's row menus.
+   * Destructive actions are tinted red.
+   */
   function providerActions(id: Connection): HTMLElement[] {
-    const link = (label: string, onclick: () => void) => h("button", { type: "button", class: "link", onclick }, label);
-    switch (id) {
-      case "openCodeGo":
-        return [
-          link(t("Replace…"), () => ((isEditingKey = true), render())),
-          link(t("Remove Key"), async () => {
+    const items: { label: string; destructive?: boolean; run: () => void | Promise<void> }[] = {
+      openCodeGo: [
+        { label: t("Replace…"), run: () => ((isEditingKey = true), render()) },
+        {
+          label: t("Remove Key"),
+          destructive: true,
+          run: async () => {
             credentials = await invoke<Credentials>("delete_api_key");
             models = [];
             render();
-          }),
-        ];
-      case "chatGPT":
-        return [link(t("Disconnect"), async () => ((credentials = await invoke<Credentials>("disconnect_chatgpt")), render()))];
-      case "featherPlus":
-        return [link(t("Manage…"), () => ((section = "plus"), render(), loadAccount()))];
-    }
+          },
+        },
+      ],
+      chatGPT: [{ label: t("Disconnect"), destructive: true, run: async () => ((credentials = await invoke<Credentials>("disconnect_chatgpt")), render()) }],
+      featherPlus: [{ label: t("Manage…"), run: () => ((section = "plus"), render(), loadAccount()) }],
+    }[id];
+    const open = openMenu === id;
+    const button = h(
+      "button",
+      {
+        type: "button",
+        class: "icon-button more-button",
+        title: t("More"),
+        "aria-label": t("More"),
+        "aria-haspopup": "menu",
+        "aria-expanded": String(open),
+        onclick: (event: Event) => {
+          event.stopPropagation();
+          openMenu = open ? null : id;
+          render();
+          if (!open) document.querySelector<HTMLButtonElement>(".row-menu [role=menuitem]")?.focus();
+        },
+      },
+      moreIcon(),
+    );
+    if (!open) return [h("span", { class: "more" }, button)];
+    const menu = h(
+      "div",
+      { class: "row-menu", role: "menu" },
+      ...items.map((item) =>
+        h(
+          "button",
+          {
+            type: "button",
+            role: "menuitem",
+            class: item.destructive ? "destructive" : "",
+            onclick: (event: Event) => {
+              event.stopPropagation();
+              openMenu = null;
+              void item.run();
+              render();
+            },
+          },
+          item.label,
+        ),
+      ),
+    );
+    return [h("span", { class: "more" }, button, menu)];
   }
 
   function setUp(id: Connection): void {

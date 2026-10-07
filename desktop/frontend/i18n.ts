@@ -133,6 +133,7 @@ export const PT_BR: Record<string, string> = {
   "Sign-in continues in your browser.": "O login continua no seu navegador.",
   "Signed in": "Conectado",
   "Manage…": "Gerenciar…",
+  More: "Mais",
   "Sign in…": "Entrar…",
   "Sign in to Feather Plus": "Entrar no Feather Plus",
   "Use your Feather Plus account.": "Use a sua conta do Feather Plus.",

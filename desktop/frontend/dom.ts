@@ -39,6 +39,31 @@ export function featherIcon(className = "feather-icon"): SVGSVGElement {
   return svg;
 }
 
+/** A circle around three dots, like SF Symbols' `ellipsis.circle` on the macOS app's row menus. */
+export function moreIcon(): SVGSVGElement {
+  const svg = document.createElementNS(SVG, "svg");
+  svg.setAttribute("viewBox", "0 0 20 20");
+  svg.setAttribute("class", "more-icon");
+  svg.setAttribute("aria-hidden", "true");
+  const ring = document.createElementNS(SVG, "circle");
+  ring.setAttribute("cx", "10");
+  ring.setAttribute("cy", "10");
+  ring.setAttribute("r", "8.25");
+  ring.setAttribute("fill", "none");
+  ring.setAttribute("stroke", "currentColor");
+  ring.setAttribute("stroke-width", "1.5");
+  svg.append(ring);
+  for (const cx of ["6.25", "10", "13.75"]) {
+    const dot = document.createElementNS(SVG, "circle");
+    dot.setAttribute("cx", cx);
+    dot.setAttribute("cy", "10");
+    dot.setAttribute("r", "1.25");
+    dot.setAttribute("fill", "currentColor");
+    svg.append(dot);
+  }
+  return svg;
+}
+
 /** Material's `keyboard_return` glyph on a 24x24 grid, shared with the macOS app's `ReturnKeyShape`. */
 export function returnKeyIcon(): SVGSVGElement {
   const svg = document.createElementNS(SVG, "svg");
