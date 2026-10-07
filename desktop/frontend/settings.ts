@@ -378,9 +378,13 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     }
   }
 
-  /** An icon button with its label as tooltip and accessible name, like the macOS app's `iconButton`. */
+  /**
+   * An icon button with its label as accessible name and as a quick tooltip (`data-tip`, see
+   * styles.css), like the macOS app's `iconButton` with `.help`.
+   */
   function iconButton(icon: Parameters<typeof rowIcon>[0], label: string, onclick: () => void, attributes: Record<string, string | boolean> = {}): HTMLElement {
-    return h("button", { type: "button", class: `icon-button row-action ${icon}`, title: label, "aria-label": label, onclick, ...attributes }, rowIcon(icon));
+    // A tooltip names the action; the trailing "…" belongs on buttons that open something.
+    return h("button", { type: "button", class: `icon-button row-action ${icon}`, "data-tip": label.replace(/…$/, ""), "aria-label": label, onclick, ...attributes }, rowIcon(icon));
   }
 
   /**
@@ -405,7 +409,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     if (id === "featherPlus" && plusAccount && !plusAccount.plan) {
       status = iconButton("card", t("Choose a plan…"), () => void invoke("open_plus_account_page"));
     } else if (settings.connection === id) {
-      status = h("span", { class: "row-action in-use", title: t("In use"), role: "img", "aria-label": t("In use") }, rowIcon("check"));
+      status = h("span", { class: "row-action in-use", "data-tip": t("In use"), tabindex: "0", role: "img", "aria-label": t("In use") }, rowIcon("check"));
     } else {
       status = iconButton("circle", t("Use"), async () => {
         await set("connection", id);
@@ -443,7 +447,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
       {
         type: "button",
         class: "icon-button more-button",
-        title: t("More"),
+        "data-tip": t("More"),
         "aria-label": t("More"),
         "aria-haspopup": "menu",
         "aria-expanded": String(open),

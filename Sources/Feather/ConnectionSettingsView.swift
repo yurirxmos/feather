@@ -233,7 +233,8 @@ struct ConnectionSettingsView: View {
                 .imageScale(.large)
         }
         .buttonStyle(.borderless)
-        .help(label)
+        // A tooltip names the action; the trailing "…" belongs on buttons that open something.
+        .help(label.hasSuffix("…") ? String(label.dropLast()) : label)
         .accessibilityLabel(label)
     }
 
