@@ -4,7 +4,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { h, featherIcon, moreIcon, rowIcon } from "./dom";
+import { h, featherIcon, moreIcon, rowIcon, sparkleIcon } from "./dom";
 import { formatDate, t } from "./i18n";
 // The original logos, shared with the macOS app (its `ProviderLogos` resources).
 import openAILogo from "../../Sources/Feather/ProviderLogos/openai_logo.svg";
@@ -120,8 +120,14 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     return (["general", "connection", "plus", "system"] as Section[]).filter((item) => item !== "plus" || settings.plusEnabled);
   }
 
+  /** The Feather Plus tab invites you in until you have a plan, then it is simply your account. */
+  function plusTitle(): string {
+    const hasPlan = credentials.plusSignedIn && (plusAccount === null || plusAccount.plan !== null);
+    return hasPlan ? t("Account") : t("Become Plus");
+  }
+
   function title(item: Section): string {
-    return { general: t("General"), connection: t("Connection"), plus: t("Feather Plus"), system: t("System") }[item];
+    return { general: t("General"), connection: t("Connection"), plus: plusTitle(), system: t("System") }[item];
   }
 
   function render(): void {
@@ -626,69 +632,73 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
 
   // MARK: Feather Plus
 
+  /** Feather Plus's pitch, as on the Connection tab, with what to do next under it. */
+  function plusPitch(actions: Node[]): HTMLElement {
+    return h(
+      "div",
+      { class: "row plus-card" },
+      h(
+        "div",
+        { class: "plus-card-head" },
+        providerIcon("featherPlus"),
+        h("span", { class: "label" }, h("strong", {}, t("Feather Plus")), h("small", {}, t("No API key, and it also answers questions. Paid plan."))),
+      ),
+      h("ul", { class: "perks" }, ...[t("Answers your questions"), t("No API key to manage"), t("$4 a month or $36 a year")].map((perk) => h("li", {}, perk))),
+      h("div", { class: "plus-card-actions" }, ...actions),
+    );
+  }
+
+  /** Who is signed in, with the plan under the address and the actions as icons, like the provider rows. */
+  function profileRow(account: PlusAccount | null): HTMLElement {
+    const plan = account?.plan ? badge(account.plan === "yearly" ? t("Plus Yearly") : t("Plus Monthly")) : account ? h("span", { class: "secondary" }, t("No plan")) : h("span");
+    return h(
+      "div",
+      { class: "row profile" },
+      h("span", { class: "avatar", "aria-hidden": "true" }, account ? account.email.charAt(0).toUpperCase() : ""),
+      h(
+        "span",
+        { class: "label" },
+        account ? h("strong", { class: "selectable" }, account.email) : loadingAccount ? h("span", { class: "spinner", "aria-hidden": "true" }) : h("span"),
+        plan,
+      ),
+      h(
+        "span",
+        { class: "inline row-actions" },
+        // Without a plan the card above already leads to the plans.
+        account?.plan ? iconButton("card", t("Manage subscription…"), () => void invoke("open_plus_account_page")) : null,
+        iconButton("signOut", t("Sign out"), async () => {
+          credentials = await invoke<Credentials>("plus_sign_out");
+          plusAccount = null;
+          plusError = null;
+          render();
+          // Signing out is how you switch accounts, so open the sign-in right away.
+          void signInPlus();
+        }),
+      ),
+    );
+  }
+
   function plus(): HTMLElement[] {
     if (!credentials.plusSignedIn) {
       const busy = signingIn === "plus";
-      return [
-        group(
-          t("Feather Plus"),
-          [
-            h(
-              "div",
-              { class: "row login-box" },
-              h("strong", {}, t("Sign in to Feather Plus")),
-              h("span", { class: "secondary" }, t("Use your Feather Plus account.")),
-              h(
-                "span",
-                { class: "inline" },
-                busy ? h("span", { class: "spinner", "aria-hidden": "true" }) : null,
-                busy
-                  ? h("button", { type: "button", onclick: () => void invoke("cancel_sign_in") }, t("Cancel"))
-                  : h("button", { type: "button", class: "primary", onclick: signInPlus }, t("Sign in")),
-              ),
-            ),
-          ],
-          plusError ? error(plusError) : footnote(t("Sign-in continues in your browser.")),
-        ),
-      ];
+      const actions = busy
+        ? [h("span", { class: "spinner", "aria-hidden": "true" }), h("button", { type: "button", onclick: () => void invoke("cancel_sign_in") }, t("Cancel"))]
+        : [h("button", { type: "button", class: "primary", onclick: signInPlus }, t("Sign in to Feather Plus"))];
+      return [group(null, [plusPitch(actions)], plusError ? error(plusError) : footnote(t("Sign-in continues in your browser.")))];
     }
 
     const account = plusAccount;
-    const rows = [
-      row(t("Email"), account ? h("span", { class: "selectable" }, account.email) : loadingAccount ? h("span", { class: "spinner" }) : h("span")),
-      row(t("Plan"), account ? (account.plan ? badge(account.plan === "yearly" ? t("Plus Yearly") : t("Plus Monthly")) : h("span", { class: "secondary" }, t("No plan"))) : h("span")),
-    ];
-    rows.push(
-      h(
-        "div",
-        { class: "row spread" },
-        h(
-          "button",
-          { type: "button", disabled: !account, onclick: () => void invoke("open_plus_account_page") },
-          account?.plan ? t("Manage subscription…") : t("Choose a plan…"),
-        ),
-        h(
-          "button",
-          {
-            type: "button",
-            onclick: async () => {
-              credentials = await invoke<Credentials>("plus_sign_out");
-              plusAccount = null;
-              plusError = null;
-              render();
-              // Signing out is how you switch accounts, so open the sign-in right away.
-              void signInPlus();
-            },
-          },
-          t("Sign out"),
-        ),
-      ),
-    );
-
     const plusFooter = plusError
       ? h("p", { class: "footnote error-text" }, `⚠ ${plusError} `, h("button", { type: "button", class: "link", onclick: loadAccount }, t("Retry")))
       : null;
-    const views = [group(t("Account"), rows, plusFooter)];
+    const views: HTMLElement[] = [];
+    // Without a plan the invitation leads; the account sits under it.
+    if (account && !account.plan) {
+      views.push(
+        group(null, [plusPitch([h("button", { type: "button", class: "primary", onclick: () => void invoke("open_plus_account_page") }, t("Choose a plan…"))])]),
+      );
+    }
+    views.push(group(null, [profileRow(account)], plusFooter));
     if (account?.plan && account.usage.length > 0) {
       views.push(
         group(
@@ -942,7 +952,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
 }
 
 function sectionGlyph(section: Section): Node {
-  if (section === "plus") return featherIcon("glyph");
+  if (section === "plus") return sparkleIcon("glyph sparkle");
   return document.createTextNode({ general: "⚙", connection: "⇄", system: "⛨" }[section as Exclude<Section, "plus">]);
 }
 

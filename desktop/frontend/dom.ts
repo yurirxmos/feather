@@ -39,6 +39,20 @@ export function featherIcon(className = "feather-icon"): SVGSVGElement {
   return svg;
 }
 
+/** A large four-point sparkle with a small one beside it, for Feather Plus, on a 24x24 grid. */
+export function sparkleIcon(className = "sparkle"): SVGSVGElement {
+  const svg = document.createElementNS(SVG, "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("class", className);
+  svg.setAttribute("aria-hidden", "true");
+  for (const d of ["M10 3.5l1.9 5.6 5.6 1.9-5.6 1.9L10 18.5l-1.9-5.6L2.5 11l5.6-1.9Z", "M18.5 3l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8Z", "M18.5 15.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7Z"]) {
+    const path = document.createElementNS(SVG, "path");
+    path.setAttribute("d", d);
+    svg.append(path);
+  }
+  return svg;
+}
+
 /** A circle around three dots, like SF Symbols' `ellipsis.circle` on the macOS app's row menus. */
 export function moreIcon(): SVGSVGElement {
   const svg = document.createElementNS(SVG, "svg");
@@ -67,9 +81,9 @@ export function moreIcon(): SVGSVGElement {
 /**
  * The provider row icons, on a 20x20 grid, like the SF Symbols the macOS app uses: `check`
  * (checkmark.circle.fill), `circle`, `plus` (plus.circle), `plusFilled` (plus.circle.fill),
- * `card` (creditcard), and `cancel` (xmark.circle).
+ * `card` (creditcard), `cancel` (xmark.circle), and `signOut` (rectangle.portrait.and.arrow.right).
  */
-export function rowIcon(name: "check" | "circle" | "plus" | "plusFilled" | "card" | "cancel"): SVGSVGElement {
+export function rowIcon(name: "check" | "circle" | "plus" | "plusFilled" | "card" | "cancel" | "signOut"): SVGSVGElement {
   const svg = document.createElementNS(SVG, "svg");
   svg.setAttribute("viewBox", "0 0 20 20");
   svg.setAttribute("class", `row-icon ${name}`);
@@ -106,6 +120,10 @@ export function rowIcon(name: "check" | "circle" | "plus" | "plusFilled" | "card
     case "cancel":
       ring();
       add("path", { d: "M7.5 7.5l5 5M12.5 7.5l-5 5", ...stroke });
+      break;
+    case "signOut":
+      add("path", { d: "M8 3.75H5.5a1.75 1.75 0 0 0-1.75 1.75v9A1.75 1.75 0 0 0 5.5 16.25H8", ...stroke });
+      add("path", { d: "M8.5 10h8M13.5 6.75L16.75 10l-3.25 3.25", ...stroke });
       break;
   }
   return svg;

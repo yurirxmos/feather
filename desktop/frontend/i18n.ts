@@ -119,6 +119,7 @@ export const PT_BR: Record<string, string> = {
   "OpenCode Go": "OpenCode Go",
   ChatGPT: "ChatGPT",
   Account: "Conta",
+  "Become Plus": "Seja Plus",
   Model: "Modelo",
   "Couldn't load the models. Check your key and connection.":
     "Não foi possível carregar os modelos. Verifique sua chave e a conexão.",

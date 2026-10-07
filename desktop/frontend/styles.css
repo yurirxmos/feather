@@ -155,6 +155,7 @@ button:disabled { cursor: default; }
 .section-icon.plus { background: linear-gradient(#fb923c, #ea580c); }
 .section-icon.system { background: linear-gradient(#818cf8, #4f46e5); }
 .section-icon .glyph { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.section-icon .glyph.sparkle { width: 14px; height: 14px; fill: currentColor; stroke: none; }
 .attention { width: 7px; height: 7px; border-radius: 50%; background: var(--orange); }
 .quit { padding: 10px; border: 0; background: none; color: var(--secondary); text-align: left; border-top: 1px solid var(--line); }
 .quit:hover { color: var(--text); }
@@ -189,7 +190,7 @@ p.row { margin: 0; }
 .settings-body button:not(.section):not(.quit):not(.link):not(.more-button):not(.row-action):not([role="menuitem"]) {
   min-height: 30px; padding: 0 12px; border: 1px solid var(--control-line); border-radius: 5px; background: var(--control);
 }
-.settings-body button.primary:not(.section):not(.quit):not(.link) { border-color: transparent; background: var(--accent); color: #fff; }
+.settings-body button.primary:not(.section):not(.quit):not(.link):not(.more-button):not(.row-action):not([role="menuitem"]) { border-color: transparent; background: var(--accent); color: #fff; }
 .settings-body button:disabled { opacity: .45; }
 .settings-body button.icon-button { min-width: 30px; padding: 0; }
 .settings-body button.link { padding: 0; border: 0; background: none; color: var(--accent); text-decoration: underline; }
@@ -251,6 +252,11 @@ p.row { margin: 0; }
 .plus-card-head strong { font-size: 16px; font-weight: 600; }
 .plus-card .provider-icon { width: 40px; height: 40px; border-radius: 10px; }
 .plus-card .feather-mark { width: 22px; height: 22px; }
+.plus-card-actions { display: flex; align-items: center; gap: 10px; padding-left: 54px; }
+.row.profile { justify-content: flex-start; gap: 14px; padding: 16px 14px; }
+.row.profile .label { flex: 1; min-width: 0; gap: 4px; }
+.row.profile strong { font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+.avatar { display: grid; flex: none; width: 44px; height: 44px; place-items: center; border-radius: 50%; background: linear-gradient(#349aff, #0a70f0); color: #fff; font-size: 18px; font-weight: 600; }
 .perks { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0; padding: 0 0 0 54px; list-style: none; color: var(--secondary); font-size: 12.5px; }
 .perks li::before { content: "✓"; margin-right: 6px; color: var(--accent); font-weight: 700; }
 /* A provider still to set up reads quieter than the ready ones; its button does not. */
