@@ -580,7 +580,7 @@ struct ProviderIcon: View {
     }()
 
     /// The app icon's gradient around #0a84ff (`scripts/make-icon.swift`).
-    private static let featherBlue = LinearGradient(
+    static let featherBlue = LinearGradient(
         colors: [Color(red: 52 / 255, green: 154 / 255, blue: 1), Color(red: 10 / 255, green: 112 / 255, blue: 240 / 255)],
         startPoint: .top,
         endPoint: .bottom

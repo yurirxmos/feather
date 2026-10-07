@@ -5,6 +5,8 @@ import SwiftUI
 /// The Feather Plus pane: sign-in, the active plan, and this period's usage.
 struct PlusSettingsView: View {
     let credentialStore: any CredentialStore
+    /// Tells the sidebar whether this pane is the account (signed in, with a plan) or the invitation.
+    @Binding var showsAccount: Bool
     @AppStorage(SettingsKey.connection) private var connection: ConnectionKind = .openCodeGo
     @AppStorage(SettingsKey.model) private var model = OpenCodeGoProvider.defaultModel
     @State private var token: String?
@@ -28,7 +30,11 @@ struct PlusSettingsView: View {
         .formStyle(.grouped)
         .onAppear {
             token = credentialStore.plusToken()
+            showsAccount = isAccountView
             loadAccount()
+        }
+        .onChange(of: isAccountView) { _, value in
+            showsAccount = value
         }
         // Plans change in the browser (checkout, the portal), so refresh on returning to the app.
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
@@ -41,39 +47,71 @@ struct PlusSettingsView: View {
         .modifier(UseFeatherPlusAlert(isPresented: $isAskingToUsePlus, current: connection, accept: useFeatherPlus))
     }
 
+    /// Signed in with a plan, or still loading it; no plan reads as an invitation to become Plus.
+    private var isAccountView: Bool {
+        token != nil && (account == nil || account?.plan != nil)
+    }
+
     // MARK: - Signed out
 
     @ViewBuilder
     private var signedOutContent: some View {
         Section {
-            VStack(spacing: 8) {
-                Text("Sign in to Feather Plus", bundle: .app)
-                    .font(.headline)
-                Text("Use your Feather Plus account.", bundle: .app)
-                    .foregroundStyle(.secondary)
-                HStack(spacing: 10) {
-                    if signInTask != nil {
-                        ProgressView()
-                            .controlSize(.small)
-                        Button(String(localized: "Cancel", bundle: .app)) {
-                            signInTask?.cancel()
-                        }
-                        .pointingHandCursor()
-                    } else {
-                        Button(String(localized: "Sign in", bundle: .app), action: signIn)
-                            .keyboardShortcut(.defaultAction)
-                            .pointingHandCursor()
+            invitation {
+                if signInTask != nil {
+                    ProgressView()
+                        .controlSize(.small)
+                    Button(String(localized: "Cancel", bundle: .app)) {
+                        signInTask?.cancel()
                     }
+                    .pointingHandCursor()
+                } else {
+                    Button(String(localized: "Sign in to Feather Plus", bundle: .app), action: signIn)
+                        .buttonStyle(.borderedProminent)
+                        .keyboardShortcut(.defaultAction)
+                        .pointingHandCursor()
                 }
-                .padding(.top, 4)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-        } header: {
-            Text("Feather Plus", bundle: .app)
         } footer: {
             footer
                 .sectionFooter()
+        }
+    }
+
+    /// The Plus card from the Connection pane, with what to do next under it.
+    private func invitation<Actions: View>(@ViewBuilder actions: () -> Actions) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .center, spacing: 14) {
+                ProviderIcon(kind: .featherPlus, size: 40)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Feather Plus", bundle: .app)
+                        .font(.title3.weight(.semibold))
+                    Text("No API key, and it also answers questions. Paid plan.", bundle: .app)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            HStack(spacing: 18) {
+                perk(String(localized: "Answers your questions", bundle: .app))
+                perk(String(localized: "No API key to manage", bundle: .app))
+                perk(String(localized: "$4 a month or $36 a year", bundle: .app))
+            }
+            .font(.callout)
+            .padding(.leading, 54)
+            HStack(spacing: 10) {
+                actions()
+            }
+            .padding(.leading, 54)
+        }
+        .padding(.vertical, 8)
+    }
+
+    private func perk(_ text: String) -> some View {
+        Label {
+            Text(text)
+        } icon: {
+            Image(systemName: "checkmark")
+                .foregroundStyle(Color.accentColor)
+                .fontWeight(.semibold)
         }
     }
 
@@ -81,36 +119,19 @@ struct PlusSettingsView: View {
 
     @ViewBuilder
     private var signedInContent: some View {
+        // Without a plan the invitation leads, and the account sits under it.
+        if let account, account.plan == nil {
+            Section {
+                invitation {
+                    Button(String(localized: "Choose a plan…", bundle: .app), action: openBilling)
+                        .buttonStyle(.borderedProminent)
+                        .pointingHandCursor()
+                }
+            }
+        }
+
         Section {
-            LabeledContent(String(localized: "Email", bundle: .app)) {
-                if let account {
-                    Text(account.email)
-                        .textSelection(.enabled)
-                } else if isLoadingAccount {
-                    ProgressView()
-                        .controlSize(.small)
-                }
-            }
-            LabeledContent(String(localized: "Plan", bundle: .app)) {
-                if let account {
-                    if let plan = account.plan {
-                        StatusBadge(text: plan.displayName, color: .green)
-                    } else {
-                        Text("No plan", bundle: .app)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-            HStack {
-                Button(account?.plan == nil ? String(localized: "Choose a plan…", bundle: .app) : String(localized: "Manage subscription…", bundle: .app), action: openBilling)
-                    .disabled(account == nil)
-                    .pointingHandCursor()
-                Spacer()
-                Button(String(localized: "Sign out", bundle: .app), action: signOut)
-                    .pointingHandCursor()
-            }
-        } header: {
-            Text("Account", bundle: .app)
+            profile
         } footer: {
             footer
                 .sectionFooter()
@@ -132,6 +153,52 @@ struct PlusSettingsView: View {
                 }
             }
         }
+    }
+
+    /// Who is signed in, with the plan under the address and the actions as icons, like the provider rows.
+    private var profile: some View {
+        HStack(spacing: 14) {
+            Text(String(account?.email.first ?? " ").uppercased())
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(width: 44, height: 44)
+                .background(ProviderIcon.featherBlue, in: Circle())
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 4) {
+                if let account {
+                    Text(account.email)
+                        .font(.headline)
+                        .textSelection(.enabled)
+                    if let plan = account.plan {
+                        StatusBadge(text: plan.displayName, color: .green)
+                    } else {
+                        Text("No plan", bundle: .app)
+                            .foregroundStyle(.secondary)
+                    }
+                } else if isLoadingAccount {
+                    ProgressView()
+                        .controlSize(.small)
+                }
+            }
+            Spacer(minLength: 12)
+            if account?.plan != nil {
+                iconButton("creditcard", String(localized: "Manage subscription…", bundle: .app), action: openBilling)
+            }
+            iconButton("rectangle.portrait.and.arrow.right", String(localized: "Sign out", bundle: .app), action: signOut)
+        }
+        .padding(.vertical, 6)
+    }
+
+    private func iconButton(_ systemName: String, _ label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .imageScale(.large)
+        }
+        .buttonStyle(.borderless)
+        // A tooltip names the action; the trailing "…" belongs on buttons that open something.
+        .help(label.hasSuffix("…") ? String(label.dropLast()) : label)
+        .accessibilityLabel(label)
+        .pointingHandCursor()
     }
 
     @ViewBuilder

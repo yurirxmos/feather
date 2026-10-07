@@ -491,6 +491,16 @@
         }
       }
     },
+    "Become Plus": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seja Plus"
+          }
+        }
+      }
+    },
     "Screen": {
       "localizations": {
         "pt-BR": {

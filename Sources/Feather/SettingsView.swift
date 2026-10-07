@@ -50,9 +50,12 @@ struct SettingsView: View {
     @AppStorage(SettingsKey.onboardingCompleted) private var onboardingCompleted = true
     @State private var providersSetUp: Set<ConnectionKind> = []
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
+    /// The Feather Plus pane invites you in until you have a plan; after that it is your account.
+    @State private var plusShowsAccount: Bool
 
     init(credentialStore: any CredentialStore = KeychainCredentialStore.shared) {
         self.credentialStore = credentialStore
+        _plusShowsAccount = State(initialValue: credentialStore.plusToken() != nil)
     }
 
     var body: some View {
@@ -71,7 +74,7 @@ struct SettingsView: View {
             sidebar
         } detail: {
             detailView
-                .navigationTitle((selectedSection ?? .general).title)
+                .navigationTitle(title(of: selectedSection ?? .general))
         }
         .toolbar(removing: .sidebarToggle)
         .frame(minWidth: 680, minHeight: 480)
@@ -95,7 +98,7 @@ struct SettingsView: View {
         List(visibleSections, selection: $selectedSection) { section in
             HStack(spacing: 8) {
                 SectionIcon(symbol: section.symbol, tint: section.tint)
-                Text(section.title)
+                Text(title(of: section))
                 Spacer(minLength: 0)
                 if needsAttention(section) {
                     Circle()
@@ -130,6 +133,11 @@ struct SettingsView: View {
         .navigationSplitViewColumnWidth(min: 190, ideal: 200, max: 240)
     }
 
+    private func title(of section: SettingsSection) -> String {
+        guard section == .plus else { return section.title }
+        return plusShowsAccount ? String(localized: "Account", bundle: .app) : String(localized: "Become Plus", bundle: .app)
+    }
+
     private var visibleSections: [SettingsSection] {
         SettingsSection.allCases.filter { $0 != .plus || FeatherPlus.isEnabled() }
     }
@@ -161,7 +169,7 @@ struct SettingsView: View {
                 credentialsChanged: refreshProviders
             )
         case .general: generalView
-        case .plus: PlusSettingsView(credentialStore: credentialStore)
+        case .plus: PlusSettingsView(credentialStore: credentialStore, showsAccount: $plusShowsAccount)
         case .permissions: permissionsView
         }
     }
