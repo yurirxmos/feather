@@ -183,7 +183,7 @@ p.row { margin: 0; }
 .dot.green { background: var(--green); }
 .dot.orange { background: var(--orange); }
 
-.settings-body button:not(.section):not(.quit):not(.link):not(.more-button):not([role="menuitem"]) {
+.settings-body button:not(.section):not(.quit):not(.link):not(.more-button):not(.row-action):not([role="menuitem"]) {
   min-height: 30px; padding: 0 12px; border: 1px solid var(--control-line); border-radius: 5px; background: var(--control);
 }
 .settings-body button.primary:not(.section):not(.quit):not(.link) { border-color: transparent; background: var(--accent); color: #fff; }
@@ -191,9 +191,16 @@ p.row { margin: 0; }
 .settings-body button.icon-button { min-width: 30px; padding: 0; }
 .settings-body button.link { padding: 0; border: 0; background: none; color: var(--accent); text-decoration: underline; }
 .more { position: relative; display: inline-flex; }
+.settings-body button.more-button, .settings-body button.row-action { border: 0; border-radius: 5px; background: none; }
 .settings-body button.more-button { display: inline-grid; place-items: center; min-width: 26px; min-height: 26px; border-color: transparent; background: none; color: var(--secondary); }
 .settings-body button.more-button:hover, .settings-body button.more-button[aria-expanded="true"] { background: var(--hover); color: var(--text); }
-.more-icon { width: 17px; height: 17px; }
+.more-icon, .row-icon { width: 18px; height: 18px; }
+.row-actions { gap: 6px; }
+.row-action { display: inline-grid; place-items: center; min-width: 26px; min-height: 26px; color: var(--secondary); }
+.settings-body button.row-action:hover:not(:disabled) { background: var(--hover); color: var(--text); }
+.row-action.in-use, .row-action.check { color: var(--green); }
+.row-action.card, .row-action.plusFilled { color: var(--accent); }
+.settings-body button.row-action.card:hover, .settings-body button.row-action.plusFilled:hover { color: var(--accent); }
 .row-menu {
   position: absolute; z-index: 10; top: calc(100% + 4px); right: 0; display: grid; min-width: 160px; padding: 4px;
   border: 1px solid var(--line); border-radius: 7px; background: var(--card); box-shadow: 0 10px 30px rgb(0 0 0 / .28);

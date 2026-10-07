@@ -4,7 +4,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { h, featherIcon, moreIcon } from "./dom";
+import { h, featherIcon, moreIcon, rowIcon } from "./dom";
 import { formatDate, t } from "./i18n";
 // The original logos, shared with the macOS app (its `ProviderLogos` resources).
 import openAILogo from "../../Sources/Feather/ProviderLogos/openai_logo.svg";
@@ -378,6 +378,15 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     }
   }
 
+  /** An icon button with its label as tooltip and accessible name, like the macOS app's `iconButton`. */
+  function iconButton(icon: Parameters<typeof rowIcon>[0], label: string, onclick: () => void, attributes: Record<string, string | boolean> = {}): HTMLElement {
+    return h("button", { type: "button", class: `icon-button row-action ${icon}`, title: label, "aria-label": label, onclick, ...attributes }, rowIcon(icon));
+  }
+
+  /**
+   * The row's actions, as icons with tooltips: a check when in use, a circle to use it, a plus to
+   * set it up, a card to choose a Feather Plus plan, and the ⋯ menu for the rest.
+   */
   function providerAccessory(id: Connection): HTMLElement {
     const busy = (id === "chatGPT" && signingIn === "chatGPT") || (id === "featherPlus" && signingIn === "plus");
     if (busy) {
@@ -385,33 +394,26 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
         "span",
         { class: "inline" },
         h("span", { class: "spinner", "aria-hidden": "true" }),
-        h("button", { type: "button", onclick: () => void invoke("cancel_sign_in") }, t("Cancel")),
+        iconButton("cancel", t("Cancel"), () => void invoke("cancel_sign_in")),
       );
     }
     if (!isSetUp(id)) {
       if (id === "openCodeGo" && isEditingKey) return h("span");
-      return h("button", { type: "button", class: id === "featherPlus" ? "primary" : "", disabled: signingIn !== null, onclick: () => setUp(id) }, t("Set Up…"));
+      return iconButton(id === "featherPlus" ? "plusFilled" : "plus", t("Set Up…"), () => setUp(id), { disabled: signingIn !== null });
     }
     let status: HTMLElement;
     if (id === "featherPlus" && plusAccount && !plusAccount.plan) {
-      status = h("button", { type: "button", onclick: () => void invoke("open_plus_account_page") }, t("Choose a plan…"));
+      status = iconButton("card", t("Choose a plan…"), () => void invoke("open_plus_account_page"));
     } else if (settings.connection === id) {
-      status = h("span", { class: "status in-use" }, h("span", { class: "dot green" }), t("In use"));
+      status = h("span", { class: "row-action in-use", title: t("In use"), role: "img", "aria-label": t("In use") }, rowIcon("check"));
     } else {
-      status = h(
-        "button",
-        {
-          type: "button",
-          onclick: async () => {
-            await set("connection", id);
-            if (id === "openCodeGo" && models.length === 0) loadModels();
-            if (id === "chatGPT") loadChatgptModels();
-          },
-        },
-        t("Use"),
-      );
+      status = iconButton("circle", t("Use"), async () => {
+        await set("connection", id);
+        if (id === "openCodeGo" && models.length === 0) loadModels();
+        if (id === "chatGPT") loadChatgptModels();
+      });
     }
-    return h("span", { class: "inline" }, status, ...providerActions(id));
+    return h("span", { class: "inline row-actions" }, status, ...providerActions(id));
   }
 
   /**

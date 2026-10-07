@@ -186,6 +186,8 @@ struct ConnectionSettingsView: View {
         }
     }
 
+    /// The row's actions, as icons with tooltips: a check when in use, a circle to use it, a plus to
+    /// set it up, a card to choose a Feather Plus plan, and the ⋯ menu for the rest.
     @ViewBuilder
     private func accessory(_ kind: ConnectionKind) -> some View {
         if busy == kind {
@@ -193,38 +195,46 @@ struct ConnectionSettingsView: View {
                 ProgressView()
                     .controlSize(.small)
                 if kind == .featherPlus {
-                    Button(String(localized: "Cancel", bundle: .app)) { signInTask?.cancel() }
+                    iconButton("xmark.circle", String(localized: "Cancel", bundle: .app)) { signInTask?.cancel() }
                 } else {
                     Text("Signing in…", bundle: .app)
                         .foregroundStyle(.secondary)
                 }
             }
         } else if !setUp.contains(kind) {
-            if kind == .featherPlus {
-                Button(String(localized: "Set Up…", bundle: .app)) { beginSetUp(kind) }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(busy != nil)
-            } else if !(kind == .openCodeGo && isEnteringKey) {
-                Button(String(localized: "Set Up…", bundle: .app)) { beginSetUp(kind) }
+            if !(kind == .openCodeGo && isEnteringKey) {
+                iconButton(kind == .featherPlus ? "plus.circle.fill" : "plus.circle", String(localized: "Set Up…", bundle: .app)) { beginSetUp(kind) }
+                    .foregroundStyle(kind == .featherPlus ? Color.accentColor : Color.primary)
                     .disabled(busy != nil)
             }
         } else {
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 if kind == .featherPlus, let plusAccount, plusAccount.plan == nil {
-                    Button(String(localized: "Choose a plan…", bundle: .app), action: openBilling)
+                    iconButton("creditcard", String(localized: "Choose a plan…", bundle: .app), action: openBilling)
+                        .foregroundStyle(Color.accentColor)
                 } else if connection == kind {
-                    Label {
-                        Text("In use", bundle: .app)
-                    } icon: {
-                        Image(systemName: "checkmark.circle.fill")
-                    }
-                    .foregroundStyle(.green)
+                    Image(systemName: "checkmark.circle.fill")
+                        .imageScale(.large)
+                        .foregroundStyle(.green)
+                        .help(String(localized: "In use", bundle: .app))
+                        .accessibilityLabel(Text("In use", bundle: .app))
                 } else {
-                    Button(String(localized: "Use", bundle: .app)) { use(kind) }
+                    iconButton("circle", String(localized: "Use", bundle: .app)) { use(kind) }
+                        .foregroundStyle(.secondary)
                 }
                 actions(kind)
             }
         }
+    }
+
+    private func iconButton(_ systemName: String, _ label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .imageScale(.large)
+        }
+        .buttonStyle(.borderless)
+        .help(label)
+        .accessibilityLabel(label)
     }
 
     private func actions(_ kind: ConnectionKind) -> some View {

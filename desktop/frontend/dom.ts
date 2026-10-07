@@ -64,6 +64,53 @@ export function moreIcon(): SVGSVGElement {
   return svg;
 }
 
+/**
+ * The provider row icons, on a 20x20 grid, like the SF Symbols the macOS app uses: `check`
+ * (checkmark.circle.fill), `circle`, `plus` (plus.circle), `plusFilled` (plus.circle.fill),
+ * `card` (creditcard), and `cancel` (xmark.circle).
+ */
+export function rowIcon(name: "check" | "circle" | "plus" | "plusFilled" | "card" | "cancel"): SVGSVGElement {
+  const svg = document.createElementNS(SVG, "svg");
+  svg.setAttribute("viewBox", "0 0 20 20");
+  svg.setAttribute("class", `row-icon ${name}`);
+  svg.setAttribute("aria-hidden", "true");
+  const add = (tag: string, attributes: Record<string, string>) => {
+    const element = document.createElementNS(SVG, tag);
+    for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, value);
+    svg.append(element);
+  };
+  const stroke = { fill: "none", stroke: "currentColor", "stroke-width": "1.5", "stroke-linecap": "round", "stroke-linejoin": "round" };
+  const ring = () => add("circle", { cx: "10", cy: "10", r: "8.25", ...stroke });
+  const filled = () => add("circle", { cx: "10", cy: "10", r: "9", fill: "currentColor" });
+  const onFill = { ...stroke, stroke: "var(--on-icon, #fff)", "stroke-width": "1.75" };
+  switch (name) {
+    case "check":
+      filled();
+      add("path", { d: "M6.2 10.3l2.5 2.5 5.1-5.4", ...onFill });
+      break;
+    case "circle":
+      ring();
+      break;
+    case "plus":
+      ring();
+      add("path", { d: "M10 6.5v7M6.5 10h7", ...stroke });
+      break;
+    case "plusFilled":
+      filled();
+      add("path", { d: "M10 6.5v7M6.5 10h7", ...onFill });
+      break;
+    case "card":
+      add("rect", { x: "2.25", y: "4.75", width: "15.5", height: "10.5", rx: "2", ...stroke });
+      add("path", { d: "M2.25 8.25h15.5M5.5 12.25h3", ...stroke });
+      break;
+    case "cancel":
+      ring();
+      add("path", { d: "M7.5 7.5l5 5M12.5 7.5l-5 5", ...stroke });
+      break;
+  }
+  return svg;
+}
+
 /** Material's `keyboard_return` glyph on a 24x24 grid, shared with the macOS app's `ReturnKeyShape`. */
 export function returnKeyIcon(): SVGSVGElement {
   const svg = document.createElementNS(SVG, "svg");
