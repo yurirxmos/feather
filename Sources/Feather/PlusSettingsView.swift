@@ -2,8 +2,9 @@ import AppKit
 import FeatherCore
 import SwiftUI
 
-/// The Account pane: sign-in, the active plan, and this period's usage. Buying a plan happens on
-/// the website, from Become Plus in the sidebar.
+/// The Feather account at the top of General: who is signed in, the plan, this month's usage, and
+/// sign-in or sign-out. It is a `Section`, so it sits inside a `Form`. Buying a plan happens on the
+/// website, from Become Plus in the sidebar.
 struct PlusSettingsView: View {
     let credentialStore: any CredentialStore
     /// Tells the sidebar whether the account has a plan, so it can hide Become Plus.
@@ -21,23 +22,23 @@ struct PlusSettingsView: View {
     @State private var isAskingToUsePlus = false
 
     var body: some View {
-        Form {
-            Section {
-                if token == nil {
-                    signedOutRow
-                } else {
-                    profile
+        Section {
+            if token == nil {
+                signedOutRow
+            } else {
+                profile
+                if let account, account.plan != nil {
+                    ForEach(account.usage, id: \.limit) { usage in
+                        UsageRow(usage: usage)
+                    }
                 }
-            } footer: {
-                footer
-                    .sectionFooter()
             }
-
-            if let account, account.plan != nil, !account.usage.isEmpty {
-                usage(account)
-            }
+        } header: {
+            Text("Account", bundle: .app)
+        } footer: {
+            footer
+                .sectionFooter()
         }
-        .formStyle(.grouped)
         .onAppear {
             token = credentialStore.plusToken()
             loadAccount()
@@ -81,7 +82,6 @@ struct PlusSettingsView: View {
                 .pointingHandCursor()
             } else {
                 Button(String(localized: "Sign in…", bundle: .app), action: signIn)
-                    .keyboardShortcut(.defaultAction)
                     .pointingHandCursor()
             }
         }
@@ -89,23 +89,6 @@ struct PlusSettingsView: View {
     }
 
     // MARK: - Signed in
-
-    private func usage(_ account: PlusAccount) -> some View {
-        Section {
-            ForEach(account.usage, id: \.limit) { usage in
-                UsageRow(usage: usage)
-            }
-        } header: {
-            Text("Usage this month", bundle: .app)
-        } footer: {
-            if let periodEnd = account.periodEnd {
-                Text("Resets on \(periodEnd.formatted(date: .abbreviated, time: .omitted)).", bundle: .app)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .sectionFooter()
-            }
-        }
-    }
 
     /// Who is signed in, with the plan under the address and the actions as icons, like the provider rows.
     private var profile: some View {
@@ -168,6 +151,10 @@ struct PlusSettingsView: View {
             .font(.callout)
         } else if token == nil {
             Text("Sign-in continues in your browser.", bundle: .app)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+        } else if let periodEnd = account?.periodEnd, account?.plan != nil {
+            Text("Resets on \(periodEnd.formatted(date: .abbreviated, time: .omitted)).", bundle: .app)
                 .font(.callout)
                 .foregroundStyle(.secondary)
         }

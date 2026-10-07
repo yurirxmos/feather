@@ -11,7 +11,7 @@ import openAILogo from "../../Sources/Feather/ProviderLogos/openai_logo.svg";
 import openCodeLogo from "../../Sources/Feather/ProviderLogos/opencode_logo.png";
 
 type Connection = "openCodeGo" | "chatGPT" | "featherPlus";
-type Section = "general" | "connection" | "account" | "system";
+type Section = "general" | "connection" | "system";
 
 type AppInfo = {
   locale: string;
@@ -117,11 +117,11 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
   }
 
   function sections(): Section[] {
-    return (["general", "connection", "account", "system"] as Section[]).filter((item) => item !== "account" || settings.plusEnabled);
+    return ["general", "connection", "system"];
   }
 
   function title(item: Section): string {
-    return { general: t("General"), connection: t("Connection"), account: t("Account"), system: t("System") }[item];
+    return { general: t("General"), connection: t("Connection"), system: t("System") }[item];
   }
 
   /** Until the account has a Feather Plus plan, the sidebar offers Become Plus. */
@@ -168,16 +168,16 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
         offersPlus()
           ? h(
               "button",
-              { type: "button", class: "sidebar-action", title: t("See Feather Plus plans on the website"), onclick: () => void invoke("open_plus_page", { page: "pricing" }) },
+              { type: "button", class: "sidebar-action become-plus", title: t("See Feather Plus plans on the website"), onclick: () => void invoke("open_plus_page", { page: "pricing" }) },
               sparkleIcon(),
               t("Become Plus"),
             )
           : null,
-        h("button", { type: "button", class: "sidebar-action", onclick: () => void invoke("quit") }, `⏻  ${t("Quit Feather")}`),
+        h("button", { type: "button", class: "sidebar-action quit", onclick: () => void invoke("quit") }, `⏻  ${t("Quit Feather")}`),
       ),
     );
 
-    const views: Record<Section, () => HTMLElement[]> = { general, connection, account, system };
+    const views: Record<Section, () => HTMLElement[]> = { general, connection, system };
     detail.replaceChildren(h("h1", {}, title(section)), ...views[section]());
   }
 
@@ -238,6 +238,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     });
 
     return [
+      ...(settings.plusEnabled ? [account()] : []),
       group(t("Shortcut"), [row(t("Open Feather"), hotkey)], shortcutNote()),
       group(
         t("Instructions"),
@@ -456,7 +457,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
         },
       ],
       chatGPT: [{ label: t("Disconnect"), destructive: true, run: async () => ((credentials = await invoke<Credentials>("disconnect_chatgpt")), render()) }],
-      featherPlus: [{ label: t("Manage…"), run: () => ((section = "account"), render(), loadAccount()) }],
+      featherPlus: [{ label: t("Manage…"), run: () => ((section = "general"), render(), loadAccount()) }],
     }[id];
     const open = openMenu === id;
     const button = h(
@@ -672,8 +673,8 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     );
   }
 
-  /** The Account tab: sign-in, the plan, and this month's usage. Plans are bought on the website, from Become Plus. */
-  function account(): HTMLElement[] {
+  /** The Feather account at the top of General: who is signed in, the plan, this month's usage, and sign-in or sign-out. Plans are bought on the website, from Become Plus. */
+  function account(): HTMLElement {
     if (!credentials.plusSignedIn) {
       const busy = signingIn === "plus";
       const actions = busy
@@ -686,32 +687,26 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
         h("span", { class: "label" }, h("strong", {}, t("Not signed in")), h("span", { class: "secondary" }, t("Sign in to see your plan and usage."))),
         h("span", { class: "inline row-actions" }, ...actions),
       );
-      return [group(null, [row], plusError ? error(plusError) : footnote(t("Sign-in continues in your browser.")))];
+      return group(t("Account"), [row], plusError ? error(plusError) : footnote(t("Sign-in continues in your browser.")));
     }
 
     const account = plusAccount;
-    const plusFooter = plusError
-      ? h("p", { class: "footnote error-text" }, `⚠ ${plusError} `, h("button", { type: "button", class: "link", onclick: loadAccount }, t("Retry")))
-      : null;
-    const views: HTMLElement[] = [];
-    views.push(group(null, [profileRow(account)], plusFooter));
-    if (account?.plan && account.usage.length > 0) {
-      views.push(
-        group(
-          t("Usage this month"),
-          account.usage.map((usage) =>
-            h(
-              "div",
-              { class: "row usage" },
-              h("div", { class: "spread" }, h("span", {}, t("This month's allowance")), h("span", { class: "secondary" }, t("{percent}% used", { percent: usage.percentUsed }))),
-              h("progress", { value: String(usage.percentUsed), max: "100", class: usage.used >= usage.limit ? "exhausted" : "" }),
-            ),
+    const usage = account?.plan
+      ? account.usage.map((usage) =>
+          h(
+            "div",
+            { class: "row usage" },
+            h("div", { class: "spread" }, h("span", {}, t("This month's allowance")), h("span", { class: "secondary" }, t("{percent}% used", { percent: usage.percentUsed }))),
+            h("progress", { value: String(usage.percentUsed), max: "100", class: usage.used >= usage.limit ? "exhausted" : "" }),
           ),
-          account.periodEnd ? footnote(t("Resets on {date}.", { date: formatDate(account.periodEnd) })) : null,
-        ),
-      );
-    }
-    return views;
+        )
+      : [];
+    const foot = plusError
+      ? h("p", { class: "footnote error-text" }, `⚠ ${plusError} `, h("button", { type: "button", class: "link", onclick: loadAccount }, t("Retry")))
+      : account?.plan && account.periodEnd
+        ? footnote(t("Resets on {date}.", { date: formatDate(account.periodEnd) }))
+        : null;
+    return group(t("Account"), [profileRow(account), ...usage], foot);
   }
 
   async function signInPlus(): Promise<void> {
@@ -949,8 +944,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
 }
 
 function sectionGlyph(section: Section): Node {
-  if (section === "account") return personIcon();
-  return document.createTextNode({ general: "⚙", connection: "⇄", system: "⛨" }[section as Exclude<Section, "account">]);
+  return document.createTextNode({ general: "⚙", connection: "⇄", system: "⛨" }[section]);
 }
 
 function group(title: string | null, rows: HTMLElement[], foot: HTMLElement | null = null): HTMLElement {

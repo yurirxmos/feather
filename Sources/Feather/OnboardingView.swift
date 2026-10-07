@@ -91,7 +91,10 @@ struct OnboardingView: View {
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 16)
-                PlusSettingsView(credentialStore: credentialStore, hasPlan: .constant(false))
+                Form {
+                    PlusSettingsView(credentialStore: credentialStore, hasPlan: .constant(false))
+                }
+                .formStyle(.grouped)
             } else {
                 header(
                     title: String(localized: "Connect a provider", bundle: .app),

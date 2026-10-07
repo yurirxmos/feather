@@ -154,7 +154,6 @@ export const PT_BR: Record<string, string> = {
   "Choose a plan…": "Escolher um plano…",
   "Manage subscription…": "Gerenciar assinatura…",
   "Sign out": "Sair",
-  "Usage this month": "Uso neste mês",
   "Resets on {date}.": "Renova em {date}.",
   "This month's allowance": "Franquia deste mês",
   "{percent}% used": "{percent}% usado",

@@ -152,12 +152,11 @@ button:disabled { cursor: default; }
 }
 .section-icon.general { background: linear-gradient(#9ca3af, #6b7280); }
 .section-icon.connection { background: linear-gradient(#60a5fa, #2563eb); }
-.section-icon.account { background: linear-gradient(#fb923c, #ea580c); }
 .section-icon.system { background: linear-gradient(#818cf8, #4f46e5); }
 .section-icon .glyph { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
-.section-icon .glyph.sparkle { width: 14px; height: 14px; fill: currentColor; stroke: none; }
 .attention { width: 7px; height: 7px; border-radius: 50%; background: var(--orange); }
-.sidebar-foot { display: grid; border-top: 1px solid var(--line); }
+.sidebar-foot { display: grid; }
+.sidebar-action.quit { border-top: 1px solid var(--line); }
 .sidebar-action { display: flex; align-items: center; gap: 8px; padding: 10px; border: 0; background: none; color: var(--secondary); text-align: left; }
 .sidebar-action:hover { color: var(--text); }
 .sidebar-action .sparkle { width: 14px; height: 14px; fill: var(--orange); }

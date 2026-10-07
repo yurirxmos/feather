@@ -1821,16 +1821,6 @@
         }
       }
     },
-    "Usage this month": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Uso neste mês"
-          }
-        }
-      }
-    },
     "This month's allowance": {
       "localizations": {
         "pt-BR": {

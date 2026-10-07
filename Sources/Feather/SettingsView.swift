@@ -5,7 +5,6 @@ import SwiftUI
 private enum SettingsSection: String, CaseIterable, Identifiable {
     case general
     case connection
-    case account
     case permissions
 
     var id: String { rawValue }
@@ -14,7 +13,6 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
         switch self {
         case .connection: String(localized: "Connection", bundle: .app)
         case .general: String(localized: "General", bundle: .app)
-        case .account: String(localized: "Account", bundle: .app)
         case .permissions: String(localized: "Permissions", bundle: .app)
         }
     }
@@ -23,7 +21,6 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
         switch self {
         case .connection: "network"
         case .general: "gearshape"
-        case .account: "person.crop.circle"
         case .permissions: "lock.shield"
         }
     }
@@ -32,7 +29,6 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
         switch self {
         case .connection: .blue
         case .general: .gray
-        case .account: .orange
         case .permissions: .indigo
         }
     }
@@ -99,7 +95,7 @@ struct SettingsView: View {
     // MARK: - Sidebar
 
     private var sidebar: some View {
-        List(visibleSections, selection: $selectedSection) { section in
+        List(SettingsSection.allCases, selection: $selectedSection) { section in
             HStack(spacing: 8) {
                 SectionIcon(symbol: section.symbol, tint: section.tint)
                 Text(section.title)
@@ -119,7 +115,6 @@ struct SettingsView: View {
         .listStyle(.sidebar)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             VStack(spacing: 0) {
-                Divider()
                 if FeatherPlus.isEnabled(), !hasPlusPlan {
                     Button(action: becomePlus) {
                         Label {
@@ -136,8 +131,9 @@ struct SettingsView: View {
                     .help(String(localized: "See Feather Plus plans on the website", bundle: .app))
                     .pointingHandCursor()
                     .padding(.horizontal, 18)
-                    .padding(.top, 12)
+                    .padding(.vertical, 10)
                 }
+                Divider()
                 Button {
                     NSApp.terminate(nil)
                 } label: {
@@ -155,14 +151,10 @@ struct SettingsView: View {
         .navigationSplitViewColumnWidth(min: 190, ideal: 200, max: 240)
     }
 
-    private var visibleSections: [SettingsSection] {
-        SettingsSection.allCases.filter { $0 != .account || FeatherPlus.isEnabled() }
-    }
-
     private func needsAttention(_ section: SettingsSection) -> Bool {
         switch section {
         case .connection: !isConnected
-        case .general, .account: false
+        case .general: false
         case .permissions: !permissions.allGranted
         }
     }
@@ -200,11 +192,10 @@ struct SettingsView: View {
         case .connection:
             ConnectionSettingsView(
                 credentialStore: credentialStore,
-                openPlus: { selectedSection = .account },
+                openPlus: { selectedSection = .general },
                 credentialsChanged: refreshProviders
             )
         case .general: generalView
-        case .account: PlusSettingsView(credentialStore: credentialStore, hasPlan: $hasPlusPlan)
         case .permissions: permissionsView
         }
     }
@@ -233,6 +224,10 @@ struct SettingsView: View {
 
     private var generalView: some View {
         Form {
+            if FeatherPlus.isEnabled() {
+                PlusSettingsView(credentialStore: credentialStore, hasPlan: $hasPlusPlan)
+            }
+
             Section {
                 Picker(String(localized: "Open Feather", bundle: .app), selection: $hotkey) {
                     ForEach(HotkeyPreset.allCases) { preset in
