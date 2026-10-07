@@ -43,7 +43,7 @@ pub fn authorize_url(base: &str, redirect_uri: &str, state: &str, code_challenge
     Ok(url.into())
 }
 
-/// The website's plans, opened by Become Plus.
+/// The website's plans, opened by Upgrade.
 pub const PRICING_PATH: &str = "/#pricing";
 /// The website's account page, where a subscriber changes or cancels a plan.
 pub const ACCOUNT_PATH: &str = "/account";

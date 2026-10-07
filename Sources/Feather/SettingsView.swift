@@ -46,7 +46,7 @@ struct SettingsView: View {
     @AppStorage(SettingsKey.onboardingCompleted) private var onboardingCompleted = true
     @State private var providersSetUp: Set<ConnectionKind> = []
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
-    /// Whether the signed-in account has a Feather Plus plan; until it does, the sidebar offers Become Plus.
+    /// Whether the signed-in account has a Feather Plus plan; until it does, the sidebar offers Upgrade.
     @State private var hasPlusPlan = false
 
     init(credentialStore: any CredentialStore = KeychainCredentialStore.shared) {
@@ -118,7 +118,7 @@ struct SettingsView: View {
                 if FeatherPlus.isEnabled(), !hasPlusPlan {
                     Button(action: becomePlus) {
                         Label {
-                            Text("Become Plus", bundle: .app)
+                            Text("Upgrade", bundle: .app)
                         } icon: {
                             Image(systemName: "sparkles")
                                 .foregroundStyle(.orange)

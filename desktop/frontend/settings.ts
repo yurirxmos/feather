@@ -124,7 +124,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     return { general: t("General"), connection: t("Connection"), system: t("System") }[item];
   }
 
-  /** Until the account has a Feather Plus plan, the sidebar offers Become Plus. */
+  /** Until the account has a Feather Plus plan, the sidebar offers Upgrade. */
   function offersPlus(): boolean {
     return settings.plusEnabled && !plusAccount?.plan;
   }
@@ -170,7 +170,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
               "button",
               { type: "button", class: "sidebar-action become-plus", title: t("See Feather Plus plans on the website"), onclick: () => void invoke("open_plus_page", { page: "pricing" }) },
               sparkleIcon(),
-              t("Become Plus"),
+              t("Upgrade"),
             )
           : null,
         h("button", { type: "button", class: "sidebar-action quit", onclick: () => void invoke("quit") }, `⏻  ${t("Quit Feather")}`),
@@ -673,7 +673,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     );
   }
 
-  /** The Feather account at the top of General: who is signed in, the plan, this month's usage, and sign-in or sign-out. Plans are bought on the website, from Become Plus. */
+  /** The Feather account at the top of General: who is signed in, the plan, this month's usage, and sign-in or sign-out. Plans are bought on the website, from Upgrade. */
   function account(): HTMLElement {
     if (!credentials.plusSignedIn) {
       const busy = signingIn === "plus";
@@ -906,7 +906,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
   async function refreshCredentials(): Promise<void> {
     credentials = await invoke<Credentials>("credential_status");
     render();
-    // The sidebar's Become Plus depends on the plan, so it is checked on every tab.
+    // The sidebar's Upgrade depends on the plan, so it is checked on every tab.
     if (settings.plusEnabled) loadAccount();
   }
 

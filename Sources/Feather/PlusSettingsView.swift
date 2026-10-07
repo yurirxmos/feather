@@ -4,10 +4,10 @@ import SwiftUI
 
 /// The Feather account at the top of General: who is signed in, the plan, this month's usage, and
 /// sign-in or sign-out. It is a `Section`, so it sits inside a `Form`. Buying a plan happens on the
-/// website, from Become Plus in the sidebar.
+/// website, from Upgrade in the sidebar.
 struct PlusSettingsView: View {
     let credentialStore: any CredentialStore
-    /// Tells the sidebar whether the account has a plan, so it can hide Become Plus.
+    /// Tells the sidebar whether the account has a plan, so it can hide Upgrade.
     @Binding var hasPlan: Bool
     @AppStorage(SettingsKey.connection) private var connection: ConnectionKind = .openCodeGo
     @AppStorage(SettingsKey.model) private var model = OpenCodeGoProvider.defaultModel

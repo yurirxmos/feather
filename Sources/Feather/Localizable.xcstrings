@@ -491,16 +491,6 @@
         }
       }
     },
-    "Become Plus": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Seja Plus"
-          }
-        }
-      }
-    },
     "Screen": {
       "localizations": {
         "pt-BR": {
@@ -1867,6 +1857,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ver os planos do Feather Plus no site"
+          }
+        }
+      }
+    },
+    "Upgrade": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fazer upgrade"
           }
         }
       }

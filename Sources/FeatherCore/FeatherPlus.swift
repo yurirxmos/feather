@@ -57,7 +57,7 @@ public enum FeatherPlus {
         return url
     }
 
-    /// The website's plans, opened by Become Plus.
+    /// The website's plans, opened by Upgrade.
     public static let pricingPath = "/#pricing"
     /// The website's account page, where a subscriber changes or cancels a plan.
     public static let accountPath = "/account"
