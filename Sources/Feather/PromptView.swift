@@ -212,7 +212,8 @@ struct PromptView: View {
             ContextChip(
                 title: app,
                 systemImage: "app.dashed",
-                isOn: session.options.includeApp
+                isOn: session.options.includeApp,
+                help: String(localized: "Feather knows which app you are in", bundle: .app)
             ) { session.options.includeApp.toggle() }
 
         }
@@ -221,16 +222,18 @@ struct PromptView: View {
             ContextChip(
                 title: String(localized: "Text selected", bundle: .app),
                 systemImage: "text.quote",
-                isOn: session.options.includeSelection
+                isOn: session.options.includeSelection,
+                help: String(localized: "Feather sees the text you selected", bundle: .app)
             ) { session.options.includeSelection.toggle() }
         }
 
-        if session.context.focusedText != nil {
+        if session.context.windowText != nil {
             ContextChip(
-                title: String(localized: "Focused text", bundle: .app),
-                systemImage: "text.cursor",
-                isOn: session.options.includeFocusedText
-            ) { session.options.includeFocusedText.toggle() }
+                title: String(localized: "Screen", bundle: .app),
+                systemImage: "macwindow",
+                isOn: session.options.includeWindowText,
+                help: String(localized: "Feather is reading what is on your screen", bundle: .app)
+            ) { session.options.includeWindowText.toggle() }
         }
 
         if session.isCapturing {
@@ -309,6 +312,7 @@ private struct ContextChip: View {
     let title: String
     let systemImage: String
     let isOn: Bool
+    let help: String
     let action: () -> Void
 
     var body: some View {
@@ -321,6 +325,7 @@ private struct ContextChip: View {
             .foregroundStyle(isOn ? Color.white : Color.white.opacity(0.55))
             .strikethrough(!isOn)
             .contentShape(Capsule())
+            .help(help)
             .onTapGesture(perform: action)
             .pointingHandCursor()
     }

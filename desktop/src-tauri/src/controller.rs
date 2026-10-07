@@ -568,7 +568,7 @@ impl PromptController {
         match option {
             "app" => options.include_app = !options.include_app,
             "selection" => options.include_selection = !options.include_selection,
-            "focusedText" => options.include_focused_text = !options.include_focused_text,
+            "windowText" => options.include_window_text = !options.include_window_text,
             _ => return,
         }
         self.publish(&inner);

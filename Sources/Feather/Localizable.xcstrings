@@ -491,12 +491,42 @@
         }
       }
     },
-    "Focused text": {
+    "Screen": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Texto em foco"
+            "value": "Tela"
+          }
+        }
+      }
+    },
+    "Feather sees the text you selected": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Feather vê o texto que você selecionou"
+          }
+        }
+      }
+    },
+    "Feather is reading what is on your screen": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Feather está lendo o que está na sua tela"
+          }
+        }
+      }
+    },
+    "Feather knows which app you are in": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Feather sabe em qual app você está"
           }
         }
       }

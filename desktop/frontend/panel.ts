@@ -120,9 +120,9 @@ export async function startPanel(root: HTMLElement): Promise<void> {
     if (state.notice) below.push(h("p", { class: "notice", role: "status" }, state.notice));
 
     const chips = h("div", { class: "chips" });
-    if (state.appName) chips.append(chip(state.appName, state.options.includeApp, "app"));
-    if (state.selectedPreview !== null) chips.append(chip(t("Text selected"), state.options.includeSelection, "selection"));
-    if (state.hasFocusedText) chips.append(chip(t("Focused text"), state.options.includeFocusedText, "focusedText"));
+    if (state.appName) chips.append(chip(state.appName, state.options.includeApp, "app", t("Feather knows which app you are in")));
+    if (state.selectedPreview !== null) chips.append(chip(t("Text selected"), state.options.includeSelection, "selection", t("Feather sees the text you selected")));
+    if (state.hasWindowText) chips.append(chip(t("Screen"), state.options.includeWindowText, "windowText", t("Feather is reading what is on your screen")));
     if (state.isCapturing) {
       chips.append(
         h(
@@ -259,12 +259,13 @@ function responseBlock(text: string, muted: boolean): HTMLElement {
   return h("div", { class: muted ? "response muted" : "response" }, text);
 }
 
-function chip(title: string, isOn: boolean, option: string): HTMLElement {
+function chip(title: string, isOn: boolean, option: string, hint: string): HTMLElement {
   return h(
     "button",
     {
       class: isOn ? "chip" : "chip off",
       type: "button",
+      title: hint,
       "aria-pressed": String(isOn),
       onclick: () => void invoke("prompt_toggle_option", { option }),
     },
