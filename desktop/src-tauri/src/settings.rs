@@ -251,17 +251,23 @@ impl SettingsStore {
     }
 
     fn save(&self, values: &Map<String, Value>) -> Result<(), String> {
-        let write = || -> std::io::Result<()> {
-            if let Some(directory) = self.path.parent() {
-                std::fs::create_dir_all(directory)?;
-            }
-            let temporary = self.path.with_extension("json.tmp");
-            std::fs::write(&temporary, serde_json::to_vec_pretty(values)?)?;
-            std::fs::rename(temporary, &self.path)
-        };
-        write().map_err(|error| format!("Settings could not be saved: {error}"))
+        serde_json::to_vec_pretty(values)
+            .map_err(std::io::Error::from)
+            .and_then(|data| write_atomically(&self.path, &data))
+            .map_err(|error| format!("Settings could not be saved: {error}"))
     }
 }
+
+/// Writes through a temporary file, so a crash never leaves half a file behind.
+pub fn write_atomically(path: &std::path::Path, data: &[u8]) -> std::io::Result<()> {
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir)?;
+    }
+    let temporary = path.with_extension("json.tmp");
+    std::fs::write(&temporary, data)?;
+    std::fs::rename(&temporary, path)
+}
+
 
 #[cfg(test)]
 mod tests {

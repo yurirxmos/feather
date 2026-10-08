@@ -21,13 +21,11 @@ use windows::Win32::UI::WindowsAndMessaging::{
     GetForegroundWindow, GetWindowTextW, GetWindowThreadProcessId, IsIconic, SetForegroundWindow, ShowWindow, SW_RESTORE,
 };
 
-use super::{non_empty, Capability, Rect, Snapshot, Target, TextCollector};
+use super::{non_empty, Capability, Rect, Snapshot, Target, TextCollector, MAX_FIELD_TEXT};
 
 /// `PrintWindow` renders the window itself, so the panel covering it does not matter.
 pub const CAPTURES_SCREENSHOT_BEFORE_PANEL: bool = false;
 
-/// Large documents can expose megabytes of text; the prompt keeps only the tail anyway.
-const MAX_FIELD_TEXT: i32 = 200_000;
 
 const VK_V: VIRTUAL_KEY = VIRTUAL_KEY(0x56);
 

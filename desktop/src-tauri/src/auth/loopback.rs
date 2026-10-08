@@ -8,6 +8,9 @@ use tokio::net::{TcpListener, TcpStream};
 
 const MAX_REQUEST_BYTES: usize = 65_536;
 
+/// How long a browser sign-in may take before the listener gives up.
+pub const SIGN_IN_TIMEOUT: Duration = Duration::from_secs(300);
+
 pub struct Callback {
     pub code: String,
     stream: TcpStream,

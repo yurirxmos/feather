@@ -1,6 +1,6 @@
 //! ChatGPT sign-in through the Codex OAuth client, matching `ChatGPTAuth` in the macOS app.
 
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::Deserialize;
 
@@ -14,7 +14,6 @@ const CLIENT_ID: &str = "app_EMoamEEZ73f0CkXaXp7hrann";
 const ISSUER: &str = "https://auth.openai.com";
 /// The redirect URI registered for this client, so the port is fixed.
 const CALLBACK_PORT: u16 = 1455;
-const SIGN_IN_TIMEOUT: Duration = Duration::from_secs(300);
 
 #[derive(Deserialize)]
 struct TokenResponse {
@@ -52,7 +51,7 @@ pub async fn sign_in(open_url: impl FnOnce(&str)) -> Result<(), String> {
         .append_pair("originator", "opencode");
     open_url(url.as_str());
 
-    let callback = loopback::receive(listener, SIGN_IN_TIMEOUT, |target| {
+    let callback = loopback::receive(listener, loopback::SIGN_IN_TIMEOUT, |target| {
         let url = reqwest::Url::parse(&format!("http://localhost{target}")).ok()?;
         if url.path() != "/auth/callback" {
             return None;

@@ -30,6 +30,9 @@ pub const WINDOW_TEXT_BUDGET: Duration = Duration::from_millis(700);
 pub const MAX_WINDOW_TEXT_CHARACTERS: usize = 24_000;
 pub const MAX_WINDOW_ELEMENTS: usize = 1_200;
 pub const MAX_TREE_DEPTH: usize = 18;
+/// Large documents can expose megabytes of text; the prompt keeps only the tail anyway.
+#[cfg_attr(not(any(windows, target_os = "linux")), allow(dead_code))]
+pub const MAX_FIELD_TEXT: i32 = 200_000;
 
 /// Vision models downscale anything larger, so sending more only adds latency.
 const MAX_SCREENSHOT_LONG_EDGE: u32 = 1_568;

@@ -8,7 +8,6 @@ use crate::credentials;
 use crate::i18n::t;
 use crate::providers::stream::CLIENT;
 
-const SIGN_IN_TIMEOUT: Duration = Duration::from_secs(300);
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum PlusError {
@@ -46,7 +45,7 @@ pub async fn sign_in(base: &str, open_url: impl FnOnce(&str)) -> Result<(), Plus
         .map_err(|error| PlusError::Other(error.message()))?;
     open_url(&url);
 
-    let callback = loopback::receive(listener, SIGN_IN_TIMEOUT, |target| plus::authorization_code(target, &state))
+    let callback = loopback::receive(listener, loopback::SIGN_IN_TIMEOUT, |target| plus::authorization_code(target, &state))
         .await
         .ok_or_else(|| PlusError::Other(t("Sign-in timed out. Try again.")))?;
 

@@ -41,32 +41,12 @@
         }
       }
     },
-    "Anthropic": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Anthropic"
-          }
-        }
-      }
-    },
     "Back": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Voltar"
-          }
-        }
-      }
-    },
-    "Base URL": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "URL base"
           }
         }
       }
@@ -107,16 +87,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Clique na caixa abaixo e aperte %@. Diga o que você quer e o Feather escreve aqui."
-          }
-        }
-      }
-    },
-    "Close": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fechar"
           }
         }
       }
@@ -381,26 +351,6 @@
         }
       }
     },
-    "Sign in with ChatGPT": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Entrar com ChatGPT"
-          }
-        }
-      }
-    },
-    "Connected to ChatGPT": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Conectado ao ChatGPT"
-          }
-        }
-      }
-    },
     "Disconnect": {
       "localizations": {
         "pt-BR": {
@@ -447,16 +397,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ajustes do Feather"
-          }
-        }
-      }
-    },
-    "Copied to the clipboard. Grant Accessibility access in Settings to paste automatically.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Copiado para a área de transferência. Conceda acesso de Acessibilidade nos Ajustes para colar automaticamente."
           }
         }
       }
@@ -621,16 +561,6 @@
         }
       }
     },
-    "Model ID": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ID do modelo"
-          }
-        }
-      }
-    },
     "No app context": {
       "localizations": {
         "pt-BR": {
@@ -677,26 +607,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "OpenCode Go"
-          }
-        }
-      }
-    },
-    "OpenAI-compatible": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Compatível com OpenAI"
-          }
-        }
-      }
-    },
-    "Optional for local servers": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Opcional para servidores locais"
           }
         }
       }
@@ -761,16 +671,6 @@
         }
       }
     },
-    "Replace key…": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Trocar chave…"
-          }
-        }
-      }
-    },
     "Save": {
       "localizations": {
         "pt-BR": {
@@ -817,16 +717,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Gravação de Tela"
-          }
-        }
-      }
-    },
-    "Selection": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Seleção"
           }
         }
       }
@@ -1001,16 +891,6 @@
         }
       }
     },
-    "Window": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Janela"
-          }
-        }
-      }
-    },
     "Window text": {
       "localizations": {
         "pt-BR": {
@@ -1031,42 +911,12 @@
         }
       }
     },
-    "Works with OpenAI, OpenRouter, Groq, Ollama (http://localhost:11434/v1), LM Studio, and any server that speaks /chat/completions. Pick a model that accepts images to use the window screenshot.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Funciona com OpenAI, OpenRouter, Groq, Ollama (http://localhost:11434/v1), LM Studio e qualquer servidor que fale /chat/completions. Escolha um modelo que aceite imagens para usar a captura da janela."
-          }
-        }
-      }
-    },
-    "Your key is stored in the macOS Keychain.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sua chave fica guardada no Keychain do macOS."
-          }
-        }
-      }
-    },
     "Account": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Conta"
-          }
-        }
-      }
-    },
-    "Connected": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Conectado"
           }
         }
       }
@@ -1281,36 +1131,6 @@
         }
       }
     },
-    "Sign in": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Entrar"
-          }
-        }
-      }
-    },
-    "Email": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "E-mail"
-          }
-        }
-      }
-    },
-    "Plan": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Plano"
-          }
-        }
-      }
-    },
     "No plan": {
       "localizations": {
         "pt-BR": {
@@ -1397,16 +1217,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Entrar…"
-          }
-        }
-      }
-    },
-    "Use your Feather Plus account.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Use a sua conta do Feather Plus."
           }
         }
       }

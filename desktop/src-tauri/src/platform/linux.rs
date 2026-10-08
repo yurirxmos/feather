@@ -18,14 +18,13 @@ use x11rb::rust_connection::RustConnection;
 use x11rb::CURRENT_TIME;
 
 use super::session::{self, Session};
-use super::{non_empty, Capability, Rect, Snapshot, Target, TextCollector};
+use super::{non_empty, Capability, Rect, Snapshot, Target, TextCollector, MAX_FIELD_TEXT};
 
 /// `GetImage` reads the screen, so it must run before the panel covers the window.
 pub const CAPTURES_SCREENSHOT_BEFORE_PANEL: bool = true;
 
 /// The longest any single accessibility call may take, so a hung app cannot freeze the shortcut.
 const CALL_TIMEOUT: Duration = Duration::from_millis(300);
-const MAX_FIELD_TEXT: i32 = 200_000;
 
 const KEYSYM_CONTROL_L: u32 = 0xffe3;
 const KEYSYM_V: u32 = 0x0076;

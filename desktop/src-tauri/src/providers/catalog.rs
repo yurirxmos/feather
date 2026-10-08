@@ -16,7 +16,7 @@ pub const CHATGPT_MODELS: [Model; 6] = [
     Model { id: "gpt-6-sol", name: "GPT-6 Sol" },
     Model { id: "gpt-5.5", name: "GPT-5.5" },
     Model { id: "gpt-5.4", name: "GPT-5.4" },
-    Model { id: "gpt-5.4-mini", name: "GPT-5.4 Mini · Fast" },
+    Model { id: CHATGPT_DEFAULT_MODEL, name: "GPT-5.4 Mini · Fast" },
     Model { id: "gpt-5.3-codex-spark", name: "GPT-5.3 Codex Spark" },
 ];
 

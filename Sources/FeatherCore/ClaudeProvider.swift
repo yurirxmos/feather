@@ -88,7 +88,7 @@ public struct ClaudeProvider: LLMProvider {
 
 /// Fetches the models available to an Anthropic API key.
 public enum ClaudeModelCatalog {
-    public static let fallbackModels = ["claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5"]
+    public static let fallbackModels = [ClaudeProvider.defaultModel, "claude-sonnet-5-5", "claude-opus-5-5"]
 
     public static func fetchModels(
         apiKey: String,

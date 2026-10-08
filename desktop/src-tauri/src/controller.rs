@@ -25,7 +25,7 @@ use crate::i18n::t;
 use crate::insert;
 use crate::platform::{self, Rect, Target};
 use crate::providers::{stream, Provider};
-use crate::settings::{Connection, SettingsStore};
+use crate::settings::{write_atomically, Connection, SettingsStore};
 use crate::shell::SETTINGS_LABEL;
 
 pub const PANEL_LABEL: &str = "panel";
@@ -754,16 +754,6 @@ impl PromptController {
             controller.close();
         }));
     }
-}
-
-/// Writes through a temporary file, so a crash never leaves half a file behind.
-fn write_atomically(path: &std::path::Path, data: &[u8]) -> std::io::Result<()> {
-    if let Some(dir) = path.parent() {
-        std::fs::create_dir_all(dir)?;
-    }
-    let temporary = path.with_extension("json.tmp");
-    std::fs::write(&temporary, data)?;
-    std::fs::rename(&temporary, path)
 }
 
 fn now_millis() -> u64 {
