@@ -13,8 +13,20 @@ final class SettingsTests: XCTestCase {
         let values = defaults()
         XCTAssertEqual(Settings.current(values), Settings(connection: .openCodeGo, model: OpenCodeGoProvider.defaultModel, hotkey: .optionSpace, includeScreenshot: true))
 
-        values.set(ConnectionKind.chatGPT.rawValue, forKey: SettingsKey.connection)
-        XCTAssertEqual(Settings.current(values).model, ChatGPTModelCatalog.defaultModel)
+        values.set(ConnectionKind.openAI.rawValue, forKey: SettingsKey.connection)
+        XCTAssertEqual(Settings.current(values).model, OpenAIProvider.defaultModel)
+    }
+
+    func testTheChatGPTSignInChoiceBecomesOpenAI() {
+        let values = defaults()
+        values.set("chatGPT", forKey: SettingsKey.connection)
+        Settings.migrateLegacyConnection(values)
+        XCTAssertEqual(values.string(forKey: SettingsKey.connection), "openAI")
+        XCTAssertEqual(Settings.current(values).connection, .openAI)
+
+        values.set("claude", forKey: SettingsKey.connection)
+        Settings.migrateLegacyConnection(values)
+        XCTAssertEqual(values.string(forKey: SettingsKey.connection), "claude")
     }
 
     func testSettingsTrimModelAndPreserveExplicitValues() {
@@ -31,23 +43,22 @@ final class SettingsTests: XCTestCase {
     }
 
     func testConnectionChangeOnlyReplacesKnownDefaultModels() {
-        XCTAssertEqual(Settings.model(afterChangingTo: .chatGPT, preserving: OpenCodeGoProvider.defaultModel), ChatGPTModelCatalog.defaultModel)
-        XCTAssertEqual(Settings.model(afterChangingTo: .openCodeGo, preserving: ChatGPTModelCatalog.defaultModel), OpenCodeGoProvider.defaultModel)
-        XCTAssertEqual(Settings.model(afterChangingTo: .chatGPT, preserving: "custom-model"), "custom-model")
+        XCTAssertEqual(Settings.model(afterChangingTo: .openAI, preserving: OpenCodeGoProvider.defaultModel), OpenAIProvider.defaultModel)
+        XCTAssertEqual(Settings.model(afterChangingTo: .openCodeGo, preserving: OpenAIProvider.defaultModel), OpenCodeGoProvider.defaultModel)
+        XCTAssertEqual(Settings.model(afterChangingTo: .openAI, preserving: "custom-model"), "custom-model")
     }
 
     func testCredentialStoreSelectsProviderCredentials() {
         let store = MemoryCredentialStore(apiKey: "go-key")
         let go = Settings(connection: .openCodeGo, model: "m", hotkey: .optionSpace, includeScreenshot: true)
-        let chatGPT = Settings(connection: .chatGPT, model: "m", hotkey: .optionSpace, includeScreenshot: true)
+        let openAI = Settings(connection: .openAI, model: "m", hotkey: .optionSpace, includeScreenshot: true)
         XCTAssertTrue(go.hasCredentials(using: store))
-        XCTAssertFalse(chatGPT.hasCredentials(using: store))
+        XCTAssertFalse(openAI.hasCredentials(using: store))
         XCTAssertEqual((go.makeProvider(apiKey: store.apiKey()!) as? OpenCodeGoProvider)?.apiKey, "go-key")
 
-        let credentials = ChatGPTCredentials(accessToken: "access", refreshToken: "refresh", expiresAt: .distantFuture)
-        XCTAssertTrue(store.setChatGPTCredentials(credentials))
-        XCTAssertTrue(chatGPT.hasCredentials(using: store))
-        XCTAssertEqual((chatGPT.makeProvider(accessToken: "access") as? ChatGPTProvider)?.accessToken, "access")
+        XCTAssertTrue(store.setOpenAIAPIKey("sk-openai"))
+        XCTAssertTrue(openAI.hasCredentials(using: store))
+        XCTAssertEqual((openAI.makeProvider(openAIAPIKey: "sk-openai") as? OpenAIProvider)?.apiKey, "sk-openai")
     }
 
     func testMemoryCredentialStoreMutations() {
@@ -59,29 +70,30 @@ final class SettingsTests: XCTestCase {
         XCTAssertTrue(store.setAPIKey("key"))
         store.deleteAPIKey()
         XCTAssertNil(store.apiKey())
-        let credentials = ChatGPTCredentials(accessToken: "a", refreshToken: "r", expiresAt: .distantFuture)
-        XCTAssertTrue(store.setChatGPTCredentials(credentials))
-        store.deleteChatGPTCredentials()
-        XCTAssertNil(store.chatGPTCredentials())
+        XCTAssertTrue(store.setOpenAIAPIKey(" sk "))
+        XCTAssertEqual(store.openAIAPIKey(), "sk")
+        store.deleteOpenAIAPIKey()
+        XCTAssertNil(store.openAIAPIKey())
     }
 
     func testTheProviderInUseStaysWhileItIsSetUp() {
-        XCTAssertEqual(Settings.connection(current: .chatGPT, setUp: [.chatGPT, .openCodeGo], preferring: .openCodeGo), .chatGPT)
+        XCTAssertEqual(Settings.connection(current: .openAI, setUp: [.openAI, .openCodeGo], preferring: .openCodeGo), .openAI)
     }
 
     func testTheFirstProviderSetUpIsUsed() {
-        XCTAssertEqual(Settings.connection(current: .openCodeGo, setUp: [.chatGPT], preferring: .chatGPT), .chatGPT)
+        XCTAssertEqual(Settings.connection(current: .openCodeGo, setUp: [.openAI], preferring: .openAI), .openAI)
     }
 
     func testRemovingTheProviderInUseFallsBackInOrder() {
-        XCTAssertEqual(Settings.connection(current: .chatGPT, setUp: [.openCodeGo, .featherPlus]), .featherPlus)
-        XCTAssertEqual(Settings.connection(current: .chatGPT, setUp: [.openCodeGo]), .openCodeGo)
-        XCTAssertEqual(Settings.connection(current: .chatGPT, setUp: []), .chatGPT)
+        XCTAssertEqual(Settings.connection(current: .openAI, setUp: [.openCodeGo, .featherPlus]), .featherPlus)
+        XCTAssertEqual(Settings.connection(current: .openAI, setUp: [.openCodeGo]), .openCodeGo)
+        XCTAssertEqual(Settings.connection(current: .openAI, setUp: []), .openAI)
     }
 
     func testProvidersSetUpFollowTheStoredCredentials() {
         let store = MemoryCredentialStore(apiKey: "key", plusToken: "token")
         XCTAssertEqual(Settings.providersSetUp(in: store, plusAvailable: true), [.openCodeGo, .featherPlus])
+        XCTAssertEqual(Settings.providersSetUp(in: MemoryCredentialStore(openAIAPIKey: "sk"), plusAvailable: true), [.openAI])
         XCTAssertEqual(Settings.providersSetUp(in: store, plusAvailable: false), [.openCodeGo])
     }
 

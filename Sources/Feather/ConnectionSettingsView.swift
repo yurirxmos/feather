@@ -19,6 +19,7 @@ struct ConnectionSettingsView: View {
     @State private var storedKey = ""
     @State private var plusAccount: PlusAccount?
     @State private var storedClaudeKey = ""
+    @State private var storedOpenAIKey = ""
     /// The provider whose API key field is open.
     @State private var enteringKeyFor: ConnectionKind?
     @State private var newKey = ""
@@ -31,10 +32,10 @@ struct ConnectionSettingsView: View {
     @State private var claudeModels = ClaudeModelCatalog.fallbackModels
     @State private var isLoadingClaudeModels = false
     @State private var claudeModelsFailed = false
-    @State private var chatGPTModels = ChatGPTModelCatalog.models
-    @State private var isLoadingChatGPTModels = false
-    @State private var chatGPTModelsFailed = false
-    @State private var didLoadChatGPTModels = false
+    @State private var openAIModels = OpenAIModelCatalog.fallbackModels
+    @State private var isLoadingOpenAIModels = false
+    @State private var openAIModelsFailed = false
+    @State private var didLoadOpenAIModels = false
     @State private var didLoadClaudeModels = false
     @AppStorage(offerFeatherPlusKey) private var offerFeatherPlus = false
     @State private var isAskingToUsePlus = false
@@ -53,7 +54,7 @@ struct ConnectionSettingsView: View {
             }
 
             // Ready providers first; the ones still to set up below them, dimmed.
-            let free: [ConnectionKind] = [.chatGPT, .claude, .openCodeGo]
+            let free: [ConnectionKind] = [.openAI, .claude, .openCodeGo]
             let ready = free.filter(setUp.contains)
             let pending = free.filter { !setUp.contains($0) }
             Section {
@@ -61,7 +62,7 @@ struct ConnectionSettingsView: View {
             } header: {
                 Text("Free plan", bundle: .app)
             } footer: {
-                Text("Use your own ChatGPT account, Claude API key, or OpenCode Go key. Credentials are stored in the macOS Keychain.", bundle: .app)
+                Text("Use your own OpenAI, Claude, or OpenCode Go API key. Keys are stored in the macOS Keychain.", bundle: .app)
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .sectionFooter()
@@ -173,8 +174,8 @@ struct ConnectionSettingsView: View {
         switch (kind, setUp.contains(kind)) {
         case (.featherPlus, false):
             Text("No API key, and it also answers questions. Paid plan.", bundle: .app)
-        case (.chatGPT, false):
-            Text("Sign in with your ChatGPT account. Free.", bundle: .app)
+        case (.openAI, false):
+            Text("Paste an OpenAI API key from the Platform.", bundle: .app)
         case (.claude, false):
             Text("Paste an Anthropic API key from the Console.", bundle: .app)
         case (.openCodeGo, false):
@@ -185,8 +186,9 @@ struct ConnectionSettingsView: View {
             case .yearly: Text("Yearly plan", bundle: .app)
             case nil: plusAccount == nil ? Text("Signed in", bundle: .app) : Text("No plan yet", bundle: .app)
             }
-        case (.chatGPT, true):
-            Text("Signed in", bundle: .app)
+        case (.openAI, true):
+            Text(APIKey.masked(storedOpenAIKey))
+                .font(.system(.callout, design: .monospaced))
         case (.claude, true):
             Text(APIKey.masked(storedClaudeKey))
                 .font(.system(.callout, design: .monospaced))
@@ -204,12 +206,8 @@ struct ConnectionSettingsView: View {
             HStack(spacing: 8) {
                 ProgressView()
                     .controlSize(.small)
-                if kind == .featherPlus {
-                    iconButton("xmark.circle", String(localized: "Cancel", bundle: .app)) { signInTask?.cancel() }
-                } else {
-                    Text("Signing in…", bundle: .app)
-                        .foregroundStyle(.secondary)
-                }
+                // Only Feather Plus signs in; the other providers take a key.
+                iconButton("xmark.circle", String(localized: "Cancel", bundle: .app)) { signInTask?.cancel() }
             }
         } else if !setUp.contains(kind) {
             if enteringKeyFor != kind {
@@ -252,14 +250,12 @@ struct ConnectionSettingsView: View {
     private func actions(_ kind: ConnectionKind) -> some View {
         Menu {
             switch kind {
-            case .openCodeGo, .claude:
+            case .openCodeGo, .openAI, .claude:
                 Button(String(localized: "Replace…", bundle: .app)) {
                     newKey = ""
                     enteringKeyFor = kind
                 }
                 Button(String(localized: "Remove Key", bundle: .app), role: .destructive) { removeKey(kind) }
-            case .chatGPT:
-                Button(String(localized: "Disconnect", bundle: .app), role: .destructive, action: disconnectChatGPT)
             case .featherPlus:
                 Button(String(localized: "Manage…", bundle: .app), action: openPlus)
             }
@@ -300,20 +296,20 @@ struct ConnectionSettingsView: View {
         switch connection {
         case .featherPlus:
             EmptyView()
-        case .chatGPT:
+        case .openAI:
             HStack(spacing: 8) {
                 Picker(String(localized: "Model", bundle: .app), selection: $model) {
-                    ForEach(chatGPTModelOptions) { option in
-                        Text(option.name).tag(option.id)
+                    ForEach(openAIModels.contains(model) ? openAIModels : openAIModels + [model], id: \.self) { option in
+                        Text(option).tag(option)
                     }
                 }
-                .disabled(isLoadingChatGPTModels)
+                .disabled(isLoadingOpenAIModels)
                 .pointingHandCursor()
-                if isLoadingChatGPTModels {
+                if isLoadingOpenAIModels {
                     ProgressView()
                         .controlSize(.small)
                 } else {
-                    Button(action: loadChatGPTModels) {
+                    Button(action: loadOpenAIModels) {
                         Image(systemName: "arrow.clockwise")
                     }
                     .buttonStyle(.borderless)
@@ -369,16 +365,11 @@ struct ConnectionSettingsView: View {
         }
     }
 
-    /// The account's models, plus the selected one until the list confirms it.
-    private var chatGPTModelOptions: [ChatGPTModel] {
-        chatGPTModels.contains(where: { $0.id == model }) ? chatGPTModels : chatGPTModels + [ChatGPTModel(id: model, name: model)]
-    }
-
     @ViewBuilder
     private var modelFooter: some View {
-        if connection == .chatGPT, chatGPTModelsFailed {
+        if connection == .openAI, openAIModelsFailed {
             Label {
-                Text("Couldn't load your ChatGPT models. Showing the defaults.", bundle: .app)
+                Text("Couldn't load the models. Check your key and connection.", bundle: .app)
             } icon: {
                 Image(systemName: "exclamationmark.triangle.fill")
             }
@@ -413,8 +404,9 @@ struct ConnectionSettingsView: View {
         setUp = Settings.providersSetUp(in: credentialStore, plusAvailable: FeatherPlus.isProviderEnabled())
         storedKey = credentialStore.apiKey() ?? ""
         storedClaudeKey = credentialStore.claudeAPIKey() ?? ""
+        storedOpenAIKey = credentialStore.openAIAPIKey() ?? ""
         if setUp.contains(.openCodeGo), openCodeModels.isEmpty { loadOpenCodeModels() }
-        if setUp.contains(.chatGPT), !didLoadChatGPTModels { loadChatGPTModels() }
+        if setUp.contains(.openAI), !didLoadOpenAIModels { loadOpenAIModels() }
         if setUp.contains(.claude), !didLoadClaudeModels { loadClaudeModels() }
         loadPlusAccount()
     }
@@ -431,18 +423,16 @@ struct ConnectionSettingsView: View {
         model = Settings.model(afterChangingTo: kind, preserving: model)
         connection = kind
         if kind == .openCodeGo, openCodeModels.isEmpty { loadOpenCodeModels() }
-        if kind == .chatGPT { loadChatGPTModels() }
+        if kind == .openAI { loadOpenAIModels() }
         if kind == .claude { loadClaudeModels() }
     }
 
     private func beginSetUp(_ kind: ConnectionKind) {
         errorMessage = nil
         switch kind {
-        case .openCodeGo, .claude:
+        case .openCodeGo, .openAI, .claude:
             newKey = ""
             enteringKeyFor = kind
-        case .chatGPT:
-            signInWithChatGPT()
         case .featherPlus:
             signInToPlus()
         }
@@ -456,6 +446,10 @@ struct ConnectionSettingsView: View {
             guard credentialStore.setClaudeAPIKey(trimmed) else { return }
             claudeModels = ClaudeModelCatalog.fallbackModels
             didLoadClaudeModels = false
+        case .openAI:
+            guard credentialStore.setOpenAIAPIKey(trimmed) else { return }
+            openAIModels = OpenAIModelCatalog.fallbackModels
+            didLoadOpenAIModels = false
         default:
             guard credentialStore.setAPIKey(trimmed) else { return }
             openCodeModels = []
@@ -471,30 +465,14 @@ struct ConnectionSettingsView: View {
             credentialStore.deleteClaudeAPIKey()
             claudeModels = ClaudeModelCatalog.fallbackModels
             didLoadClaudeModels = false
+        } else if kind == .openAI {
+            credentialStore.deleteOpenAIAPIKey()
+            openAIModels = OpenAIModelCatalog.fallbackModels
+            didLoadOpenAIModels = false
         } else {
             credentialStore.deleteAPIKey()
             openCodeModels = []
         }
-        credentialsDidChange()
-    }
-
-    private func signInWithChatGPT() {
-        busy = .chatGPT
-        Task {
-            do {
-                _ = try await ChatGPTAuth.login(store: credentialStore)
-                credentialsDidChange(preferring: .chatGPT)
-            } catch {
-                errorMessage = error.localizedDescription
-            }
-            busy = nil
-        }
-    }
-
-    private func disconnectChatGPT() {
-        credentialStore.deleteChatGPTCredentials()
-        chatGPTModels = ChatGPTModelCatalog.models
-        didLoadChatGPTModels = false
         credentialsDidChange()
     }
 
@@ -546,26 +524,23 @@ struct ConnectionSettingsView: View {
         Task { await PlusAuth.openWebsite(path: FeatherPlus.pricingPath, store: credentialStore) }
     }
 
-    /// Asks ChatGPT which models this account can use, and moves a selection the account lacks to
-    /// one it has, so a reply never asks for a model the account cannot run. The built-in list
-    /// stays if that fails.
-    private func loadChatGPTModels() {
-        guard !isLoadingChatGPTModels, setUp.contains(.chatGPT) else { return }
-        isLoadingChatGPTModels = true
-        chatGPTModelsFailed = false
+    /// Asks OpenAI which chat models the key can use, and moves a selection it lacks to the default
+    /// or the newest one. The built-in list stays if that fails.
+    private func loadOpenAIModels() {
+        guard !isLoadingOpenAIModels, !storedOpenAIKey.isEmpty else { return }
+        let apiKey = storedOpenAIKey
+        isLoadingOpenAIModels = true
+        openAIModelsFailed = false
         Task {
-            defer { isLoadingChatGPTModels = false }
-            do {
-                let credentials = try await ChatGPTAuth.validCredentials(store: credentialStore)
-                let fetched = try await ChatGPTModelCatalog.fetchModels(
-                    accessToken: credentials.accessToken, accountID: credentials.accountID)
-                chatGPTModels = fetched
-                didLoadChatGPTModels = true
-                if connection == .chatGPT, let available = ChatGPTModelCatalog.model(for: fetched, current: model) {
-                    model = available
-                }
-            } catch {
-                chatGPTModelsFailed = true
+            defer { isLoadingOpenAIModels = false }
+            guard let fetched = try? await OpenAIModelCatalog.fetchModels(apiKey: apiKey), !fetched.isEmpty else {
+                openAIModelsFailed = true
+                return
+            }
+            openAIModels = fetched
+            didLoadOpenAIModels = true
+            if connection == .openAI, let available = OpenAIModelCatalog.model(for: fetched, current: model) {
+                model = available
             }
         }
     }
@@ -630,7 +605,7 @@ extension ConnectionKind {
     var title: String {
         switch self {
         case .featherPlus: String(localized: "Feather Plus", bundle: .app)
-        case .chatGPT: String(localized: "ChatGPT", bundle: .app)
+        case .openAI: String(localized: "OpenAI", bundle: .app)
         case .claude: String(localized: "Claude", bundle: .app)
         case .openCodeGo: String(localized: "OpenCode Go", bundle: .app)
         }
@@ -638,7 +613,7 @@ extension ConnectionKind {
 }
 
 /// Feather Plus uses Feather's own mark, the app icon's white feather on blue; Claude its mark in
-/// white on its orange, since the orange mark is hard to see on white; ChatGPT and OpenCode Go
+/// white on its orange, since the orange mark is hard to see on white; OpenAI and OpenCode Go
 /// their original black logos on white. The logos come from `ProviderLogos` in the app's resource
 /// bundle (shared with the desktop app).
 struct ProviderIcon: View {
@@ -647,7 +622,7 @@ struct ProviderIcon: View {
 
     private static let logos: [ConnectionKind: NSImage] = {
         var logos: [ConnectionKind: NSImage] = [:]
-        for (kind, file) in [(ConnectionKind.chatGPT, "openai_logo.svg"), (.claude, "claude_logo.png"), (.openCodeGo, "opencode_logo.png")] {
+        for (kind, file) in [(ConnectionKind.openAI, "openai_logo.svg"), (.claude, "claude_logo.png"), (.openCodeGo, "opencode_logo.png")] {
             if let url = Bundle.app.url(forResource: file, withExtension: nil, subdirectory: "ProviderLogos"),
                let image = NSImage(contentsOf: url) {
                 logos[kind] = image
@@ -696,7 +671,7 @@ struct ProviderIcon: View {
                     .background(.white, in: tile)
                     .overlay(tile.strokeBorder(.black.opacity(0.1)))
             } else {
-                Image(systemName: kind == .chatGPT ? "bubble.left.and.bubble.right.fill" : "key.fill")
+                Image(systemName: "key.fill")
                     .font(.system(size: size * 0.46, weight: .semibold))
                     .foregroundStyle(.black)
                     .frame(width: size, height: size)

@@ -29,7 +29,7 @@ public enum ProviderTransport {
         }
         if let error = json["error"] as? [String: Any], let message = error["message"] as? String { return message }
         if let message = json["error"] as? String { return message }
-        // ChatGPT's backend explains a rejected request in `detail`.
+        // Some backends explain a rejected request in `detail`.
         return (json["message"] as? String) ?? (json["detail"] as? String)
     }
 

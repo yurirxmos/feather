@@ -27,6 +27,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let updater = AppUpdater()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // The ChatGPT account sign-in became an OpenAI API key.
+        FeatherCore.Settings.migrateLegacyConnection()
+        Keychain.deleteLegacyChatGPTSession()
         HotkeyManager.shared.onPress = { [weak self] in self?.openPrompt() }
         registerHotkey()
         setUpStatusItem()

@@ -14,8 +14,10 @@ import claudeLogo from "../../Sources/Feather/ProviderLogos/claude_logo.png";
 /** The models listed when Anthropic cannot be asked, as `ClaudeModelCatalog.fallbackModels` in the macOS app. */
 const CLAUDE_FALLBACK_MODELS = ["claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5"];
 
-type Connection = "openCodeGo" | "chatGPT" | "claude" | "featherPlus";
+type Connection = "openCodeGo" | "openAI" | "claude" | "featherPlus";
 type Section = "general" | "replies" | "connection" | "system";
+/** The providers set up by pasting an API key. */
+type KeyProvider = "openCodeGo" | "openAI" | "claude";
 
 type AppInfo = {
   locale: string;
@@ -24,7 +26,7 @@ type AppInfo = {
   session: "x11" | "wayland" | "unknown" | null;
   version: string;
   hotkeys: { id: string; label: string }[];
-  chatgptModels: { id: string; name: string }[];
+  openaiModels: string[];
 };
 
 type Settings = {
@@ -43,7 +45,7 @@ type Settings = {
   onboardingCompleted: boolean | null;
 };
 
-type Credentials = { apiKey: string | null; claudeApiKey: string | null; chatgptConnected: boolean; plusSignedIn: boolean };
+type Credentials = { apiKey: string | null; claudeApiKey: string | null; openaiApiKey: string | null; plusSignedIn: boolean };
 /** Usage is model cost in micro-dollars; it is shown as `percentUsed`, never as money. */
 type PlusAccount = { email: string; plan: "monthly" | "yearly" | null; usage: { used: number; limit: number; percentUsed: number }[]; periodEnd: string | null };
 type Capability = { id: string; available: boolean };
@@ -64,17 +66,18 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
 
   // Transient view state, like the macOS view's @State.
   /** The provider whose API key field is open. */
-  let editingKey: "openCodeGo" | "claude" | null = null;
+  let editingKey: KeyProvider | null = null;
   let claudeModels: string[] = [...CLAUDE_FALLBACK_MODELS];
   let loadingClaudeModels = false;
   let claudeModelsFailed = false;
   let models: string[] = [];
   let loadingModels = false;
   let modelsFailed = false;
-  let chatgptModels = info.chatgptModels;
-  let loadingChatgptModels = false;
-  let chatgptModelsFailed = false;
-  let signingIn: "chatGPT" | "plus" | null = null;
+  let openaiModels = [...info.openaiModels];
+  let loadingOpenaiModels = false;
+  let openaiModelsFailed = false;
+  /** Only Feather Plus signs in; the other providers take a key. */
+  let signingIn: "plus" | null = null;
   /** The provider row whose ⋯ menu is open. */
   let openMenu: Connection | null = null;
 
@@ -115,8 +118,8 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     switch (settings.connection) {
       case "openCodeGo":
         return credentials.apiKey !== null;
-      case "chatGPT":
-        return credentials.chatgptConnected;
+      case "openAI":
+        return credentials.openaiApiKey !== null;
       case "claude":
         return credentials.claudeApiKey !== null;
       case "featherPlus":
@@ -335,7 +338,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
   // Set Up button. Which one is in use after credentials change is decided in Rust
   // (`connection_after_setup_change`), which emits "settings-changed".
 
-  const ORDER: Connection[] = ["featherPlus", "chatGPT", "claude", "openCodeGo"];
+  const ORDER: Connection[] = ["featherPlus", "openAI", "claude", "openCodeGo"];
 
   function providers(): Connection[] {
     return ORDER.filter((id) => id !== "featherPlus" || settings.plusProviderEnabled);
@@ -345,8 +348,8 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     switch (id) {
       case "openCodeGo":
         return credentials.apiKey !== null;
-      case "chatGPT":
-        return credentials.chatgptConnected;
+      case "openAI":
+        return credentials.openaiApiKey !== null;
       case "claude":
         return credentials.claudeApiKey !== null;
       case "featherPlus":
@@ -355,7 +358,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
   }
 
   function providerName(id: Connection): string {
-    return { featherPlus: t("Feather Plus"), chatGPT: t("ChatGPT"), claude: t("Claude"), openCodeGo: t("OpenCode Go") }[id];
+    return { featherPlus: t("Feather Plus"), openAI: t("OpenAI"), claude: t("Claude"), openCodeGo: t("OpenCode Go") }[id];
   }
 
   function connection(): HTMLElement[] {
@@ -366,7 +369,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
       group(
         t("Free plan"),
         freeRows(),
-        footnote(t("Use your own ChatGPT account, Claude API key, or OpenCode Go key. Credentials are stored in your system's secure credential storage.")),
+        footnote(t("Use your own OpenAI, Claude, or OpenCode Go API key. Keys are stored in your system's secure credential storage.")),
       ),
     );
     // Feather Plus picks its own model, so there is nothing to choose.
@@ -379,7 +382,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
 
   /** Ready providers first; the ones still to set up below them, dimmed. */
   function freeRows(): HTMLElement[] {
-    const free: Connection[] = ["chatGPT", "claude", "openCodeGo"];
+    const free: Connection[] = ["openAI", "claude", "openCodeGo"];
     const ready = free.filter(isSetUp);
     const pending = free.filter((id) => !isSetUp(id));
     return [...ready, ...pending].map(providerRow);
@@ -418,20 +421,20 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
       "div",
       { class: isSetUp(id) || id === "featherPlus" ? "row provider" : "row provider pending" },
       providerIcon(id),
-      h("span", { class: "label" }, h("span", {}, providerName(id)), h("small", { class: (id === "openCodeGo" || id === "claude") && isSetUp(id) ? "mono" : "" }, providerDetail(id))),
+      h("span", { class: "label" }, h("span", {}, providerName(id)), h("small", { class: id !== "featherPlus" && isSetUp(id) ? "mono" : "" }, providerDetail(id))),
       providerAccessory(id),
     );
     if (editingKey === id) return h("div", { class: "provider-group" }, main, keyForm(id));
     return main;
   }
 
-  /** Feather Plus uses Feather's mark, the app icon's white feather on blue; Claude its mark in white on its orange; ChatGPT and OpenCode Go their black logos on white. */
+  /** Feather Plus uses Feather's mark, the app icon's white feather on blue; Claude its mark in white on its orange; OpenAI and OpenCode Go their black logos on white. */
   function providerIcon(id: Connection): HTMLElement {
     if (id === "featherPlus") return h("span", { class: "provider-icon featherPlus", "aria-hidden": "true" }, featherIcon("feather-mark"));
     return h(
       "span",
       { class: `provider-icon logo ${id}`, "aria-hidden": "true" },
-      h("img", { src: { chatGPT: openAILogo, claude: claudeLogo, openCodeGo: openCodeLogo }[id], alt: "" }),
+      h("img", { src: { openAI: openAILogo, claude: claudeLogo, openCodeGo: openCodeLogo }[id], alt: "" }),
     );
   }
 
@@ -439,7 +442,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     if (!isSetUp(id)) {
       return {
         featherPlus: t("No API key, and it also answers questions. Paid plan."),
-        chatGPT: t("Sign in with your ChatGPT account. Free."),
+        openAI: t("Paste an OpenAI API key from the Platform."),
         claude: t("Paste an Anthropic API key from the Console."),
         openCodeGo: t("Paste an OpenCode Go API key. Free."),
       }[id];
@@ -449,8 +452,8 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
         return credentials.apiKey ?? "";
       case "claude":
         return credentials.claudeApiKey ?? "";
-      case "chatGPT":
-        return t("Signed in");
+      case "openAI":
+        return credentials.openaiApiKey ?? "";
       case "featherPlus":
         if (!plusAccount) return t("Signed in");
         return plusAccount.plan === "yearly" ? t("Yearly plan") : plusAccount.plan === "monthly" ? t("Monthly plan") : t("No plan yet");
@@ -471,7 +474,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
    * set it up, a card to choose a Feather Plus plan, and the ⋯ menu for the rest.
    */
   function providerAccessory(id: Connection): HTMLElement {
-    const busy = (id === "chatGPT" && signingIn === "chatGPT") || (id === "featherPlus" && signingIn === "plus");
+    const busy = id === "featherPlus" && signingIn === "plus";
     if (busy) {
       return h(
         "span",
@@ -493,7 +496,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
       status = iconButton("circle", t("Use"), async () => {
         await set("connection", id);
         if (id === "openCodeGo" && models.length === 0) loadModels();
-        if (id === "chatGPT") loadChatgptModels();
+        if (id === "openAI") loadOpenaiModels();
         if (id === "claude") loadClaudeModels();
       });
     }
@@ -530,7 +533,18 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
           },
         },
       ],
-      chatGPT: [{ label: t("Disconnect"), destructive: true, run: async () => ((credentials = await invoke<Credentials>("disconnect_chatgpt")), render()) }],
+      openAI: [
+        { label: t("Replace…"), run: () => ((editingKey = "openAI"), render()) },
+        {
+          label: t("Remove Key"),
+          destructive: true,
+          run: async () => {
+            credentials = await invoke<Credentials>("delete_openai_api_key");
+            openaiModels = [...info.openaiModels];
+            render();
+          },
+        },
+      ],
       featherPlus: [{ label: t("Manage…"), run: () => ((section = "general"), render(), loadAccount()) }],
     }[id];
     const open = openMenu === id;
@@ -581,12 +595,10 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     authError = null;
     switch (id) {
       case "openCodeGo":
+      case "openAI":
       case "claude":
         editingKey = id;
         render();
-        return;
-      case "chatGPT":
-        void signInChatGPT();
         return;
       case "featherPlus":
         void signInPlus();
@@ -594,20 +606,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     }
   }
 
-  async function signInChatGPT(): Promise<void> {
-    signingIn = "chatGPT";
-    render();
-    try {
-      credentials = await invoke<Credentials>("sign_in_chatgpt");
-    } catch (problem) {
-      if (problem !== CANCELLED) authError = String(problem);
-    }
-    signingIn = null;
-    render();
-    loadChatgptModels();
-  }
-
-  function keyForm(id: "openCodeGo" | "claude"): HTMLElement {
+  function keyForm(id: KeyProvider): HTMLElement {
     const input = h("input", { type: "password", placeholder: t("Paste your key"), autocomplete: "off", spellcheck: "false", "aria-label": t("API key") });
     const save = h("button", { type: "submit", class: "primary", disabled: true }, t("Save"));
     input.addEventListener("input", () => (save.disabled = input.value.trim() === ""));
@@ -624,6 +623,9 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
             if (id === "claude") {
               credentials = await invoke<Credentials>("save_claude_api_key", { apiKey });
               claudeModels = [...CLAUDE_FALLBACK_MODELS];
+            } else if (id === "openAI") {
+              credentials = await invoke<Credentials>("save_openai_api_key", { apiKey });
+              openaiModels = [...info.openaiModels];
             } else {
               credentials = await invoke<Credentials>("save_api_key", { apiKey });
               models = [];
@@ -632,6 +634,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
             authError = null;
             render();
             if (id === "claude") loadClaudeModels();
+            else if (id === "openAI") loadOpenaiModels();
             else loadModels();
           } catch (problem) {
             authError = String(problem);
@@ -646,10 +649,8 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
   }
 
   function modelEditor(): HTMLElement {
-    if (settings.connection === "chatGPT") {
-      const options = chatgptModels.some((model) => model.id === settings.model)
-        ? chatgptModels
-        : [...chatgptModels, { id: settings.model, name: settings.model }];
+    if (settings.connection === "openAI") {
+      const options = openaiModels.includes(settings.model) ? openaiModels : [...openaiModels, settings.model];
       return row(
         t("Model"),
         h(
@@ -657,12 +658,12 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
           { class: "inline" },
           h(
             "select",
-            { "aria-label": t("Model"), disabled: loadingChatgptModels, onchange: (event) => void set("model", (event.target as HTMLSelectElement).value) },
-            ...options.map((model) => h("option", { value: model.id, selected: model.id === settings.model }, model.name)),
+            { "aria-label": t("Model"), disabled: loadingOpenaiModels, onchange: (event) => void set("model", (event.target as HTMLSelectElement).value) },
+            ...options.map((model) => h("option", { value: model, selected: model === settings.model }, model)),
           ),
-          loadingChatgptModels
+          loadingOpenaiModels
             ? h("span", { class: "spinner", "aria-hidden": "true" })
-            : h("button", { type: "button", class: "icon-button", title: t("Refresh"), "aria-label": t("Refresh"), onclick: loadChatgptModels }, "↻"),
+            : h("button", { type: "button", class: "icon-button", title: t("Refresh"), "aria-label": t("Refresh"), onclick: loadOpenaiModels }, "↻"),
         ),
       );
     }
@@ -704,8 +705,8 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
   }
 
   function modelFootnote(): HTMLElement | null {
-    if (settings.connection === "chatGPT") {
-      return chatgptModelsFailed ? error(t("Couldn't load your ChatGPT models. Showing the defaults.")) : null;
+    if (settings.connection === "openAI") {
+      return openaiModelsFailed ? error(t("Couldn't load the models. Check your key and connection.")) : null;
     }
     if (settings.connection === "claude") {
       return claudeModelsFailed ? error(t("Couldn't load the models. Check your key and connection.")) : null;
@@ -715,17 +716,17 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     return null;
   }
 
-  /** Asks ChatGPT which models this account can use; the built-in list stays if that fails. */
-  function loadChatgptModels(): void {
-    if (loadingChatgptModels || !credentials.chatgptConnected) return;
-    loadingChatgptModels = true;
-    chatgptModelsFailed = false;
+  /** Asks OpenAI which chat models the key can use; the built-in list stays if that fails. */
+  function loadOpenaiModels(): void {
+    if (loadingOpenaiModels || credentials.openaiApiKey === null) return;
+    loadingOpenaiModels = true;
+    openaiModelsFailed = false;
     render();
-    invoke<{ id: string; name: string }[]>("chatgpt_models")
-      .then((fetched) => (chatgptModels = fetched))
-      .catch(() => (chatgptModelsFailed = true))
+    invoke<string[]>("openai_models")
+      .then((fetched) => (openaiModels = fetched))
+      .catch(() => (openaiModelsFailed = true))
       .finally(() => {
-        loadingChatgptModels = false;
+        loadingOpenaiModels = false;
         render();
       });
   }
@@ -1056,7 +1057,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
 
   render();
   if (settings.connection === "openCodeGo") loadModels();
-  if (settings.connection === "chatGPT") loadChatgptModels();
+  if (settings.connection === "openAI") loadOpenaiModels();
   if (settings.connection === "claude") loadClaudeModels();
   if (settings.plusEnabled) loadAccount();
 }

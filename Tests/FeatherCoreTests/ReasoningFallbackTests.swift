@@ -17,10 +17,10 @@ final class ReasoningFallbackTests: XCTestCase {
         XCTAssertNil(OpenCodeGoProvider(apiKey: "key").body(for: fallback)["reasoning_effort"])
     }
 
-    func testChatGPTBodyIsUnchangedByReasoning() {
+    func testOpenAIAsksForMinimalReasoningLikeOpenCodeGo() {
         let request = GenerationRequest(system: "s", turns: [Turn(role: .user, text: "hi")], imageJPEG: nil, model: "m", maxTokens: 10)
-        XCTAssertNil(ChatGPTProvider(accessToken: "t").body(for: request)["reasoning"])
-        XCTAssertFalse(ChatGPTProvider(accessToken: "t").controlsReasoning)
+        XCTAssertEqual(OpenAIProvider(apiKey: "t").body(for: request)["reasoning_effort"] as? String, "none")
+        XCTAssertTrue(OpenAIProvider(apiKey: "t").controlsReasoning)
     }
 
     func testRetriesWithoutReasoningControlWhenTheModelRejectsIt() async throws {

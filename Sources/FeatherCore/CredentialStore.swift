@@ -1,27 +1,13 @@
 import Foundation
 
-public struct ChatGPTCredentials: Codable, Equatable, Sendable {
-    public var accessToken: String
-    public var refreshToken: String
-    public var expiresAt: Date
-    public var accountID: String?
-
-    public init(accessToken: String, refreshToken: String, expiresAt: Date, accountID: String? = nil) {
-        self.accessToken = accessToken
-        self.refreshToken = refreshToken
-        self.expiresAt = expiresAt
-        self.accountID = accountID
-    }
-}
-
-/// Credential persistence seam shared by settings, model loading, and OAuth.
+/// Credential persistence seam shared by settings, model loading, and sign-in.
 public protocol CredentialStore: Sendable {
     func apiKey() -> String?
     func setAPIKey(_ key: String) -> Bool
     func deleteAPIKey()
-    func chatGPTCredentials() -> ChatGPTCredentials?
-    func setChatGPTCredentials(_ credentials: ChatGPTCredentials) -> Bool
-    func deleteChatGPTCredentials()
+    func openAIAPIKey() -> String?
+    func setOpenAIAPIKey(_ key: String) -> Bool
+    func deleteOpenAIAPIKey()
     func plusToken() -> String?
     func setPlusToken(_ token: String) -> Bool
     func deletePlusToken()
@@ -34,13 +20,13 @@ public protocol CredentialStore: Sendable {
 public final class MemoryCredentialStore: CredentialStore, @unchecked Sendable {
     private let lock = NSLock()
     private var storedAPIKey: String?
-    private var storedChatGPTCredentials: ChatGPTCredentials?
+    private var storedOpenAIAPIKey: String?
     private var storedPlusToken: String?
     private var storedClaudeAPIKey: String?
 
-    public init(apiKey: String? = nil, chatGPTCredentials: ChatGPTCredentials? = nil, plusToken: String? = nil, claudeAPIKey: String? = nil) {
+    public init(apiKey: String? = nil, openAIAPIKey: String? = nil, plusToken: String? = nil, claudeAPIKey: String? = nil) {
         storedAPIKey = apiKey
-        storedChatGPTCredentials = chatGPTCredentials
+        storedOpenAIAPIKey = openAIAPIKey
         storedPlusToken = plusToken
         storedClaudeAPIKey = claudeAPIKey
     }
@@ -61,17 +47,20 @@ public final class MemoryCredentialStore: CredentialStore, @unchecked Sendable {
         lock.withLock { storedAPIKey = nil }
     }
 
-    public func chatGPTCredentials() -> ChatGPTCredentials? {
-        lock.withLock { storedChatGPTCredentials }
+    public func openAIAPIKey() -> String? {
+        lock.withLock { storedOpenAIAPIKey }
     }
 
-    public func setChatGPTCredentials(_ credentials: ChatGPTCredentials) -> Bool {
-        lock.withLock { storedChatGPTCredentials = credentials }
+    public func setOpenAIAPIKey(_ key: String) -> Bool {
+        lock.withLock {
+            let value = key.trimmingCharacters(in: .whitespacesAndNewlines)
+            storedOpenAIAPIKey = value.isEmpty ? nil : value
+        }
         return true
     }
 
-    public func deleteChatGPTCredentials() {
-        lock.withLock { storedChatGPTCredentials = nil }
+    public func deleteOpenAIAPIKey() {
+        lock.withLock { storedOpenAIAPIKey = nil }
     }
 
     public func plusToken() -> String? {

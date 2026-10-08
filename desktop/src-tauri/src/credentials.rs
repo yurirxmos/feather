@@ -2,32 +2,22 @@
 //! Service on Linux), one entry per provider. They never reach the webview.
 
 use keyring::Entry;
-use serde::{Deserialize, Serialize};
-
 use crate::i18n::t;
 
 const SERVICE: &str = "com.feather.desktop";
 const OPENCODE_GO_ACCOUNT: &str = "opencode-go-api-key";
 const CLAUDE_ACCOUNT: &str = "claude-api-key";
-const CHATGPT_ACCOUNT: &str = "chatgpt";
+const OPENAI_ACCOUNT: &str = "openai-api-key";
+/// The ChatGPT account session from before the OpenAI API key replaced it; only ever deleted.
+const LEGACY_CHATGPT_ACCOUNT: &str = "chatgpt";
 const FEATHER_PLUS_ACCOUNT: &str = "feather-plus";
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ChatGptCredentials {
-    pub access_token: String,
-    pub refresh_token: String,
-    /// Seconds since the Unix epoch.
-    pub expires_at: u64,
-    pub account_id: Option<String>,
-}
 
 fn entry(account: &str) -> Result<Entry, String> {
     Entry::new(SERVICE, account).map_err(|_| t("Secure credential storage is unavailable. Check that your system keyring is running."))
 }
 
 /// Windows Credential Manager rejects blobs over 2560 bytes, and the keyring stores them as UTF-16,
-/// so a ChatGPT sign-in (two long tokens) does not fit in one entry. Longer values are split across
+/// so a long token does not fit in one entry. Longer values are split across
 /// entries; the main entry then holds this marker and the number of chunks.
 const CHUNK_MARKER: &str = "feather-chunks:";
 const CHUNK_CHARACTERS: usize = 900;
@@ -124,16 +114,25 @@ pub fn delete_claude_api_key() {
     delete(CLAUDE_ACCOUNT);
 }
 
-pub fn chatgpt_credentials() -> Option<ChatGptCredentials> {
-    serde_json::from_str(&read(CHATGPT_ACCOUNT)?).ok()
+pub fn openai_api_key() -> Option<String> {
+    read(OPENAI_ACCOUNT).map(|key| key.trim().to_owned())
 }
 
-pub fn set_chatgpt_credentials(credentials: &ChatGptCredentials) -> Result<(), String> {
-    write(CHATGPT_ACCOUNT, &serde_json::to_string(credentials).map_err(|error| error.to_string())?)
+pub fn set_openai_api_key(key: &str) -> Result<(), String> {
+    let key = key.trim();
+    if key.is_empty() {
+        return Err(t("Enter an API key."));
+    }
+    write(OPENAI_ACCOUNT, key)
 }
 
-pub fn delete_chatgpt_credentials() {
-    delete(CHATGPT_ACCOUNT);
+pub fn delete_openai_api_key() {
+    delete(OPENAI_ACCOUNT);
+}
+
+/// The ChatGPT account sign-in became an OpenAI API key; its leftover session is deleted at launch.
+pub fn delete_legacy_chatgpt_session() {
+    delete(LEGACY_CHATGPT_ACCOUNT);
 }
 
 pub fn plus_token() -> Option<String> {

@@ -67,29 +67,25 @@ final class ProviderTests: XCTestCase {
         XCTAssertEqual(urlRequest.value(forHTTPHeaderField: "User-Agent"), OpenCodeGoProvider.userAgent)
     }
 
-    func testChatGPTRequestShape() throws {
-        let urlRequest = try ChatGPTProvider(accessToken: "token", accountID: "acct").makeURLRequest(for: requestWithSession())
-        XCTAssertEqual(urlRequest.url?.absoluteString, ChatGPTProvider.endpoint)
-        XCTAssertEqual(urlRequest.value(forHTTPHeaderField: "Authorization"), "Bearer token")
-        XCTAssertEqual(urlRequest.value(forHTTPHeaderField: "ChatGPT-Account-Id"), "acct")
-        XCTAssertEqual(urlRequest.value(forHTTPHeaderField: "session-id"), "session-123")
+    func testOpenAIRequestShape() throws {
+        let urlRequest = try OpenAIProvider(apiKey: "sk-test").makeURLRequest(for: requestWithSession())
+        XCTAssertEqual(urlRequest.url?.absoluteString, "https://api.openai.com/v1/chat/completions")
+        XCTAssertEqual(urlRequest.value(forHTTPHeaderField: "Authorization"), "Bearer sk-test")
+        XCTAssertNil(urlRequest.value(forHTTPHeaderField: "x-opencode-session"))
         let body = try json(urlRequest)
         XCTAssertEqual(body["model"] as? String, "model-x")
         XCTAssertEqual(body["stream"] as? Bool, true)
-        XCTAssertNotNil(body["input"] as? [[String: Any]])
+        let messages = try XCTUnwrap(body["messages"] as? [[String: Any]])
+        XCTAssertEqual(messages.first?["role"] as? String, "system")
     }
 
-    func testChatGPTParsesResponseStream() throws {
-        let provider = ChatGPTProvider(accessToken: "token")
-        XCTAssertEqual(
-            try provider.parse(SSEEvent(event: "response.output_text.delta", data: #"{"delta":"Hello"}"#)),
-            .text("Hello")
-        )
-        XCTAssertEqual(try provider.parse(SSEEvent(event: "response.completed", data: "{}")), .done)
-        XCTAssertEqual(try provider.parse(SSEEvent(event: "response.incomplete", data: "{}")), .done)
-        XCTAssertThrowsError(try provider.parse(SSEEvent(event: "response.failed", data: #"{"response":{"error":{"message":"overloaded"}}}"#))) {
-            XCTAssertEqual($0 as? LLMError, .api(message: "overloaded"))
+    func testOpenAIRequiresKeyAndParsesStream() throws {
+        XCTAssertThrowsError(try OpenAIProvider(apiKey: "").makeURLRequest(for: request(image: nil))) {
+            XCTAssertEqual($0 as? LLMError, .missingAPIKey)
         }
+        let provider = OpenAIProvider(apiKey: "key")
+        XCTAssertEqual(try provider.parse(SSEEvent(data: #"{"choices":[{"delta":{"content":"Hi"}}]}"#)), .text("Hi"))
+        XCTAssertEqual(try provider.parse(SSEEvent(data: "[DONE]")), .done)
     }
 
     func testOpenCodeGoRequiresKey() {
@@ -123,8 +119,8 @@ final class ProviderTests: XCTestCase {
         XCTAssertEqual(provider.errorMessage(fromBody: body), "invalid x-api-key")
     }
 
-    func testErrorMessageFromChatGPTDetail() {
-        let provider = ChatGPTProvider(accessToken: "token")
+    func testErrorMessageFromDetail() {
+        let provider = OpenAIProvider(apiKey: "key")
         let body = Data(#"{"detail":"Store must be set to false"}"#.utf8)
         XCTAssertEqual(provider.errorMessage(fromBody: body), "Store must be set to false")
     }

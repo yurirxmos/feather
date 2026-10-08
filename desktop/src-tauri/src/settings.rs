@@ -39,8 +39,10 @@ pub mod key {
 pub enum Connection {
     #[serde(rename = "openCodeGo")]
     OpenCodeGo,
-    #[serde(rename = "chatGPT")]
-    ChatGpt,
+    /// "chatGPT" was the ChatGPT account sign-in, which an OpenAI API key replaced, so a stored
+    /// "chatGPT" now means OpenAI, which asks for a key until one is added.
+    #[serde(rename = "openAI", alias = "chatGPT")]
+    OpenAi,
     #[serde(rename = "claude")]
     Claude,
     #[serde(rename = "featherPlus")]
@@ -48,10 +50,10 @@ pub enum Connection {
 }
 
 impl Connection {
-    pub const ALL: [Connection; 4] = [Connection::OpenCodeGo, Connection::ChatGpt, Connection::Claude, Connection::FeatherPlus];
+    pub const ALL: [Connection; 4] = [Connection::OpenCodeGo, Connection::OpenAi, Connection::Claude, Connection::FeatherPlus];
     /// The order Settings lists providers in and Feather falls back through, as
     /// `Settings.providerOrder` in the macOS app.
-    pub const ORDER: [Connection; 4] = [Connection::FeatherPlus, Connection::ChatGpt, Connection::Claude, Connection::OpenCodeGo];
+    pub const ORDER: [Connection; 4] = [Connection::FeatherPlus, Connection::OpenAi, Connection::Claude, Connection::OpenCodeGo];
 }
 
 /// The provider to use after the set of providers that are set up changes. The one in use stays
@@ -303,10 +305,16 @@ mod tests {
 
     #[test]
     fn plus_placeholder_models_are_ignored_elsewhere() {
-        let settings = resolve(json!({ "connection": "chatGPT", "model": "premium" }));
-        assert_eq!(settings.model, crate::providers::catalog::CHATGPT_DEFAULT_MODEL);
+        let settings = resolve(json!({ "connection": "openAI", "model": "premium" }));
+        assert_eq!(settings.model, crate::providers::OPENAI_DEFAULT_MODEL);
         let tester = json!({ "connection": "featherPlus", "model": "custom", "plusProviderEnabled": true });
         assert_eq!(resolve(tester).model, plus::DEFAULT_MODEL);
+    }
+
+    #[test]
+    fn the_chatgpt_sign_in_choice_becomes_openai() {
+        assert_eq!(resolve(json!({ "connection": "chatGPT" })).connection, Connection::OpenAi);
+        assert_eq!(serde_json::to_value(Connection::OpenAi).unwrap(), json!("openAI"));
     }
 
     #[test]
@@ -317,40 +325,40 @@ mod tests {
 
     #[test]
     fn switching_providers_keeps_only_custom_models() {
-        assert_eq!(model_after_changing_to(Connection::ChatGpt, "my-model"), "my-model");
-        assert_eq!(model_after_changing_to(Connection::ChatGpt, crate::providers::OPENCODE_GO_DEFAULT_MODEL), "gpt-5.4-mini");
+        assert_eq!(model_after_changing_to(Connection::OpenAi, "my-model"), "my-model");
+        assert_eq!(model_after_changing_to(Connection::OpenAi, crate::providers::OPENCODE_GO_DEFAULT_MODEL), "gpt-5.4-mini");
         assert_eq!(model_after_changing_to(Connection::FeatherPlus, "my-model"), plus::DEFAULT_MODEL);
     }
 
     #[test]
     fn the_provider_in_use_stays_while_it_is_set_up() {
-        let set_up = [Connection::ChatGpt, Connection::OpenCodeGo];
-        assert_eq!(connection_after_setup_change(Connection::ChatGpt, &set_up, Some(Connection::OpenCodeGo)), Connection::ChatGpt);
+        let set_up = [Connection::OpenAi, Connection::OpenCodeGo];
+        assert_eq!(connection_after_setup_change(Connection::OpenAi, &set_up, Some(Connection::OpenCodeGo)), Connection::OpenAi);
     }
 
     #[test]
     fn the_first_provider_set_up_is_used() {
-        assert_eq!(connection_after_setup_change(Connection::OpenCodeGo, &[Connection::ChatGpt], Some(Connection::ChatGpt)), Connection::ChatGpt);
+        assert_eq!(connection_after_setup_change(Connection::OpenCodeGo, &[Connection::OpenAi], Some(Connection::OpenAi)), Connection::OpenAi);
     }
 
     #[test]
     fn removing_the_provider_in_use_falls_back_in_order() {
         let both = [Connection::OpenCodeGo, Connection::FeatherPlus];
-        assert_eq!(connection_after_setup_change(Connection::ChatGpt, &both, None), Connection::FeatherPlus);
-        assert_eq!(connection_after_setup_change(Connection::ChatGpt, &[Connection::OpenCodeGo], None), Connection::OpenCodeGo);
-        assert_eq!(connection_after_setup_change(Connection::ChatGpt, &[], None), Connection::ChatGpt);
+        assert_eq!(connection_after_setup_change(Connection::OpenAi, &both, None), Connection::FeatherPlus);
+        assert_eq!(connection_after_setup_change(Connection::OpenAi, &[Connection::OpenCodeGo], None), Connection::OpenCodeGo);
+        assert_eq!(connection_after_setup_change(Connection::OpenAi, &[], None), Connection::OpenAi);
     }
 
     #[test]
     fn the_store_persists_and_rejects_unknown_keys() {
         let path = std::env::temp_dir().join(format!("feather-settings-{}.json", crate::core::pkce::random_string(8)));
         let store = SettingsStore::load(path.clone());
-        store.set(key::CONNECTION, json!("chatGPT")).unwrap();
+        store.set(key::CONNECTION, json!("openAI")).unwrap();
         store.set(key::INCLUDE_SCREENSHOT, json!(false)).unwrap();
         assert!(store.set(key::PLUS_BASE_URL, json!("http://evil")).is_err());
 
         let reloaded = SettingsStore::load(path.clone()).current();
-        assert_eq!(reloaded.connection, Connection::ChatGpt);
+        assert_eq!(reloaded.connection, Connection::OpenAi);
         assert_eq!(reloaded.model, "gpt-5.4-mini");
         assert!(!reloaded.include_screenshot);
         let _ = std::fs::remove_file(path);

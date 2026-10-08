@@ -33,8 +33,8 @@ enum PlusAuth {
     /// Runs the browser sign-in and stores the resulting account token. Cancel the calling task
     /// to abandon it; the loopback port is released either way.
     static func signIn(store: any CredentialStore = KeychainCredentialStore.shared, base: String = FeatherPlus.baseURL()) async throws -> String {
-        let verifier = ChatGPTToken.randomString(length: 64)
-        let state = ChatGPTToken.randomString(length: 32)
+        let verifier = PKCE.randomString(length: 64)
+        let state = PKCE.randomString(length: 32)
         let redirect = try LoopbackRedirect(expectedState: state)
         let redirectURI = LockedValue<String?>(nil)
 
@@ -45,7 +45,7 @@ enum PlusAuth {
                 base: base,
                 redirectURI: uri,
                 state: state,
-                codeChallenge: ChatGPTToken.codeChallenge(for: verifier)
+                codeChallenge: PKCE.codeChallenge(for: verifier)
             ) else { return false }
             DispatchQueue.main.async { _ = NSWorkspace.shared.open(url) }
             return true

@@ -20,7 +20,7 @@ use crate::core::recent::Direction;
 use crate::credentials;
 use crate::i18n;
 use crate::platform::{self, Capability};
-use crate::providers::catalog::{self, ChatGptModel, Model, CHATGPT_MODELS};
+use crate::providers::catalog::{self, OPENAI_FALLBACK_MODELS};
 use crate::providers::stream::CLIENT;
 use crate::settings::{connection_after_setup_change, key, Connection, HotkeyPreset, Settings, SettingsStore};
 use crate::shell::{self, ShellState};
@@ -57,7 +57,7 @@ pub struct AppInfo {
     session: Option<&'static str>,
     version: String,
     hotkeys: Vec<HotkeyOption>,
-    chatgpt_models: Vec<Model>,
+    openai_models: Vec<&'static str>,
 }
 
 #[tauri::command]
@@ -68,7 +68,7 @@ pub fn app_info(app: AppHandle) -> AppInfo {
         session: platform::session_name(),
         version: app.package_info().version.to_string(),
         hotkeys: HotkeyPreset::ALL.iter().map(|&id| HotkeyOption { id, label: id.label() }).collect(),
-        chatgpt_models: CHATGPT_MODELS.to_vec(),
+        openai_models: OPENAI_FALLBACK_MODELS.to_vec(),
     }
 }
 
@@ -121,7 +121,7 @@ pub fn set_setting(app: AppHandle, store: State<'_, SettingsStore>, name: String
 pub struct CredentialStatus {
     api_key: Option<String>,
     claude_api_key: Option<String>,
-    chatgpt_connected: bool,
+    openai_api_key: Option<String>,
     plus_signed_in: bool,
 }
 
@@ -130,7 +130,7 @@ pub fn credential_status() -> CredentialStatus {
     CredentialStatus {
         api_key: credentials::api_key().map(|key| credentials::masked(&key)),
         claude_api_key: credentials::claude_api_key().map(|key| credentials::masked(&key)),
-        chatgpt_connected: credentials::chatgpt_credentials().is_some(),
+        openai_api_key: credentials::openai_api_key().map(|key| credentials::masked(&key)),
         plus_signed_in: credentials::plus_token().is_some(),
     }
 }
@@ -145,8 +145,8 @@ fn providers_set_up(settings: &Settings) -> Vec<Connection> {
     if credentials::api_key().is_some() {
         set_up.push(Connection::OpenCodeGo);
     }
-    if credentials::chatgpt_credentials().is_some() {
-        set_up.push(Connection::ChatGpt);
+    if credentials::openai_api_key().is_some() {
+        set_up.push(Connection::OpenAi);
     }
     if credentials::claude_api_key().is_some() {
         set_up.push(Connection::Claude);
@@ -222,27 +222,35 @@ pub async fn claude_models(app: AppHandle, store: State<'_, SettingsStore>) -> R
     Ok(models)
 }
 
-/// Loads the models the ChatGPT account can use and, when ChatGPT is in use, moves a selection the
-/// account lacks to one it has, so a reply never asks for a model the account cannot run.
-async fn load_chatgpt_models(app: &AppHandle, store: &SettingsStore) -> Result<Vec<ChatGptModel>, String> {
-    let credentials = auth::chatgpt::valid_credentials().await?;
-    let models = catalog::fetch_chatgpt_models(&credentials.access_token, credentials.account_id.as_deref())
-        .await
-        .map_err(|error| error.message())?;
+#[tauri::command]
+pub fn save_openai_api_key(app: AppHandle, store: State<'_, SettingsStore>, api_key: String) -> Result<CredentialStatus, String> {
+    credentials::set_openai_api_key(&api_key)?;
+    credentials_changed(&app, &store, Some(Connection::OpenAi));
+    Ok(credential_status())
+}
+
+#[tauri::command]
+pub fn delete_openai_api_key(app: AppHandle, store: State<'_, SettingsStore>) -> CredentialStatus {
+    credentials::delete_openai_api_key();
+    credentials_changed(&app, &store, None);
+    credential_status()
+}
+
+/// Loads the chat models the OpenAI key can use and, when OpenAI is in use, moves a selection the
+/// key lacks to the default or the newest one.
+#[tauri::command]
+pub async fn openai_models(app: AppHandle, store: State<'_, SettingsStore>) -> Result<Vec<String>, String> {
+    let api_key = credentials::openai_api_key().ok_or_else(|| i18n::t("Add an API key in Settings."))?;
+    let models = catalog::fetch_openai_models(&api_key).await.map_err(|error| error.message())?;
     let settings = store.current();
-    if settings.connection == Connection::ChatGpt {
-        if let Some(model) = catalog::chatgpt_model_for_account(&models, &settings.model) {
+    if settings.connection == Connection::OpenAi {
+        if let Some(model) = catalog::openai_model_for_key(&models, &settings.model) {
             if model != settings.model && store.set(key::MODEL, Value::String(model)).is_ok() {
                 let _ = app.emit("settings-changed", ());
             }
         }
     }
     Ok(models)
-}
-
-#[tauri::command]
-pub async fn chatgpt_models(app: AppHandle, store: State<'_, SettingsStore>) -> Result<Vec<ChatGptModel>, String> {
-    load_chatgpt_models(&app, &store).await
 }
 
 async fn cancellable<T>(sign_in: &SignIn, future: impl std::future::Future<Output = Result<T, String>>) -> Result<T, String> {
@@ -257,22 +265,6 @@ fn open_in_browser(app: &AppHandle) -> impl FnOnce(&str) + '_ {
     move |url| {
         let _ = app.opener().open_url(url, None::<&str>);
     }
-}
-
-#[tauri::command]
-pub async fn sign_in_chatgpt(app: AppHandle, store: State<'_, SettingsStore>, sign_in: State<'_, SignIn>) -> Result<CredentialStatus, String> {
-    cancellable(&sign_in, auth::chatgpt::sign_in(open_in_browser(&app))).await?;
-    credentials_changed(&app, &store, Some(Connection::ChatGpt));
-    // Best effort: Settings loads the list again, and the built-in one covers a failure.
-    let _ = load_chatgpt_models(&app, &store).await;
-    Ok(credential_status())
-}
-
-#[tauri::command]
-pub fn disconnect_chatgpt(app: AppHandle, store: State<'_, SettingsStore>) -> CredentialStatus {
-    credentials::delete_chatgpt_credentials();
-    credentials_changed(&app, &store, None);
-    credential_status()
 }
 
 #[tauri::command]

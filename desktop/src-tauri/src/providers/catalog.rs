@@ -1,85 +1,72 @@
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use super::stream::CLIENT;
-use super::{CLAUDE_API_VERSION, CLAUDE_BASE_URL, OPENCODE_GO_BASE_URL};
+use super::{CLAUDE_API_VERSION, CLAUDE_BASE_URL, OPENAI_BASE_URL, OPENAI_DEFAULT_MODEL, OPENCODE_GO_BASE_URL};
 use crate::core::error::{endpoint, error_message, LlmError};
 
-#[derive(Clone, Debug, Serialize)]
-pub struct Model {
-    pub id: &'static str,
-    pub name: &'static str,
-}
+/// Shown until, or unless, the key's own list loads.
+pub const OPENAI_FALLBACK_MODELS: [&str; 3] = [OPENAI_DEFAULT_MODEL, "gpt-5.4", "gpt-5.5"];
 
-/// Models exposed by OpenCode's ChatGPT/Codex OAuth integration.
-pub const CHATGPT_MODELS: [Model; 6] = [
-    Model { id: "gpt-6-luna", name: "GPT-6 Luna" },
-    Model { id: "gpt-6-sol", name: "GPT-6 Sol" },
-    Model { id: "gpt-5.5", name: "GPT-5.5" },
-    Model { id: "gpt-5.4", name: "GPT-5.4" },
-    Model { id: CHATGPT_DEFAULT_MODEL, name: "GPT-5.4 Mini · Fast" },
-    Model { id: "gpt-5.3-codex-spark", name: "GPT-5.3 Codex Spark" },
+/// Words in the IDs of models that cannot write chat replies, such as audio, image, and embedding
+/// models, or that only work through other APIs.
+const OPENAI_EXCLUDED_WORDS: [&str; 13] = [
+    "audio", "realtime", "tts", "transcribe", "image", "search", "embedding", "moderation", "instruct", "codex", "pro",
+    "deep-research", "computer-use",
 ];
 
-pub const CHATGPT_DEFAULT_MODEL: &str = "gpt-5.4-mini";
-
-/// The Codex backend lists only the models the signed-in account can use, and hides the ones newer
-/// than the client version it is told about.
-const CHATGPT_MODELS_URL: &str = "https://chatgpt.com/backend-api/codex/models";
-const CHATGPT_CLIENT_VERSION: &str = "0.159.0";
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub struct ChatGptModel {
-    pub id: String,
-    pub name: String,
+fn is_openai_chat_model(id: &str) -> bool {
+    let is_family = id.starts_with("gpt-") || (id.starts_with('o') && id[1..].starts_with(|c: char| c.is_ascii_digit()));
+    // Dated snapshots such as gpt-5.4-2026-03-01.
+    let parts: Vec<&str> = id.split('-').collect();
+    let is_snapshot = parts.len() >= 4
+        && parts[parts.len() - 3..].iter().zip([4, 2, 2]).all(|(part, len)| part.len() == len && part.chars().all(|c| c.is_ascii_digit()));
+    let is_excluded = OPENAI_EXCLUDED_WORDS.iter().any(|word| if word.contains('-') { id.contains(word) } else { parts.contains(word) });
+    is_family && !is_snapshot && !is_excluded
 }
 
-/// Reads the model list, keeping the server's order. Accepts `{"models": [...]}` or a bare array,
-/// with each entry naming itself by `slug`, `id`, or `model`, and skips hidden ones.
-pub fn parse_chatgpt_models(body: &[u8]) -> Vec<ChatGptModel> {
-    let Ok(json) = serde_json::from_slice::<serde_json::Value>(body) else { return Vec::new() };
-    let entries = json.get("models").and_then(|value| value.as_array()).or_else(|| json.as_array());
-    let mut models: Vec<ChatGptModel> = Vec::new();
-    for entry in entries.into_iter().flatten() {
-        let text = |name: &str| entry.get(name).and_then(|value| value.as_str()).filter(|value| !value.is_empty());
-        let Some(id) = text("slug").or_else(|| text("id")).or_else(|| text("model")) else { continue };
-        if matches!(text("visibility"), Some("hide" | "hidden" | "none")) || models.iter().any(|model| model.id == id) {
-            continue;
-        }
-        let name = text("display_name").or_else(|| text("name")).unwrap_or(id);
-        models.push(ChatGptModel { id: id.to_owned(), name: name.to_owned() });
-    }
-    models
+/// Keeps the GPT and o-series chat models from OpenAI's model list, newest first, without dated
+/// snapshots.
+pub fn parse_openai_models(body: &[u8]) -> Option<Vec<String>> {
+    let json = serde_json::from_slice::<serde_json::Value>(body).ok()?;
+    let mut models: Vec<(i64, String)> = json
+        .get("data")?
+        .as_array()?
+        .iter()
+        .filter_map(|entry| {
+            let id = entry.get("id")?.as_str()?;
+            Some((entry.get("created").and_then(|value| value.as_i64()).unwrap_or(0), id.to_owned()))
+        })
+        .filter(|(_, id)| is_openai_chat_model(id))
+        .collect();
+    models.sort_by_key(|(created, _)| std::cmp::Reverse(*created));
+    Some(models.into_iter().map(|(_, id)| id).collect())
 }
 
-/// Keeps `current` when the account can use it; otherwise the fast default, else the first model.
-pub fn chatgpt_model_for_account(models: &[ChatGptModel], current: &str) -> Option<String> {
-    if models.iter().any(|model| model.id == current) {
+/// Keeps `current` when the key can use it; otherwise the default, else the newest model.
+pub fn openai_model_for_key(models: &[String], current: &str) -> Option<String> {
+    if models.iter().any(|model| model == current) {
         return Some(current.to_owned());
     }
-    models
-        .iter()
-        .find(|model| model.id == CHATGPT_DEFAULT_MODEL)
-        .or_else(|| models.first())
-        .map(|model| model.id.clone())
+    models.iter().find(|model| *model == OPENAI_DEFAULT_MODEL).or_else(|| models.first()).cloned()
 }
 
-/// Fetches the models the signed-in ChatGPT account can use.
-pub async fn fetch_chatgpt_models(access_token: &str, account_id: Option<&str>) -> Result<Vec<ChatGptModel>, LlmError> {
-    let mut request = CLIENT.get(CHATGPT_MODELS_URL).query(&[("client_version", CHATGPT_CLIENT_VERSION)]).bearer_auth(access_token);
-    if let Some(account_id) = account_id.filter(|id| !id.is_empty()) {
-        request = request.header("ChatGPT-Account-Id", account_id);
-    }
-    let response = request.send().await.map_err(|_| LlmError::Network)?;
+/// Fetches the chat models available to an OpenAI API key.
+pub async fn fetch_openai_models(api_key: &str) -> Result<Vec<String>, LlmError> {
+    let response = CLIENT
+        .get(endpoint(OPENAI_BASE_URL, "/models")?)
+        .bearer_auth(api_key)
+        .send()
+        .await
+        .map_err(|_| LlmError::Network)?;
     let status = response.status().as_u16();
     let body = response.bytes().await.map_err(|_| LlmError::Network)?;
     if !(200..300).contains(&status) {
         return Err(LlmError::Http { status, message: error_message(&body) });
     }
-    let models = parse_chatgpt_models(&body);
-    if models.is_empty() {
-        return Err(LlmError::Api("ChatGPT returned no models for this account.".into()));
+    match parse_openai_models(&body) {
+        Some(models) if !models.is_empty() => Ok(models),
+        _ => Err(LlmError::Api("OpenAI returned no chat models for this key.".into())),
     }
-    Ok(models)
 }
 
 /// Sorted case-insensitively, without duplicates, always including the selected model.
@@ -157,39 +144,32 @@ mod tests {
     use super::*;
 
     #[test]
-    fn the_chatgpt_default_is_the_fast_model() {
-        let fast = CHATGPT_MODELS.iter().find(|model| model.name.to_lowercase().contains("fast")).unwrap();
-        assert_eq!(fast.id, CHATGPT_DEFAULT_MODEL);
-    }
-
-    #[test]
-    fn reads_the_account_models_in_server_order() {
-        let body = br#"{"models":[
-            {"slug":"gpt-5.5","display_name":"GPT-5.5","visibility":"list"},
-            {"slug":"internal","visibility":"hide"},
-            {"id":"gpt-5.4-mini"},
-            {"slug":"gpt-5.5"}
+    fn keeps_openai_chat_models_newest_first() {
+        let body = br#"{"data":[
+            {"id":"gpt-5.4","created":200},
+            {"id":"gpt-5.4-mini","created":300},
+            {"id":"o4-mini","created":100},
+            {"id":"gpt-5.4-2026-03-01","created":250},
+            {"id":"gpt-image-2","created":400},
+            {"id":"gpt-realtime","created":400},
+            {"id":"gpt-4o-mini-tts","created":400},
+            {"id":"gpt-5.3-codex","created":400},
+            {"id":"gpt-5-pro","created":400},
+            {"id":"text-embedding-3-large","created":400},
+            {"id":"dall-e-3","created":400},
+            {"id":"omni-moderation-latest","created":400}
         ]}"#;
-        let models = parse_chatgpt_models(body);
-        assert_eq!(
-            models,
-            vec![
-                ChatGptModel { id: "gpt-5.5".into(), name: "GPT-5.5".into() },
-                ChatGptModel { id: "gpt-5.4-mini".into(), name: "gpt-5.4-mini".into() },
-            ]
-        );
-        assert_eq!(parse_chatgpt_models(br#"[{"slug":"a"}]"#).len(), 1);
-        assert!(parse_chatgpt_models(b"not json").is_empty());
+        assert_eq!(parse_openai_models(body), Some(vec!["gpt-5.4-mini".to_owned(), "gpt-5.4".to_owned(), "o4-mini".to_owned()]));
+        assert_eq!(parse_openai_models(b"not json"), None);
     }
 
     #[test]
-    fn a_model_the_account_lacks_falls_back_to_the_default_then_the_first() {
-        let with_default = parse_chatgpt_models(br#"{"models":[{"slug":"a"},{"slug":"gpt-5.4-mini"}]}"#);
-        assert_eq!(chatgpt_model_for_account(&with_default, "a").as_deref(), Some("a"));
-        assert_eq!(chatgpt_model_for_account(&with_default, "gone").as_deref(), Some("gpt-5.4-mini"));
-        let without_default = parse_chatgpt_models(br#"{"models":[{"slug":"a"},{"slug":"b"}]}"#);
-        assert_eq!(chatgpt_model_for_account(&without_default, "gpt-5.4-mini").as_deref(), Some("a"));
-        assert_eq!(chatgpt_model_for_account(&[], "a"), None);
+    fn an_openai_model_the_key_lacks_falls_back_to_the_default_then_the_newest() {
+        let with_default = vec!["a".to_owned(), OPENAI_DEFAULT_MODEL.to_owned()];
+        assert_eq!(openai_model_for_key(&with_default, "a").as_deref(), Some("a"));
+        assert_eq!(openai_model_for_key(&with_default, "gone").as_deref(), Some(OPENAI_DEFAULT_MODEL));
+        assert_eq!(openai_model_for_key(&["a".to_owned(), "b".to_owned()], "gone").as_deref(), Some("a"));
+        assert_eq!(openai_model_for_key(&[], "a"), None);
     }
 
     #[test]

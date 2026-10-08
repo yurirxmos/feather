@@ -18,7 +18,8 @@ pub const OPENCODE_GO_DEFAULT_MODEL: &str = "deepseek-v4.1-flash";
 pub const CLAUDE_BASE_URL: &str = "https://api.anthropic.com/v1";
 pub const CLAUDE_DEFAULT_MODEL: &str = "claude-haiku-5-5";
 pub const CLAUDE_API_VERSION: &str = "2023-06-01";
-pub const CHATGPT_ENDPOINT: &str = "https://chatgpt.com/backend-api/codex/responses";
+pub const OPENAI_BASE_URL: &str = "https://api.openai.com/v1";
+pub const OPENAI_DEFAULT_MODEL: &str = "gpt-5.4-mini";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Chunk {
@@ -33,8 +34,9 @@ pub enum Chunk {
 pub enum Provider {
     /// OpenCode Go's OpenAI-compatible chat completions endpoint.
     OpenCodeGo { api_key: String },
-    /// ChatGPT account access through the Codex Responses API.
-    ChatGpt { access_token: String, account_id: Option<String> },
+    /// OpenAI's chat completions API, with an API key from the OpenAI Platform. The request and
+    /// stream formats are OpenCode Go's, which is OpenAI-compatible.
+    OpenAi { api_key: String },
     /// Anthropic's Messages API, with an API key from the Anthropic Console.
     Claude { api_key: String },
     /// Feather Plus's OpenAI-compatible endpoint. Every plan uses the server's model, so the model
@@ -61,15 +63,7 @@ impl Provider {
                 }
                 (endpoint(OPENCODE_GO_BASE_URL, "/chat/completions")?, api_key, chat_completions_body(request))
             }
-            Provider::ChatGpt { access_token, account_id } => {
-                if let Some(account_id) = account_id.as_ref().filter(|id| !id.is_empty()) {
-                    headers.push(("ChatGPT-Account-Id", account_id.clone()));
-                }
-                if !request.session_id.is_empty() {
-                    headers.push(("session-id", request.session_id.clone()));
-                }
-                (reqwest::Url::parse(CHATGPT_ENDPOINT).expect("valid endpoint"), access_token, responses_body(request))
-            }
+            Provider::OpenAi { api_key } => (endpoint(OPENAI_BASE_URL, "/chat/completions")?, api_key, chat_completions_body(request)),
             Provider::Claude { api_key } => {
                 headers.push(("x-api-key", api_key.clone()));
                 headers.push(("anthropic-version", CLAUDE_API_VERSION.to_owned()));
@@ -92,14 +86,14 @@ impl Provider {
     /// Whether `GenerationRequest::reasoning` changes the request body. Feather Plus does not know
     /// the real model, and its proxy reports upstream 400s as 502, so the server decides.
     pub fn controls_reasoning(&self) -> bool {
-        matches!(self, Provider::OpenCodeGo { .. })
+        matches!(self, Provider::OpenCodeGo { .. } | Provider::OpenAi { .. })
     }
 
     /// A URL on the provider's host that is cheap to request without credentials.
     pub fn preconnect_url(&self) -> Option<reqwest::Url> {
         match self {
             Provider::OpenCodeGo { .. } => endpoint(OPENCODE_GO_BASE_URL, "/models").ok(),
-            Provider::ChatGpt { .. } => reqwest::Url::parse(CHATGPT_ENDPOINT).ok(),
+            Provider::OpenAi { .. } => endpoint(OPENAI_BASE_URL, "/models").ok(),
             Provider::Claude { .. } => endpoint(CLAUDE_BASE_URL, "/models").ok(),
             Provider::FeatherPlus { base_url, .. } => endpoint(base_url, "/health").ok(),
         }
@@ -107,8 +101,7 @@ impl Provider {
 
     pub fn parse(&self, event: &SseEvent) -> Result<Chunk, LlmError> {
         match self {
-            Provider::OpenCodeGo { .. } | Provider::FeatherPlus { .. } => parse_chat_completions(event),
-            Provider::ChatGpt { .. } => parse_responses(event),
+            Provider::OpenCodeGo { .. } | Provider::OpenAi { .. } | Provider::FeatherPlus { .. } => parse_chat_completions(event),
             Provider::Claude { .. } => parse_claude(event),
         }
     }
@@ -118,7 +111,7 @@ pub fn default_model_for(connection: crate::settings::Connection) -> &'static st
     use crate::settings::Connection;
     match connection {
         Connection::OpenCodeGo => OPENCODE_GO_DEFAULT_MODEL,
-        Connection::ChatGpt => catalog::CHATGPT_DEFAULT_MODEL,
+        Connection::OpenAi => OPENAI_DEFAULT_MODEL,
         Connection::Claude => CLAUDE_DEFAULT_MODEL,
         Connection::FeatherPlus => plus::DEFAULT_MODEL,
     }
@@ -176,22 +169,6 @@ fn claude_body(request: &GenerationRequest) -> Value {
     })
 }
 
-fn responses_body(request: &GenerationRequest) -> Value {
-    let input: Vec<Value> = request
-        .turns
-        .iter()
-        .enumerate()
-        .map(|(index, turn)| {
-            let mut content = vec![json!({ "type": "input_text", "text": turn.text })];
-            if let (0, Some(image)) = (index, &request.image_jpeg) {
-                content.push(json!({ "type": "input_image", "image_url": image_url(image) }));
-            }
-            json!({ "role": turn.role.as_str(), "content": content })
-        })
-        .collect();
-    json!({ "model": request.model, "instructions": request.system, "input": input, "stream": true })
-}
-
 fn stream_error(data: &str) -> LlmError {
     LlmError::Api(error_message(data.as_bytes()).unwrap_or_else(|| "Unknown error".to_owned()))
 }
@@ -242,25 +219,6 @@ fn parse_claude(event: &SseEvent) -> Result<Chunk, LlmError> {
     }
 }
 
-fn parse_responses(event: &SseEvent) -> Result<Chunk, LlmError> {
-    let Ok(json) = serde_json::from_str::<Value>(&event.data) else {
-        return Ok(Chunk::Ignore);
-    };
-    if json.get("error").is_some_and(|error| !error.is_null()) {
-        return Err(stream_error(&event.data));
-    }
-    match event.event.as_deref() {
-        Some("response.output_text.delta") => {
-            Ok(json.get("delta").and_then(Value::as_str).map(|text| Chunk::Text(text.to_owned())).unwrap_or(Chunk::Ignore))
-        }
-        Some("response.completed" | "response.done" | "response.incomplete") => Ok(Chunk::Done),
-        Some("response.failed") => Err(LlmError::Api(
-            json.pointer("/response/error/message").and_then(Value::as_str).unwrap_or("The response failed.").to_owned(),
-        )),
-        _ => Ok(Chunk::Ignore),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -297,11 +255,17 @@ mod tests {
     }
 
     #[test]
-    fn responses_body_uses_instructions_and_input() {
-        let body = responses_body(&request(Some(vec![1])));
-        assert_eq!(body["instructions"], "System");
-        assert_eq!(body["input"][0]["content"][1]["type"], "input_image");
-        assert_eq!(body["input"][1]["role"], "assistant");
+    fn openai_uses_chat_completions_with_a_bearer_token() {
+        let provider = Provider::OpenAi { api_key: "sk-test".into() };
+        let http = provider.http_request(&request(None)).unwrap();
+        assert_eq!(http.url.as_str(), "https://api.openai.com/v1/chat/completions");
+        assert!(http.headers.contains(&("Authorization", "Bearer sk-test".into())));
+        assert!(!http.headers.iter().any(|(name, _)| *name == "x-opencode-session"));
+        assert_eq!(http.body["messages"][0]["role"], "system");
+        assert!(provider.controls_reasoning());
+
+        let missing = Provider::OpenAi { api_key: String::new() };
+        assert_eq!(missing.http_request(&request(None)).err(), Some(LlmError::MissingApiKey));
     }
 
     #[test]
@@ -373,19 +337,6 @@ mod tests {
         assert_eq!(
             parse_chat_completions(&event(None, r#"{"error":{"message":"Quota"}}"#)),
             Err(LlmError::Api("Quota".into()))
-        );
-    }
-
-    #[test]
-    fn parses_responses_events() {
-        assert_eq!(
-            parse_responses(&event(Some("response.output_text.delta"), r#"{"delta":"Hi"}"#)),
-            Ok(Chunk::Text("Hi".into()))
-        );
-        assert_eq!(parse_responses(&event(Some("response.completed"), "{}")), Ok(Chunk::Done));
-        assert_eq!(
-            parse_responses(&event(Some("response.failed"), r#"{"response":{"error":{"message":"Nope"}}}"#)),
-            Err(LlmError::Api("Nope".into()))
         );
     }
 }

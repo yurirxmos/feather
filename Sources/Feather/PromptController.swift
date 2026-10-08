@@ -417,15 +417,8 @@ final class PromptController: NSObject, NSWindowDelegate {
             guard !Task.isCancelled else { return }
             let provider: LLMProvider
             switch settings.connection {
-            case .chatGPT:
-                do {
-                    let credentials = try await ChatGPTAuth.validCredentials(store: credentialStore)
-                    provider = settings.makeProvider(accessToken: credentials.accessToken, accountID: credentials.accountID)
-                } catch {
-                    session.errorMessage = error.localizedDescription
-                    session.isGenerating = false
-                    return
-                }
+            case .openAI:
+                provider = settings.makeProvider(openAIAPIKey: credentialStore.openAIAPIKey() ?? "")
             case .claude:
                 provider = settings.makeProvider(claudeAPIKey: credentialStore.claudeAPIKey() ?? "")
             case .featherPlus:

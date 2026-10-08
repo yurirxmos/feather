@@ -86,6 +86,14 @@ public struct Settings: Equatable, Sendable {
         )
     }
 
+    /// The stored choice "chatGPT" was the ChatGPT account sign-in, which an OpenAI API key replaced;
+    /// it now means OpenAI, which asks for a key until one is added. Run once at launch.
+    public static func migrateLegacyConnection(_ defaults: UserDefaults = .standard) {
+        if defaults.string(forKey: SettingsKey.connection) == "chatGPT" {
+            defaults.set(ConnectionKind.openAI.rawValue, forKey: SettingsKey.connection)
+        }
+    }
+
     /// Whether the welcome guide counts as done. An unset value is not done, so every install sees
     /// the guide once, including ones that already have credentials.
     public static func onboardingCompleted(stored: Bool?) -> Bool {
@@ -95,7 +103,7 @@ public struct Settings: Equatable, Sendable {
     public func hasCredentials(using store: any CredentialStore) -> Bool {
         switch connection {
         case .openCodeGo: !(store.apiKey() ?? "").isEmpty
-        case .chatGPT: store.chatGPTCredentials() != nil
+        case .openAI: !(store.openAIAPIKey() ?? "").isEmpty
         case .claude: !(store.claudeAPIKey() ?? "").isEmpty
         case .featherPlus: !(store.plusToken() ?? "").isEmpty
         }
@@ -103,14 +111,13 @@ public struct Settings: Equatable, Sendable {
 
     public func makeProvider(
         apiKey: String = "",
-        accessToken: String? = nil,
-        accountID: String? = nil,
+        openAIAPIKey: String = "",
         plusToken: String? = nil,
         claudeAPIKey: String = ""
     ) -> any LLMProvider {
         switch connection {
         case .openCodeGo: OpenCodeGoProvider(apiKey: apiKey)
-        case .chatGPT: ChatGPTProvider(accessToken: accessToken ?? "", accountID: accountID)
+        case .openAI: OpenAIProvider(apiKey: openAIAPIKey)
         case .claude: ClaudeProvider(apiKey: claudeAPIKey)
         case .featherPlus: FeatherPlusProvider(token: plusToken ?? "", baseURL: plusBaseURL)
         }
@@ -127,7 +134,7 @@ public struct Settings: Equatable, Sendable {
     }
 
     /// The order Settings lists providers in, and the order Feather falls back through.
-    public static let providerOrder: [ConnectionKind] = [.featherPlus, .chatGPT, .claude, .openCodeGo]
+    public static let providerOrder: [ConnectionKind] = [.featherPlus, .openAI, .claude, .openCodeGo]
 
     /// The provider to use after the set of providers that are set up changes. The one in use stays
     /// while it is still set up; otherwise the one just set up (`preferring`), else the first one
@@ -147,7 +154,7 @@ public struct Settings: Equatable, Sendable {
     public static func providersSetUp(in store: any CredentialStore, plusAvailable: Bool) -> Set<ConnectionKind> {
         var setUp: Set<ConnectionKind> = []
         if !(store.apiKey() ?? "").isEmpty { setUp.insert(.openCodeGo) }
-        if store.chatGPTCredentials() != nil { setUp.insert(.chatGPT) }
+        if !(store.openAIAPIKey() ?? "").isEmpty { setUp.insert(.openAI) }
         if !(store.claudeAPIKey() ?? "").isEmpty { setUp.insert(.claude) }
         if plusAvailable, store.plusToken() != nil { setUp.insert(.featherPlus) }
         return setUp

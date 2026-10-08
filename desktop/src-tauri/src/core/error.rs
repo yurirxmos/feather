@@ -51,7 +51,7 @@ pub fn error_message(body: &[u8]) -> Option<String> {
             .and_then(|value| value.as_str())
             .or_else(|| json.get("error").and_then(|value| value.as_str()))
             .or_else(|| json.get("message").and_then(|value| value.as_str()))
-            // ChatGPT's backend explains a rejected request in `detail`.
+            // Some backends explain a rejected request in `detail`.
             .or_else(|| json.get("detail").and_then(|value| value.as_str()))
             .map(str::to_owned),
         Err(_) => {

@@ -9,7 +9,7 @@ desktop app follows the macOS app's behavior:
   bottom of the screen, centered on the window you were using.
 - On demand only, Feather reads the app name, window title, focused field,
   selection, and window text, and can attach a screenshot of the window.
-- Replies stream from OpenCode Go, Claude, ChatGPT, or Feather Plus. Follow-up
+- Replies stream from OpenCode Go, OpenAI, Claude, or Feather Plus. Follow-up
   instructions refine the reply, and Enter pastes it into the field you were
   typing in. The clipboard is restored afterward.
 - Settings, a tray menu, pt-BR translations, and signed automatic updates.

@@ -30,14 +30,9 @@ pub fn t(english: &str) -> String {
 
 const TRANSLATIONS: &[(&str, &str)] = &[
     ("Add an API key in Settings.", "Adicione uma chave de API nas Configurações."),
-    ("ChatGPT connection failed", "A conexão com o ChatGPT falhou"),
-    ("ChatGPT login timed out.", "O login do ChatGPT expirou."),
-    ("ChatGPT session refresh failed ({status}).", "A renovação da sessão do ChatGPT falhou ({status})."),
-    ("ChatGPT token exchange failed ({status}).", "A troca de token do ChatGPT falhou ({status})."),
     ("Check for Updates…", "Procurar Atualizações…"),
     ("Check the email address, or leave it empty.", "Confira o endereço de e-mail ou deixe o campo vazio."),
     ("Couldn't send your feedback. Check your connection and try again.", "Não foi possível enviar seu feedback. Confira sua conexão e tente de novo."),
-    ("Connected to ChatGPT", "Conectado ao ChatGPT"),
     ("Copied. Paste it with Ctrl+V.", "Copiado. Cole com Ctrl+V."),
     ("Copied. This session can't insert text automatically, so paste it with Ctrl+V.", "Copiado. Esta sessão não consegue inserir texto automaticamente, então cole com Ctrl+V."),
     ("Copied to clipboard.", "Copiado para a área de transferência."),
@@ -64,10 +59,6 @@ const TRANSLATIONS: &[(&str, &str)] = &[
     ("Later", "Depois"),
     ("Keep your message under 5,000 characters.", "Mantenha sua mensagem com menos de 5.000 caracteres."),
     ("Open ({shortcut})", "Abrir ({shortcut})"),
-    (
-        "Port 1455 is in use. Close other apps signing in to ChatGPT and try again.",
-        "A porta 1455 está em uso. Feche outros apps que estejam entrando no ChatGPT e tente novamente.",
-    ),
     ("Quit", "Sair do Feather"),
     ("Request failed with status {status}.", "A requisição falhou com status {status}."),
     (
@@ -79,7 +70,6 @@ const TRANSLATIONS: &[(&str, &str)] = &[
     ("Set a model in Settings.", "Defina um modelo nas Configurações."),
     ("Settings…", "Configurações…"),
     ("Sign in to Feather Plus in Settings.", "Entre no Feather Plus nas Configurações."),
-    ("Sign in with ChatGPT in Settings.", "Entre com o ChatGPT nas Configurações."),
     ("Sign-in failed", "Falha ao entrar"),
     ("Sign-in timed out. Try again.", "O login expirou. Tente novamente."),
     ("Signed in to Feather Plus", "Você entrou no Feather Plus"),

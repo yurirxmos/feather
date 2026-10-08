@@ -37,7 +37,7 @@ paste it into the field you were using.
 - **Refine as you go:** follow up with "shorter" or "more casual," regenerate, or copy instead.
 - **Private by design:** nothing is captured until you press the shortcut, and screen context is
   discarded when the panel closes.
-- **Bring your own model, or don't:** use your Claude API key, ChatGPT account, or OpenCode Go key
+- **Bring your own model, or don't:** use your OpenAI, Claude, or OpenCode Go API key
   for free, or Feather Plus with no key at all.
 - **Native and open source:** SwiftUI on macOS (`Sources/`), Tauri on Windows and Linux
   (`desktop/`), MIT licensed.
@@ -98,7 +98,7 @@ use, shown in Settings as a percentage used. Feather never stores your instructi
 context, or replies; they pass through its server to the model provider, which handles them
 under its own data policy. Only your email, plan, and request, token, and cost counts are kept.
 
-Bringing your own Claude API key, ChatGPT account, or OpenCode Go key stays free.
+Bringing your own OpenAI, Claude, or OpenCode Go API key stays free.
 
 ### Claude
 
@@ -117,19 +117,18 @@ model is `deepseek-v4.1-flash`.
 Your API key is stored in the macOS Keychain. Model availability and usage are
 managed by your OpenCode subscription.
 
-### ChatGPT
+### OpenAI
 
-ChatGPT connects through a browser sign-in flow. Select **ChatGPT** in Settings
-and choose **Sign in with ChatGPT**. Feather stores the resulting session
-credentials in the macOS Keychain and refreshes them when needed.
+OpenAI uses the Chat Completions API. Paste an OpenAI API key from the
+[OpenAI Platform](https://platform.openai.com/api-keys) in Settings, then select a model. The
+default model is `gpt-5.4-mini`.
 
-Select one of the ChatGPT models offered in Settings. Access and model
-availability depend on your ChatGPT account.
+Your API key is stored in the macOS Keychain. Usage is billed to your OpenAI account.
 
 ## Setup
 
 1. Launch Feather from the menu bar.
-2. Open **Settings > Connection** and set up Feather Plus, Claude, ChatGPT, or OpenCode Go.
+2. Open **Settings > Connection** and set up Feather Plus, OpenAI, Claude, or OpenCode Go.
 3. Grant the required permissions:
    - **Accessibility** lets Feather read the focused field and paste a result.
    - **Screen Recording** lets Feather capture the active-window screenshot.
@@ -172,7 +171,7 @@ with a certificate from the [SignPath Foundation](https://signpath.org).
   [GitHub Actions workflow](.github/workflows/release-desktop.yml) from a `v*` tag, and signed
   only after it is approved.
 - **Privacy:** Feather reads your screen context only when you press the shortcut, and sends it
-  only to the provider you chose (OpenCode Go, Claude, ChatGPT, or Feather Plus) to generate the reply.
+  only to the provider you chose (OpenCode Go, OpenAI, Claude, or Feather Plus) to generate the reply.
   It transfers no other information to other networked systems, except the update check against
   GitHub Releases and feedback you choose to send from the menu, which carries only your message,
   the optional email you type, and the Feather and system versions.

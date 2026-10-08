@@ -251,56 +251,6 @@
         }
       }
     },
-    "ChatGPT": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ChatGPT"
-          }
-        }
-      }
-    },
-    "ChatGPT login timed out.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O login do ChatGPT expirou."
-          }
-        }
-      }
-    },
-    "ChatGPT returned an invalid login callback.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O ChatGPT retornou um callback de login inválido."
-          }
-        }
-      }
-    },
-    "ChatGPT token exchange failed (%lld).": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A troca de token do ChatGPT falhou (%lld)."
-          }
-        }
-      }
-    },
-    "ChatGPT session refresh failed (%lld).": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A renovação da sessão do ChatGPT falhou (%lld)."
-          }
-        }
-      }
-    },
     "Continue": {
       "localizations": {
         "pt-BR": {
@@ -347,26 +297,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mostrar guia de boas-vindas…"
-          }
-        }
-      }
-    },
-    "Disconnect": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Desconectar"
-          }
-        }
-      }
-    },
-    "Signing in…": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Entrando…"
           }
         }
       }
@@ -971,16 +901,6 @@
         }
       }
     },
-    "Couldn't load your ChatGPT models. Showing the defaults.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Não foi possível carregar seus modelos do ChatGPT. Mostrando os padrões."
-          }
-        }
-      }
-    },
     "Sign-in timed out. Try again.": {
       "localizations": {
         "pt-BR": {
@@ -1201,16 +1121,6 @@
         }
       }
     },
-    "Sign in with your ChatGPT account. Free.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Entre com a sua conta do ChatGPT. Grátis."
-          }
-        }
-      }
-    },
     "Paste an OpenCode Go API key. Free.": {
       "localizations": {
         "pt-BR": {
@@ -1327,16 +1237,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Plano grátis"
-          }
-        }
-      }
-    },
-    "Use your own ChatGPT account, Claude API key, or OpenCode Go key. Credentials are stored in the macOS Keychain.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Use a sua própria conta do ChatGPT, chave de API do Claude ou chave do OpenCode Go. As credenciais ficam no Keychain do macOS."
           }
         }
       }
@@ -1927,6 +1827,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lendo a janela…"
+          }
+        }
+      }
+    },
+    "OpenAI": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OpenAI"
+          }
+        }
+      }
+    },
+    "Paste an OpenAI API key from the Platform.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cole uma chave de API da OpenAI, criada na Platform."
+          }
+        }
+      }
+    },
+    "Use your own OpenAI, Claude, or OpenCode Go API key. Keys are stored in the macOS Keychain.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use a sua própria chave de API da OpenAI, do Claude ou do OpenCode Go. As chaves ficam no Keychain do macOS."
           }
         }
       }

@@ -6,7 +6,9 @@ enum Keychain {
     private static let service = "com.feather.api-keys"
     private static let legacyService = "com.contextbar.api-keys"
     private static let account = "opencode-go"
-    private static let chatGPTAccount = "chatgpt-oauth"
+    /// The ChatGPT account session from before the OpenAI API key replaced it; only ever deleted.
+    private static let legacyChatGPTAccount = "chatgpt-oauth"
+    private static let openAIAccount = "openai-api-key"
     private static let plusAccount = "feather-plus"
     private static let claudeAccount = "claude-api-key"
 
@@ -34,19 +36,26 @@ enum Keychain {
         SecItemDelete(query as CFDictionary)
     }
 
-    static func chatGPTCredentials() -> ChatGPTCredentials? {
-        guard let data = readOrMigrate(account: chatGPTAccount) else { return nil }
-        return try? JSONDecoder().decode(ChatGPTCredentials.self, from: data)
+    static func openAIAPIKey() -> String? {
+        read(account: openAIAccount).flatMap { String(data: $0, encoding: .utf8) }
     }
 
     @discardableResult
-    static func setChatGPTCredentials(_ credentials: ChatGPTCredentials) -> Bool {
-        guard let data = try? JSONEncoder().encode(credentials) else { return false }
-        return write(data, account: chatGPTAccount)
+    static func setOpenAIAPIKey(_ key: String) -> Bool {
+        let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            deleteOpenAIAPIKey()
+            return true
+        }
+        return write(Data(trimmed.utf8), account: openAIAccount)
     }
 
-    static func deleteChatGPTCredentials() {
-        delete(account: chatGPTAccount)
+    static func deleteOpenAIAPIKey() {
+        delete(account: openAIAccount)
+    }
+
+    static func deleteLegacyChatGPTSession() {
+        delete(account: legacyChatGPTAccount)
     }
 
     static func plusToken() -> String? {
@@ -140,9 +149,9 @@ struct KeychainCredentialStore: CredentialStore {
     func apiKey() -> String? { Keychain.apiKey() }
     func setAPIKey(_ key: String) -> Bool { Keychain.setAPIKey(key) }
     func deleteAPIKey() { Keychain.deleteAPIKey() }
-    func chatGPTCredentials() -> ChatGPTCredentials? { Keychain.chatGPTCredentials() }
-    func setChatGPTCredentials(_ credentials: ChatGPTCredentials) -> Bool { Keychain.setChatGPTCredentials(credentials) }
-    func deleteChatGPTCredentials() { Keychain.deleteChatGPTCredentials() }
+    func openAIAPIKey() -> String? { Keychain.openAIAPIKey() }
+    func setOpenAIAPIKey(_ key: String) -> Bool { Keychain.setOpenAIAPIKey(key) }
+    func deleteOpenAIAPIKey() { Keychain.deleteOpenAIAPIKey() }
     func plusToken() -> String? { Keychain.plusToken() }
     func setPlusToken(_ token: String) -> Bool { Keychain.setPlusToken(token) }
     func deletePlusToken() { Keychain.deletePlusToken() }

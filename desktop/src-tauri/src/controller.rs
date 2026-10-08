@@ -11,7 +11,6 @@ use tauri::async_runtime::JoinHandle;
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewWindow};
 use tokio::sync::watch;
 
-use crate::auth;
 use crate::core::context::{ContextOptions, ScreenContext};
 use crate::core::error::LlmError;
 use crate::core::placement::{self, Anchor};
@@ -738,10 +737,7 @@ impl PromptController {
         match connection {
             Connection::OpenCodeGo => Ok(Provider::OpenCodeGo { api_key: credentials::api_key().unwrap_or_default() }),
             Connection::Claude => Ok(Provider::Claude { api_key: credentials::claude_api_key().unwrap_or_default() }),
-            Connection::ChatGpt => {
-                let credentials = auth::chatgpt::valid_credentials().await?;
-                Ok(Provider::ChatGpt { access_token: credentials.access_token, account_id: credentials.account_id })
-            }
+            Connection::OpenAi => Ok(Provider::OpenAi { api_key: credentials::openai_api_key().unwrap_or_default() }),
             Connection::FeatherPlus => credentials::plus_token()
                 .map(|token| Provider::FeatherPlus { token, base_url: plus_base_url.to_owned() })
                 .ok_or_else(|| t("Sign in to Feather Plus in Settings.")),
@@ -752,7 +748,7 @@ impl PromptController {
     fn provider_for_preconnect(&self, connection: Connection, plus_base_url: &str) -> Option<Provider> {
         Some(match connection {
             Connection::OpenCodeGo => Provider::OpenCodeGo { api_key: String::new() },
-            Connection::ChatGpt => Provider::ChatGpt { access_token: String::new(), account_id: None },
+            Connection::OpenAi => Provider::OpenAi { api_key: String::new() },
             Connection::Claude => Provider::Claude { api_key: String::new() },
             Connection::FeatherPlus => Provider::FeatherPlus { token: String::new(), base_url: plus_base_url.to_owned() },
         })

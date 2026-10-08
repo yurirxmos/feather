@@ -82,6 +82,6 @@ final class FeatherPlusProviderTests: XCTestCase {
         XCTAssertEqual(Settings.model(afterChangingTo: .featherPlus, preserving: "custom-model"), "fast")
         XCTAssertEqual(Settings.model(afterChangingTo: .featherPlus, preserving: "premium"), "fast")
         XCTAssertEqual(Settings.model(afterChangingTo: .openCodeGo, preserving: "premium"), OpenCodeGoProvider.defaultModel)
-        XCTAssertEqual(Settings.model(afterChangingTo: .chatGPT, preserving: "fast"), ChatGPTModelCatalog.defaultModel)
+        XCTAssertEqual(Settings.model(afterChangingTo: .openAI, preserving: "fast"), OpenAIProvider.defaultModel)
     }
 }

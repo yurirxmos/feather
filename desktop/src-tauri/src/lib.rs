@@ -39,6 +39,8 @@ pub fn run() {
         .setup(|app| {
             let settings_path = app.path().app_config_dir()?.join("settings.json");
             app.manage(SettingsStore::load(settings_path));
+            // The ChatGPT account sign-in became an OpenAI API key.
+            credentials::delete_legacy_chatgpt_session();
             app.manage(PromptController::new(app.handle().clone()));
             app.manage(commands::SignIn::default());
             platform::prepare();
@@ -77,9 +79,9 @@ pub fn run() {
             commands::save_claude_api_key,
             commands::delete_claude_api_key,
             commands::claude_models,
-            commands::chatgpt_models,
-            commands::sign_in_chatgpt,
-            commands::disconnect_chatgpt,
+            commands::save_openai_api_key,
+            commands::delete_openai_api_key,
+            commands::openai_models,
             commands::sign_in_plus,
             commands::cancel_sign_in,
             commands::plus_account,
