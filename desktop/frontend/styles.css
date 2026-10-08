@@ -176,7 +176,6 @@ button:disabled { cursor: default; }
 .row { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 8px 14px; }
 .row + .row { border-top: 1px solid var(--line); }
 p.row { margin: 0; }
-.row.login-box { flex-direction: column; justify-content: center; gap: 8px; padding: 26px 18px; text-align: center; }
 .row.usage { flex-direction: column; align-items: stretch; gap: 6px; }
 .label { display: flex; flex-direction: column; gap: 2px; }
 .label small { color: var(--secondary); font-size: 12px; }
@@ -235,9 +234,6 @@ p.row { margin: 0; }
 .settings-body code { font: 13px var(--mono); }
 .settings-body input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
 .toggle { cursor: pointer; }
-.segmented { display: inline-flex; padding: 2px; border-radius: 7px; background: var(--hover); border: 1px solid var(--line); }
-.settings-body .segmented button:not(.section):not(.sidebar-action):not(.link) { border: 0; background: none; min-height: 26px; padding: 0 14px; border-radius: 5px; color: var(--secondary); }
-.settings-body .segmented button.selected:not(.section):not(.sidebar-action):not(.link) { background: var(--control); color: var(--text); font-weight: 600; box-shadow: 0 1px 2px rgb(0 0 0 / .25); }
 .row.provider { justify-content: flex-start; gap: 12px; }
 .row.provider .label { flex: 1; min-width: 0; }
 .row.provider .label small.mono { font-family: var(--mono); }
@@ -256,7 +252,6 @@ p.row { margin: 0; }
 .plus-card-head strong { font-size: 16px; font-weight: 600; }
 .plus-card .provider-icon { width: 40px; height: 40px; border-radius: 10px; }
 .plus-card .feather-mark { width: 22px; height: 22px; }
-.plus-card-actions { display: flex; align-items: center; gap: 10px; padding-left: 54px; }
 .row.profile { justify-content: flex-start; gap: 14px; padding: 16px 14px; }
 .row.profile .label { flex: 1; min-width: 0; gap: 4px; }
 .row.profile strong { font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
