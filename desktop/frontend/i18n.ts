@@ -59,6 +59,7 @@ export const PT_BR: Record<string, string> = {
   "Capturing window…": "Capturando janela…",
   Copy: "Copiar",
   Retry: "Refazer",
+  New: "Nova",
   Insert: "Inserir",
   Generate: "Gerar",
   "Previous conversation {current} of {total}": "Conversa anterior {current} de {total}",

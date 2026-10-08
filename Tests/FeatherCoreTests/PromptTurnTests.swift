@@ -44,6 +44,8 @@ final class PromptTurnTests: XCTestCase {
         XCTAssertEqual(PromptTurn.command(for: PromptKeyInput(keyCode: 36, command: true)), .copy)
         XCTAssertEqual(PromptTurn.command(for: PromptKeyInput(keyCode: 76, command: false)), .submit)
         XCTAssertEqual(PromptTurn.command(for: PromptKeyInput(keyCode: 15, command: true, characters: "R")), .regenerate)
+        XCTAssertEqual(PromptTurn.command(for: PromptKeyInput(keyCode: 45, command: true, characters: "n")), .newConversation)
+        XCTAssertNil(PromptTurn.command(for: PromptKeyInput(keyCode: 45, command: false, characters: "n")))
         XCTAssertNil(PromptTurn.command(for: PromptKeyInput(keyCode: 36, command: true, shift: true)))
         XCTAssertNil(PromptTurn.command(for: PromptKeyInput(keyCode: 36, command: false, option: true)))
     }

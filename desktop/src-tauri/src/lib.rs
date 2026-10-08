@@ -96,6 +96,7 @@ pub fn run() {
             commands::prompt_regenerate,
             commands::prompt_cancel_generation,
             commands::prompt_copy,
+            commands::prompt_new_conversation,
             commands::prompt_toggle_option,
             commands::prompt_dismiss,
             commands::panel_resize,

@@ -7,6 +7,7 @@ struct PromptView: View {
     let insertResult: () -> Void
     let copyResult: () -> Void
     let retryResult: () -> Void
+    let newConversation: () -> Void
     let cancelGeneration: () -> Void
     @FocusState private var isFieldFocused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -97,6 +98,9 @@ struct PromptView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 HStack(spacing: 10) {
+                    if canStartNewConversation {
+                        KeyHint(key: "⌘ \(newKey)", label: String(localized: "New", bundle: .app), action: newConversation)
+                    }
                     primaryKeyHint
                     if canInsert {
                         secondaryKeyHints
@@ -292,6 +296,12 @@ struct PromptView: View {
     }
 
     private var retryKey: String { String(localized: "R", bundle: .app) }
+    private var newKey: String { String(localized: "N", bundle: .app) }
+
+    /// ⌘N works at any time; the hint shows once there is a conversation to leave.
+    private var canStartNewConversation: Bool {
+        !session.result.isEmpty || !session.answer.isEmpty || session.isGenerating
+    }
 
     private var canInsert: Bool {
         !session.result.isEmpty && !session.isGenerating

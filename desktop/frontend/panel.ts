@@ -155,6 +155,10 @@ export async function startPanel(root: HTMLElement): Promise<void> {
     }
 
     const hints = h("div", { class: "hints" });
+    // Ctrl+N works at any time; the hint shows once there is a conversation to leave.
+    if (state.result || state.answer || state.isGenerating) {
+      hints.append(keyHint(["Ctrl N"], t("New"), false, newConversation));
+    }
     if (canInsert) {
       hints.append(
         keyHint([returnKeyIcon()], t("Insert"), true, () => void invoke("prompt_submit", { instruction: "" })),
@@ -194,6 +198,12 @@ export async function startPanel(root: HTMLElement): Promise<void> {
     typingTimer = window.setTimeout(() => icon.classList.remove("typing"), 420);
   });
 
+  const newConversation = () => {
+    field.value = "";
+    autosize();
+    void invoke("prompt_new_conversation");
+  };
+
   window.addEventListener("keydown", (event) => {
     const control = event.ctrlKey || event.metaKey;
     if (event.key === "Escape") {
@@ -218,6 +228,9 @@ export async function startPanel(root: HTMLElement): Promise<void> {
       // With an empty field, ↑ and ↓ move through recent conversations.
       event.preventDefault();
       void invoke("prompt_browse", { direction: event.key === "ArrowUp" ? "older" : "newer" });
+    } else if (control && !event.shiftKey && !event.altKey && event.key.toLowerCase() === "n") {
+      event.preventDefault();
+      newConversation();
     } else if (control && !event.shiftKey && !event.altKey && event.key.toLowerCase() === "r") {
       event.preventDefault();
       void invoke("prompt_regenerate");

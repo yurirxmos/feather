@@ -23,6 +23,8 @@ public enum PromptCommand: Equatable, Sendable {
     case copy
     case submit
     case regenerate
+    /// ⌘N: save this conversation and start a new one, keeping the captured screen context.
+    case newConversation
     /// ↑ and ↓: move through recent conversations.
     case older
     case newer
@@ -104,7 +106,12 @@ public enum PromptTurn {
         case 126: return noModifiers ? .older : nil
         case 125: return noModifiers ? .newer : nil
         default:
-            return onlyCommand && input.characters?.lowercased() == "r" ? .regenerate : nil
+            guard onlyCommand else { return nil }
+            switch input.characters?.lowercased() {
+            case "r": return .regenerate
+            case "n": return .newConversation
+            default: return nil
+            }
         }
     }
 }

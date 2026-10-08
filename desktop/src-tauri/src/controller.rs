@@ -134,6 +134,30 @@ impl Session {
         };
     }
 
+    /// Clears the conversation but keeps what was captured, so a new one starts on the same screen.
+    fn start_new_conversation(&mut self) {
+        let fresh = Session::default();
+        self.result = fresh.result;
+        self.streaming_result = fresh.streaming_result;
+        self.answer = fresh.answer;
+        self.streaming_answer = fresh.streaming_answer;
+        self.is_generating = false;
+        self.generation_started_at = None;
+        self.error_message = None;
+        self.notice = None;
+        self.suggests_plus = false;
+        self.history.clear();
+        self.last_instruction.clear();
+        self.browsing_index = None;
+        self.browsing_count = 0;
+        self.own_conversation = None;
+        self.restored_from = None;
+        self.turn_before_generation = None;
+        self.restore_instruction = None;
+        self.session_id = pkce::random_string(16);
+        self.focus_token += 1;
+    }
+
     fn conversation(&self) -> Option<SavedConversation> {
         recent::conversation(&self.history, &self.last_instruction, &self.answer, &self.result)
     }
@@ -541,6 +565,18 @@ impl PromptController {
             task.abort();
         }
         inner.session.roll_back_generation();
+        self.publish(&inner);
+    }
+
+    /// Ctrl+N: saves this conversation for ↑ and starts a new one on the same screen.
+    pub fn start_new_conversation(&self) {
+        let mut inner = self.lock();
+        for task in [inner.generation_task.take(), inner.notice_task.take()].into_iter().flatten() {
+            task.abort();
+        }
+        inner.session.roll_back_generation();
+        inner.save_conversation();
+        inner.session.start_new_conversation();
         self.publish(&inner);
     }
 

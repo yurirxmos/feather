@@ -407,6 +407,11 @@ pub fn prompt_cancel_generation(controller: State<'_, PromptController>) {
 }
 
 #[tauri::command]
+pub fn prompt_new_conversation(controller: State<'_, PromptController>) {
+    controller.start_new_conversation();
+}
+
+#[tauri::command]
 pub fn prompt_copy(controller: State<'_, PromptController>) {
     controller.copy_result();
 }

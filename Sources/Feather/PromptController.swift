@@ -46,6 +46,29 @@ final class PromptSession: ObservableObject {
     var isSuspendedForRecapture = false
     var captureCount = 0
 
+    /// Clears the conversation but keeps what was captured, so a new one starts on the same screen.
+    func startNewConversation() {
+        instruction = ""
+        result = ""
+        streamingResult = ""
+        answer = ""
+        streamingAnswer = ""
+        isGenerating = false
+        generationStartedAt = nil
+        errorMessage = nil
+        notice = nil
+        suggestsPlus = false
+        history = []
+        lastInstruction = ""
+        browsingIndex = nil
+        browsingCount = 0
+        ownConversation = nil
+        restoredFrom = nil
+        turnBeforeGeneration = nil
+        sessionID = UUID().uuidString
+        focusToken += 1
+    }
+
     func reset(includeWindow: Bool) {
         instruction = ""
         result = ""
@@ -221,6 +244,7 @@ final class PromptController: NSObject, NSWindowDelegate {
                 insertResult: { [weak self] in self?.insert() },
                 copyResult: { [weak self] in self?.copyResult() },
                 retryResult: { [weak self] in self?.regenerate() },
+                newConversation: { [weak self] in self?.startNewConversation() },
                 cancelGeneration: { [weak self] in self?.cancelGeneration() }
             )
         )
@@ -333,6 +357,15 @@ final class PromptController: NSObject, NSWindowDelegate {
         // A refined conversation is this panel's own again, and replaces the one it came from.
         session.browsingIndex = nil
         run()
+    }
+
+    /// Saves this conversation for ↑ and starts a new one on the same screen.
+    private func startNewConversation() {
+        noticeTask?.cancel()
+        noticeTask = nil
+        cancelGeneration()
+        saveConversation()
+        session.startNewConversation()
     }
 
     private func regenerate() {
@@ -543,6 +576,8 @@ final class PromptController: NSObject, NSWindowDelegate {
             submit()
         case .regenerate:
             regenerate()
+        case .newConversation:
+            startNewConversation()
         case .older:
             return browse(.older)
         case .newer:

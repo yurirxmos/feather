@@ -1910,6 +1910,26 @@
           }
         }
       }
+    },
+    "New": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nova"
+          }
+        }
+      }
+    },
+    "N": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "N"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
