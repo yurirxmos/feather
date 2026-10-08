@@ -44,7 +44,9 @@ pub fn paste(text: &str, target: &Target) {
     let ours = platform::clipboard_change_token();
 
     platform::send_paste_shortcut();
-    std::thread::sleep(Duration::from_millis(400));
+    // Slow apps (Electron, web views) read the clipboard well after Ctrl+V; restoring it sooner
+    // pastes the user's old clipboard instead of the reply.
+    std::thread::sleep(Duration::from_millis(1500));
 
     // Leave the clipboard alone if something else wrote to it in the meantime.
     with_clipboard(|clipboard| {

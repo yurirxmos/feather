@@ -39,6 +39,8 @@ const TRANSLATIONS: &[(&str, &str)] = &[
     ("Couldn't send your feedback. Check your connection and try again.", "Não foi possível enviar seu feedback. Confira sua conexão e tente de novo."),
     ("Closing in {seconds}…", "Fechando em {seconds}…"),
     ("Connected to ChatGPT", "Conectado ao ChatGPT"),
+    ("Copied. Paste it with Ctrl+V.", "Copiado. Cole com Ctrl+V."),
+    ("Copied. This session can't insert text automatically, so paste it with Ctrl+V.", "Copiado. Esta sessão não consegue inserir texto automaticamente, então cole com Ctrl+V."),
     ("Copied to clipboard.", "Copiado para a área de transferência."),
     ("Couldn't reach Feather Plus. Check your connection.", "Não foi possível acessar o Feather Plus. Verifique sua conexão."),
     ("Couldn't save your session in secure storage.", "Não foi possível salvar sua sessão no armazenamento seguro."),

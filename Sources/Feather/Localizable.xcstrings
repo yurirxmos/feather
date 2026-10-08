@@ -1860,6 +1860,36 @@
           }
         }
       }
+    },
+    "Copied. Paste it with ⌘V.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiado. Cole com ⌘V."
+          }
+        }
+      }
+    },
+    "Copied. To insert text, allow Feather in System Settings › Privacy & Security › Accessibility. For now, paste it with ⌘V.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiado. Para inserir o texto, permita o Feather em Ajustes do Sistema › Privacidade e Segurança › Acessibilidade. Por enquanto, cole com ⌘V."
+          }
+        }
+      }
+    },
+    "To get answers to your questions while Feather writes, subscribe to Feather Plus.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para responder perguntas e dúvidas enquanto gera texto, assine o Feather Plus."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

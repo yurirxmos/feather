@@ -36,6 +36,8 @@ type PanelState = {
   restoreToken: number;
   /** Set while ↑ and ↓ show a recent conversation. */
   browsing: { position: number; count: number; instruction: string } | null;
+  /** The last instruction was a question on a connection that only assists typing. */
+  suggestsPlus: boolean;
 };
 
 /** "12s" under a minute, then "1m 5s", then "1h 2m", like `ElapsedTime` in the macOS app. */
@@ -80,6 +82,7 @@ export async function startPanel(root: HTMLElement): Promise<void> {
   const render = () => {
     const hasResult = state.result !== "" || state.answer !== "" || state.isGenerating;
     const canInsert = state.result !== "" && !state.isGenerating;
+    const canCopyAnswer = state.result === "" && state.answer !== "" && !state.isGenerating;
     field.placeholder = hasResult ? t("Refine: shorter, more formal…") : t("What do you want to write?");
     field.disabled = state.isGenerating;
     panel.classList.toggle("generating", state.isGenerating);
@@ -118,6 +121,9 @@ export async function startPanel(root: HTMLElement): Promise<void> {
     }
     if (state.errorMessage) below.push(h("p", { class: "error", role: "alert" }, `⚠ ${state.errorMessage}`));
     if (state.notice) below.push(h("p", { class: "notice", role: "status" }, state.notice));
+    if (state.suggestsPlus && !state.isGenerating && state.result) {
+      below.push(h("p", { class: "caption" }, t("To get answers to your questions while Feather writes, subscribe to Feather Plus.")));
+    }
 
     const chips = h("div", { class: "chips" });
     if (state.appName) chips.append(chip(state.appName, state.options.includeApp, "app", t("Feather knows which app you are in")));
@@ -140,8 +146,14 @@ export async function startPanel(root: HTMLElement): Promise<void> {
     const hints = h("div", { class: "hints" });
     if (canInsert) {
       hints.append(
-        keyHint([returnKeyIcon()], t("Insert"), true),
+        keyHint([returnKeyIcon()], t("Insert"), true, () => void invoke("prompt_submit", { instruction: "" })),
         keyHint(["Ctrl", returnKeyIcon()], t("Copy"), false, () => void invoke("prompt_copy")),
+        keyHint(["Ctrl R"], t("Retry"), false, () => void invoke("prompt_regenerate")),
+      );
+    } else if (canCopyAnswer) {
+      // Only an answer came back, so there is nothing to insert.
+      hints.append(
+        keyHint([returnKeyIcon()], t("Copy"), true, () => void invoke("prompt_copy")),
         keyHint(["Ctrl R"], t("Retry"), false, () => void invoke("prompt_regenerate")),
       );
     } else {
@@ -241,6 +253,7 @@ const EMPTY_STATE: PanelState = {
   restoreInstruction: null,
   restoreToken: 0,
   browsing: null,
+  suggestsPlus: false,
 };
 
 function browsingCaption(browsing: NonNullable<PanelState["browsing"]>): HTMLElement {

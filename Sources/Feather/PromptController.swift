@@ -26,6 +26,8 @@ final class PromptSession: ObservableObject {
     @Published var captureStatus: CaptureStatus?
     @Published var options = ContextOptions()
     @Published var showScreenshot = false
+    /// The last instruction was a question on a connection that only assists typing.
+    @Published var suggestsPlus = false
     /// Bumped on every show so the view re-focuses its text field.
     @Published var focusToken = 0
 
@@ -59,6 +61,7 @@ final class PromptSession: ObservableObject {
         captureStatus = nil
         options = ContextOptions(includeApp: true, includeFocusedText: true, includeWindow: includeWindow)
         showScreenshot = false
+        suggestsPlus = false
         history = []
         lastInstruction = ""
         browsingIndex = nil
@@ -184,18 +187,20 @@ final class PromptController: NSObject, NSWindowDelegate {
         session.browsingCount = saved.count
         session.errorMessage = nil
         session.notice = nil
+        session.suggestsPlus = false
         return true
     }
 
     /// Hides the panel without discarding the task, allowing the user to scroll and capture again.
+    /// A running generation keeps going, so clicking away to reread the conversation loses nothing.
     private func suspendForRecapture() {
-        generationTask?.cancel()
         captureTask?.cancel()
         screenshotTask?.cancel()
-        generationTask = nil
         captureTask = nil
         screenshotTask = nil
         removeKeyMonitor()
+        session.isCapturing = false
+        session.captureStatus = nil
         session.isSuspendedForRecapture = true
         isPresenting = false
         panel.orderOut(nil)
@@ -213,6 +218,7 @@ final class PromptController: NSObject, NSWindowDelegate {
         let hosting = NSHostingController(
             rootView: PromptView(
                 session: session,
+                insertResult: { [weak self] in self?.insert() },
                 copyResult: { [weak self] in self?.copyResult() },
                 retryResult: { [weak self] in self?.regenerate() },
                 cancelGeneration: { [weak self] in self?.cancelGeneration() }
@@ -304,9 +310,10 @@ final class PromptController: NSObject, NSWindowDelegate {
     // MARK: Actions
 
     private func submit() {
-        switch PromptTurn.submission(instruction: session.instruction, result: session.result, isGenerating: session.isGenerating) {
+        switch PromptTurn.submission(instruction: session.instruction, result: session.result, answer: session.answer, isGenerating: session.isGenerating) {
         case .generate(let text): generate(text)
         case .insert: insert()
+        case .copy: copyResult()
         case .none: break
         }
     }
@@ -364,6 +371,7 @@ final class PromptController: NSObject, NSWindowDelegate {
         let settings = FeatherCore.Settings.current()
         // Only the paid plans answer questions; the free version assists typing.
         let mode: PromptMode = settings.connection == .featherPlus ? .assistant : .typeAssist
+        session.suggestsPlus = mode == .typeAssist && FeatherPlus.isEnabled() && PromptTurn.looksLikeQuestion(session.lastInstruction)
         generationTask = Task { [weak self] in
             guard let self else { return }
             await captureTask?.value
@@ -462,7 +470,9 @@ final class PromptController: NSObject, NSWindowDelegate {
         }
         guard targetApp != nil, TextInserter.canPaste else {
             TextInserter.copy(text)
-            startClosingCountdown()
+            startClosingCountdown(explanation: TextInserter.canPaste
+                ? String(localized: "Copied. Paste it with ⌘V.", bundle: .app)
+                : String(localized: "Copied. To insert text, allow Feather in System Settings › Privacy & Security › Accessibility. For now, paste it with ⌘V.", bundle: .app))
             return
         }
         let app = targetApp
@@ -471,17 +481,19 @@ final class PromptController: NSObject, NSWindowDelegate {
     }
 
     private func copyResult() {
-        guard !session.result.isEmpty else { return }
-        TextInserter.copy(session.result)
+        let text = PromptTurn.copyableText(result: session.result, answer: session.answer)
+        guard !text.isEmpty else { return }
+        TextInserter.copy(text)
         startClosingCountdown()
     }
 
-    private func startClosingCountdown() {
+    /// An explanation of why Insert copied instead stays up longer than the plain notice.
+    private func startClosingCountdown(explanation: String? = nil) {
         closingTask?.cancel()
         closingTask = Task { [weak self] in
             guard let self else { return }
-            session.notice = String(localized: "Copied to clipboard.", bundle: .app)
-            try? await Task.sleep(for: .milliseconds(800))
+            session.notice = explanation ?? String(localized: "Copied to clipboard.", bundle: .app)
+            try? await Task.sleep(for: explanation == nil ? .milliseconds(800) : .seconds(4))
 
             for seconds in PromptTurn.closingCountdownSeconds {
                 guard !Task.isCancelled else { return }

@@ -4,6 +4,7 @@ import SwiftUI
 
 struct PromptView: View {
     @ObservedObject var session: PromptSession
+    let insertResult: () -> Void
     let copyResult: () -> Void
     let retryResult: () -> Void
     let cancelGeneration: () -> Void
@@ -72,6 +73,11 @@ struct PromptView: View {
                     .font(.callout)
                     .foregroundStyle(.white.opacity(0.65))
             }
+            if session.suggestsPlus, !session.isGenerating, !session.result.isEmpty {
+                Text("To get answers to your questions while Feather writes, subscribe to Feather Plus.", bundle: .app)
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.6))
+            }
 
             if session.showScreenshot, session.options.includeWindow,
                let data = session.context.screenshotJPEG, let image = NSImage(data: data) {
@@ -94,6 +100,8 @@ struct PromptView: View {
                     primaryKeyHint
                     if canInsert {
                         secondaryKeyHints
+                    } else if canCopyAnswer {
+                        retryKeyHint
                     }
                 }
                 .fixedSize()
@@ -250,8 +258,12 @@ struct PromptView: View {
     private var secondaryKeyHints: some View {
         HStack(spacing: 10) {
             KeyHint(key: "⌘", showsReturn: true, label: String(localized: "Copy", bundle: .app), action: copyResult)
-            KeyHint(key: "⌘ \(retryKey)", label: String(localized: "Retry", bundle: .app), action: retryResult)
+            retryKeyHint
         }
+    }
+
+    private var retryKeyHint: some View {
+        KeyHint(key: "⌘ \(retryKey)", label: String(localized: "Retry", bundle: .app), action: retryResult)
     }
 
     @ViewBuilder
@@ -260,7 +272,16 @@ struct PromptView: View {
             KeyHint(
                 showsReturn: true,
                 label: String(localized: "Insert", bundle: .app),
-                isHighlighted: true
+                isHighlighted: true,
+                action: insertResult
+            )
+        } else if canCopyAnswer {
+            // Only an answer came back, so there is nothing to insert.
+            KeyHint(
+                showsReturn: true,
+                label: String(localized: "Copy", bundle: .app),
+                isHighlighted: true,
+                action: copyResult
             )
         } else {
             KeyHint(showsReturn: true, label: String(localized: "Generate", bundle: .app))
@@ -271,6 +292,10 @@ struct PromptView: View {
 
     private var canInsert: Bool {
         !session.result.isEmpty && !session.isGenerating
+    }
+
+    private var canCopyAnswer: Bool {
+        session.result.isEmpty && !session.answer.isEmpty && !session.isGenerating
     }
 
     private func updateTypingState(for instruction: String) {

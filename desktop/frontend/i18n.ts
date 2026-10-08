@@ -162,6 +162,8 @@ export const PT_BR: Record<string, string> = {
   "Plus Yearly": "Plus Anual",
   Answer: "Resposta",
   "Suggested text": "Texto sugerido",
+  "To get answers to your questions while Feather writes, subscribe to Feather Plus.":
+    "Para responder perguntas e dúvidas enquanto gera texto, assine o Feather Plus.",
   "Sign in": "Entrar",
   Email: "E-mail",
   Plan: "Plano",

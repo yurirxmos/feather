@@ -72,6 +72,8 @@ pub struct PanelState {
     restore_token: u64,
     /// Set while ↑ and ↓ show a recent conversation.
     browsing: Option<Browsing>,
+    /// The last instruction was a question on a connection that only assists typing.
+    suggests_plus: bool,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -113,6 +115,8 @@ struct Session {
     restored_from: Option<SavedConversation>,
     session_id: String,
     is_suspended_for_recapture: bool,
+    /// The last instruction was a question on a connection that only assists typing.
+    suggests_plus: bool,
 }
 
 impl Session {
@@ -182,6 +186,7 @@ impl Session {
                 count: self.browsing_count,
                 instruction: self.last_instruction.clone(),
             }),
+            suggests_plus: self.suggests_plus,
         }
     }
 }
@@ -227,12 +232,13 @@ impl Inner {
         }
     }
 
-    fn abort_tasks(&mut self, include_closing: bool) {
-        for task in [self.capture_task.take(), self.screenshot_task.take(), self.generation_task.take()].into_iter().flatten() {
+    /// Stops capturing; `everything` also stops the generation and the closing countdown.
+    fn abort_tasks(&mut self, everything: bool) {
+        for task in [self.capture_task.take(), self.screenshot_task.take()].into_iter().flatten() {
             task.abort();
         }
-        if include_closing {
-            if let Some(task) = self.closing_task.take() {
+        if everything {
+            for task in [self.generation_task.take(), self.closing_task.take()].into_iter().flatten() {
                 task.abort();
             }
         }
@@ -314,11 +320,11 @@ impl PromptController {
     }
 
     /// Hides the panel without discarding the session, so the user can scroll and capture again.
+    /// A running generation keeps going, so clicking away to reread the conversation loses nothing.
     pub fn suspend_for_recapture(&self) {
         let mut inner = self.lock();
         inner.abort_tasks(false);
         inner.epoch += 1;
-        inner.session.roll_back_generation();
         inner.session.is_capturing = false;
         inner.session.capture_status = None;
         inner.session.is_suspended_for_recapture = true;
@@ -486,11 +492,12 @@ impl PromptController {
     pub fn submit(&self, instruction: &str) {
         let submission = {
             let inner = self.lock();
-            turn::submission(instruction, &inner.session.result, inner.session.is_generating)
+            turn::submission(instruction, &inner.session.result, &inner.session.answer, inner.session.is_generating)
         };
         match submission {
             Submission::Generate(text) => self.generate(text),
             Submission::Insert => self.insert(),
+            Submission::Copy => self.copy_result(),
             Submission::None => {}
         }
     }
@@ -559,6 +566,7 @@ impl PromptController {
         session.browsing_count = count;
         session.error_message = None;
         session.notice = None;
+        session.suggests_plus = false;
         self.publish(&inner);
     }
 
@@ -587,6 +595,7 @@ impl PromptController {
         session.streaming_answer.clear();
         session.error_message = None;
         session.notice = None;
+        session.suggests_plus = mode == Mode::TypeAssist && settings.plus_enabled && turn::looks_like_question(&session.last_instruction);
         session.is_generating = true;
         session.generation_started_at = Some(now_millis());
         let mut captured = inner.captured.as_ref().map(|sender| sender.subscribe());
@@ -713,9 +722,14 @@ impl PromptController {
             let _ = self.app.emit_to(SETTINGS_LABEL, "insert-text", text);
             return;
         }
-        let Some(target) = target.filter(|_| insert::can_paste()) else {
+        let can_paste = insert::can_paste();
+        let Some(target) = target.filter(|_| can_paste) else {
             insert::copy(&text);
-            self.start_closing_countdown();
+            self.start_closing_countdown(Some(if can_paste {
+                t("Copied. Paste it with Ctrl+V.")
+            } else {
+                t("Copied. This session can't insert text automatically, so paste it with Ctrl+V.")
+            }));
             return;
         };
         self.close();
@@ -723,24 +737,29 @@ impl PromptController {
     }
 
     pub fn copy_result(&self) {
-        let text = self.lock().session.result.clone();
+        let text = {
+            let inner = self.lock();
+            turn::copyable_text(&inner.session.result, &inner.session.answer).to_owned()
+        };
         if text.is_empty() {
             return;
         }
         insert::copy(&text);
-        self.start_closing_countdown();
+        self.start_closing_countdown(None);
     }
 
-    fn start_closing_countdown(&self) {
+    /// An explanation of why Insert copied instead stays up longer than the plain notice.
+    fn start_closing_countdown(&self, explanation: Option<String>) {
         let controller = self.clone();
         let mut inner = self.lock();
         if let Some(task) = inner.closing_task.take() {
             task.abort();
         }
-        inner.session.notice = Some(t("Copied to clipboard."));
+        let hold = if explanation.is_some() { Duration::from_secs(4) } else { Duration::from_millis(800) };
+        inner.session.notice = Some(explanation.unwrap_or_else(|| t("Copied to clipboard.")));
         self.publish(&inner);
         inner.closing_task = Some(tauri::async_runtime::spawn(async move {
-            tokio::time::sleep(Duration::from_millis(800)).await;
+            tokio::time::sleep(hold).await;
             for seconds in CLOSING_COUNTDOWN_SECONDS {
                 {
                     let mut inner = controller.lock();

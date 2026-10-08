@@ -24,7 +24,9 @@ enum TextInserter {
         let ourChangeCount = pasteboard.changeCount
 
         postCommandV()
-        try? await Task.sleep(for: .milliseconds(400))
+        // Slow apps (Electron, web views) read the clipboard well after ⌘V; restoring it sooner
+        // pastes the user's old clipboard instead of the reply.
+        try? await Task.sleep(for: .milliseconds(1500))
 
         // Leave the clipboard alone if something else wrote to it in the meantime.
         if pasteboard.changeCount == ourChangeCount {

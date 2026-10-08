@@ -8,6 +8,8 @@ pub const CLOSING_COUNTDOWN_SECONDS: [u32; 3] = [3, 2, 1];
 pub enum Submission {
     Generate(String),
     Insert,
+    /// Only an answer came back, so there is nothing to insert; Enter copies the answer.
+    Copy,
     None,
 }
 
@@ -30,15 +32,55 @@ pub fn merge_window_text(new_text: Option<String>, existing: Option<String>) -> 
     }
 }
 
-pub fn submission(instruction: &str, result: &str, is_generating: bool) -> Submission {
+pub fn submission(instruction: &str, result: &str, answer: &str, is_generating: bool) -> Submission {
     let trimmed = instruction.trim();
     if !trimmed.is_empty() {
         return Submission::Generate(trimmed.to_owned());
     }
-    if !result.is_empty() && !is_generating {
+    if is_generating {
+        return Submission::None;
+    }
+    if !result.is_empty() {
         return Submission::Insert;
     }
+    if !answer.is_empty() {
+        return Submission::Copy;
+    }
     Submission::None
+}
+
+/// The text Ctrl+Enter copies: the suggestion, or the answer when no suggestion came back.
+pub fn copyable_text<'a>(result: &'a str, answer: &'a str) -> &'a str {
+    if result.is_empty() {
+        answer
+    } else {
+        result
+    }
+}
+
+const QUESTION_WORDS: [&str; 15] = [
+    "what", "why", "how", "who", "which", "where", "qual", "quais", "quem", "onde", "quanto", "quanta", "quantos", "quantas",
+    "pq",
+];
+const QUESTION_PHRASES: [&str; 3] = ["o que", "por que", "por quê"];
+
+/// Whether an instruction reads as a question. Only Feather Plus answers questions, so the other
+/// connections point to it when one is asked. Ambiguous openers such as "como" or "when" are left
+/// out so ordinary messages don't get the pointer.
+pub fn looks_like_question(instruction: &str) -> bool {
+    let text = instruction.trim().to_lowercase();
+    if text.ends_with('?') || text.starts_with('¿') {
+        return true;
+    }
+    let words: Vec<&str> = text.split_whitespace().map(|word| word.trim_matches(|c: char| c.is_ascii_punctuation())).collect();
+    // "what's" opens a question as much as "what".
+    let Some(first) = words.first().and_then(|word| word.split(['\'', '’']).next()) else {
+        return false;
+    };
+    if QUESTION_WORDS.contains(&first) {
+        return true;
+    }
+    words.len() > 1 && QUESTION_PHRASES.contains(&format!("{first} {}", words[1]).as_str())
 }
 
 pub fn history(history: &[Exchange], last_instruction: &str, result: &str, is_generating: bool) -> Vec<Exchange> {
@@ -55,10 +97,29 @@ mod tests {
 
     #[test]
     fn a_new_instruction_generates_and_an_empty_one_inserts_the_result() {
-        assert_eq!(submission("  shorter ", "Text", false), Submission::Generate("shorter".into()));
-        assert_eq!(submission(" ", "Text", false), Submission::Insert);
-        assert_eq!(submission("", "Text", true), Submission::None);
-        assert_eq!(submission("", "", false), Submission::None);
+        assert_eq!(submission("  shorter ", "Text", "", false), Submission::Generate("shorter".into()));
+        assert_eq!(submission(" ", "Text", "", false), Submission::Insert);
+        assert_eq!(submission("", "Text", "", true), Submission::None);
+        assert_eq!(submission("", "", "", false), Submission::None);
+    }
+
+    #[test]
+    fn an_answer_without_a_suggestion_is_copied() {
+        assert_eq!(submission("", "", "Paris.", false), Submission::Copy);
+        assert_eq!(submission("", "Text", "Paris.", false), Submission::Insert);
+        assert_eq!(submission("", "", "Paris.", true), Submission::None);
+        assert_eq!(copyable_text("", "Paris."), "Paris.");
+        assert_eq!(copyable_text("Text", "Paris."), "Text");
+    }
+
+    #[test]
+    fn questions_are_recognized_without_catching_ordinary_messages() {
+        for question in ["qual a capital da frança", "o que é vacilão", "what's the deadline", "tá atrasado?", "Por que não veio?"] {
+            assert!(looks_like_question(question), "{question}");
+        }
+        for message in ["fale que ele é um vacilão", "como combinado, segue o arquivo", "when you get home call me", ""] {
+            assert!(!looks_like_question(message), "{message}");
+        }
     }
 
     #[test]

@@ -19,6 +19,23 @@ final class PromptTurnTests: XCTestCase {
         XCTAssertEqual(PromptTurn.submission(instruction: "", result: "", isGenerating: false), .none)
     }
 
+    func testAnAnswerWithoutASuggestionIsCopied() {
+        XCTAssertEqual(PromptTurn.submission(instruction: "", result: "", answer: "Paris.", isGenerating: false), .copy)
+        XCTAssertEqual(PromptTurn.submission(instruction: "", result: "Text", answer: "Paris.", isGenerating: false), .insert)
+        XCTAssertEqual(PromptTurn.submission(instruction: "", result: "", answer: "Paris.", isGenerating: true), .none)
+        XCTAssertEqual(PromptTurn.copyableText(result: "", answer: "Paris."), "Paris.")
+        XCTAssertEqual(PromptTurn.copyableText(result: "Text", answer: "Paris."), "Text")
+    }
+
+    func testQuestionsAreRecognizedWithoutCatchingOrdinaryMessages() {
+        for question in ["qual a capital da frança", "o que é vacilão", "what's the deadline", "tá atrasado?", "Por que não veio?"] {
+            XCTAssertTrue(PromptTurn.looksLikeQuestion(question), question)
+        }
+        for message in ["fale que ele é um vacilão", "como combinado, segue o arquivo", "when you get home call me", ""] {
+            XCTAssertFalse(PromptTurn.looksLikeQuestion(message), message)
+        }
+    }
+
     func testHistoryOnlyAppendsCompletedResults() {
         let existing = [Exchange(instruction: "first", result: "one")]
         XCTAssertEqual(PromptTurn.history(existing, lastInstruction: "second", result: "two", isGenerating: false), existing + [Exchange(instruction: "second", result: "two")])
