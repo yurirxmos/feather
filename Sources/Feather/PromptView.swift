@@ -192,7 +192,7 @@ struct PromptView: View {
     }
 
     private var hasContextPreview: Bool {
-        !(session.context.selectedText ?? "").isEmpty || session.context.windowTextWasTruncated
+        !(session.context.selectedText ?? "").isEmpty
     }
 
     private var contextPreview: some View {
@@ -206,11 +206,6 @@ struct PromptView: View {
                     .padding(.vertical, 7)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
-            }
-            if session.context.windowTextWasTruncated {
-                Label(String(localized: "Partial context", bundle: .app), systemImage: "exclamationmark.circle")
-                    .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.5))
             }
         }
     }
@@ -241,11 +236,15 @@ struct PromptView: View {
         }
 
         if session.context.windowText != nil {
+            // A window too large to read whole within the capture limits is read in part.
+            let isPartial = session.context.windowTextWasTruncated
             ContextChip(
-                title: String(localized: "Screen", bundle: .app),
+                title: isPartial ? String(localized: "Partial screen", bundle: .app) : String(localized: "Screen", bundle: .app),
                 systemImage: "macwindow",
                 isOn: session.options.includeWindowText,
-                help: String(localized: "Feather is reading what is on your screen", bundle: .app)
+                help: isPartial
+                    ? String(localized: "This window is too large to read whole, so Feather read only part of it", bundle: .app)
+                    : String(localized: "Feather is reading what is on your screen", bundle: .app)
             ) { session.options.includeWindowText.toggle() }
         }
 

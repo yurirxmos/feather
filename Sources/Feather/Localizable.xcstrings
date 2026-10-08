@@ -611,16 +611,6 @@
         }
       }
     },
-    "Partial context": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Contexto parcial"
-          }
-        }
-      }
-    },
     "Quit": {
       "localizations": {
         "pt-BR": {
@@ -1897,6 +1887,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "O Feather abriu enquanto você digitava; Inserir escreve a resposta nesse campo"
+          }
+        }
+      }
+    },
+    "Partial screen": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tela parcial"
+          }
+        }
+      }
+    },
+    "This window is too large to read whole, so Feather read only part of it": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta janela é grande demais para ler inteira, então o Feather leu só uma parte"
           }
         }
       }

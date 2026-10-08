@@ -91,7 +91,6 @@ export async function startPanel(root: HTMLElement): Promise<void> {
 
     const blocks: (Node | null)[] = [];
     if (state.selectedPreview) blocks.push(h("p", { class: "selection-preview" }, state.selectedPreview));
-    if (state.windowTextWasTruncated) blocks.push(h("p", { class: "caption" }, `ⓘ ${t("Partial context")}`));
     if (state.browsing) blocks.push(browsingCaption(state.browsing));
     // Paid plans answer questions; the answer is for reading and only the suggestion is inserted.
     if (state.answer) blocks.push(h("p", { class: "block-label" }, t("Answer")), h("p", { class: "answer" }, state.answer));
@@ -133,7 +132,14 @@ export async function startPanel(root: HTMLElement): Promise<void> {
     }
     if (state.appName) chips.append(chip(state.appName, state.options.includeApp, "app", t("Feather knows which app you are in")));
     if (state.selectedPreview !== null) chips.append(chip(t("Text selected"), state.options.includeSelection, "selection", t("Feather sees the text you selected")));
-    if (state.hasWindowText) chips.append(chip(t("Screen"), state.options.includeWindowText, "windowText", t("Feather is reading what is on your screen")));
+    if (state.hasWindowText) {
+      // A window too large to read whole within the capture limits is read in part.
+      chips.append(
+        state.windowTextWasTruncated
+          ? chip(t("Partial screen"), state.options.includeWindowText, "windowText", t("This window is too large to read whole, so Feather read only part of it"))
+          : chip(t("Screen"), state.options.includeWindowText, "windowText", t("Feather is reading what is on your screen")),
+      );
+    }
     if (state.isCapturing) {
       chips.append(
         h(
