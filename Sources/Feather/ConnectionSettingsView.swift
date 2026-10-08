@@ -150,7 +150,6 @@ struct ConnectionSettingsView: View {
                 // A provider still to set up reads quieter than the ready ones; its button does not.
                 HStack(spacing: 12) {
                     ProviderIcon(kind: kind)
-                        .saturation(setUp.contains(kind) ? 1 : 0)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(kind.title)
                         detail(kind)
