@@ -3,3 +3,4 @@
 dist/
 *.xcodeproj/xcuserdata/
 .DS_Store
+promo/
