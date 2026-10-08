@@ -425,7 +425,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     return main;
   }
 
-  /** Feather Plus uses Feather's mark, the app icon's white feather on blue; ChatGPT and OpenCode Go their black logos on white. */
+  /** Feather Plus uses Feather's mark, the app icon's white feather on blue; Claude its mark in white on its orange; ChatGPT and OpenCode Go their black logos on white. */
   function providerIcon(id: Connection): HTMLElement {
     if (id === "featherPlus") return h("span", { class: "provider-icon featherPlus", "aria-hidden": "true" }, featherIcon("feather-mark"));
     return h(

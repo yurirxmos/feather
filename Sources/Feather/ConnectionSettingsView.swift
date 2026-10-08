@@ -638,9 +638,10 @@ extension ConnectionKind {
     }
 }
 
-/// Feather Plus uses Feather's own mark, the app icon's white feather on blue; ChatGPT and OpenCode
-/// Go use their original black logos on white, from `ProviderLogos` in the app's resource bundle
-/// (shared with the desktop app).
+/// Feather Plus uses Feather's own mark, the app icon's white feather on blue; Claude its mark in
+/// white on its orange, since the orange mark is hard to see on white; ChatGPT and OpenCode Go
+/// their original black logos on white. The logos come from `ProviderLogos` in the app's resource
+/// bundle (shared with the desktop app).
 struct ProviderIcon: View {
     let kind: ConnectionKind
     var size: CGFloat = 28
@@ -663,6 +664,9 @@ struct ProviderIcon: View {
         endPoint: .bottom
     )
 
+    /// Claude's brand orange, #D97757.
+    static let claudeOrange = Color(red: 217 / 255, green: 119 / 255, blue: 87 / 255)
+
     private var tile: RoundedRectangle { RoundedRectangle(cornerRadius: size / 4, style: .continuous) }
 
     var body: some View {
@@ -673,6 +677,16 @@ struct ProviderIcon: View {
                     .frame(width: size * 0.57, height: size * 0.57)
                     .frame(width: size, height: size)
                     .background(Self.featherBlue, in: tile)
+            } else if kind == .claude, let logo = Self.logos[kind] {
+                Image(nsImage: logo)
+                    .resizable()
+                    .renderingMode(.template)
+                    .interpolation(.high)
+                    .aspectRatio(contentMode: .fit)
+                    .foregroundStyle(.white)
+                    .padding(size * 0.2)
+                    .frame(width: size, height: size)
+                    .background(Self.claudeOrange, in: tile)
             } else if let logo = Self.logos[kind] {
                 Image(nsImage: logo)
                     .resizable()
