@@ -47,7 +47,11 @@ public enum PromptBuilder {
         asks a question, the suggestion is the message or text that follows from the answer, \
         such as the reply the user can send to the person who asked. When a conversation is on \
         screen, write the suggestion as the user's next message there, matching its tone and a \
-        length that fits the conversation unless the instruction asks for more.
+        length that fits the conversation unless the instruction asks for more. When the \
+        instruction is already a finished text, such as a pasted message or email with no \
+        request, the suggestion is that text rewritten: improve its cohesion, clarity, and flow \
+        so it is easier to understand and apply the writing preferences, keeping its meaning, \
+        facts, names, and language. Never return it unchanged.
 
         Never refuse and never ask for clarification; use the most plausible reading. \
         Follow-up instructions such as "shorter" or "more formal" revise the previous \
@@ -101,7 +105,10 @@ public enum PromptBuilder {
         for more.
         2. The message itself: a question, statement, or notes the user wants to send as their \
         own words. Rewrite it as clean, natural text in the first person, ready to send. Do not \
-        answer the question or add information the user did not give.
+        answer the question or add information the user did not give. When it is already a \
+        finished text, such as a pasted message or email, still rewrite it: improve its \
+        cohesion, clarity, and flow so it is easier to understand and apply the writing \
+        preferences, keeping its meaning, facts, names, and language. Never return it unchanged.
 
         When in doubt, prefer the first kind. Never refuse and never ask for clarification; write \
         the most plausible text. Follow-up instructions such as "shorter" or "more formal" revise \
