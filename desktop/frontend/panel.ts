@@ -165,6 +165,8 @@ export async function startPanel(root: HTMLElement): Promise<void> {
   field.addEventListener("input", () => {
     autosize();
     icon.classList.toggle("typing", field.value !== "");
+    // Each keystroke swings the feather the other way around its nib, like writing.
+    icon.classList.toggle("upstroke");
     window.clearTimeout(typingTimer);
     typingTimer = window.setTimeout(() => icon.classList.remove("typing"), 420);
   });

@@ -10,6 +10,7 @@ struct PromptView: View {
     @FocusState private var isFieldFocused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isTyping = false
+    @State private var strokes = 0
     @State private var typingStopTask: Task<Void, Never>?
 
     private var hasResult: Bool { !session.result.isEmpty || !session.answer.isEmpty || session.isGenerating }
@@ -37,7 +38,7 @@ struct PromptView: View {
             }
 
             HStack(alignment: .firstTextBaseline, spacing: 10) {
-                FeatherIcon(isAnimating: isTyping, reduceMotion: reduceMotion)
+                FeatherIcon(isAnimating: isTyping, strokes: strokes, reduceMotion: reduceMotion)
                     .frame(width: 20, height: 20)
                 TextField(placeholder, text: $session.instruction, axis: .vertical)
                     .textFieldStyle(.plain)
@@ -279,7 +280,10 @@ struct PromptView: View {
             return
         }
 
-        withAnimation(.easeIn(duration: 0.12)) { isTyping = true }
+        withAnimation(.easeInOut(duration: 0.12)) {
+            isTyping = true
+            strokes += 1
+        }
         typingStopTask = Task {
             try? await Task.sleep(for: .milliseconds(420))
             guard !Task.isCancelled else { return }
@@ -289,19 +293,25 @@ struct PromptView: View {
 
 }
 
-/// Tilts once while the user types. Nothing in the panel may animate forever: Feather is never
+/// Writes while the user types: each keystroke swings the feather the other way around its nib,
+/// and it settles once typing stops. Nothing in the panel may animate forever: Feather is never
 /// the active app, so every frame's commit blocks the main thread on the window server and
 /// delays streaming, Insert, and key handling by seconds.
 private struct FeatherIcon: View {
     let isAnimating: Bool
+    let strokes: Int
     let reduceMotion: Bool
 
-    private var isTilted: Bool { isAnimating && !reduceMotion }
+    /// The nib, at the bottom left of `FeatherShape`.
+    private static let nib = UnitPoint(x: 0.15, y: 0.95)
+
+    private var isWriting: Bool { isAnimating && !reduceMotion }
+    private var isUpstroke: Bool { strokes.isMultiple(of: 2) }
 
     var body: some View {
         FeatherShape()
-            .rotationEffect(.degrees(isTilted ? -8 : 0))
-            .offset(x: isTilted ? 2 : 0, y: isTilted ? -4 : 0)
+            .rotationEffect(.degrees(isWriting ? (isUpstroke ? -14 : 6) : 0), anchor: Self.nib)
+            .offset(x: isWriting ? (isUpstroke ? 1 : -0.5) : 0, y: isWriting ? (isUpstroke ? -1 : 0.5) : 0)
             .foregroundStyle(isAnimating ? Color.accentColor : .white)
             .animation(.easeOut(duration: 0.28), value: isAnimating)
     }

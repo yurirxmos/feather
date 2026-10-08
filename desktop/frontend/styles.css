@@ -70,10 +70,12 @@ button:disabled { cursor: default; }
 .feather-icon {
   width: 20px; height: 20px; flex: none; margin-top: 3px;
   fill: currentColor;
+  transform-origin: 15% 95%; /* the nib */
   transition: transform .28s ease-out, color .28s ease-out;
 }
-.feather-icon.typing { color: var(--accent); transform: translate(2px, -4px) rotate(-8deg); }
-@media (prefers-reduced-motion: reduce) { .feather-icon.typing { transform: none; } }
+.feather-icon.typing { color: var(--accent); transform: translate(-0.5px, 0.5px) rotate(6deg); transition-duration: .12s; }
+.feather-icon.typing.upstroke { transform: translate(1px, -1px) rotate(-14deg); }
+@media (prefers-reduced-motion: reduce) { .feather-icon.typing, .feather-icon.typing.upstroke { transform: none; } }
 
 .instruction {
   flex: 1; min-height: 24px; padding: 0; resize: none; overflow-y: auto;
