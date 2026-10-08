@@ -669,7 +669,7 @@ struct ProviderIcon: View {
         Group {
             if kind == .featherPlus {
                 FeatherShape()
-                    .stroke(.white, style: StrokeStyle(lineWidth: size / 16, lineCap: .round, lineJoin: .round))
+                    .fill(.white)
                     .frame(width: size * 0.57, height: size * 0.57)
                     .frame(width: size, height: size)
                     .background(Self.featherBlue, in: tile)

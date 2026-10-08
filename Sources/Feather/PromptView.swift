@@ -300,7 +300,6 @@ private struct FeatherIcon: View {
 
     var body: some View {
         FeatherShape()
-            .stroke(style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
             .rotationEffect(.degrees(isTilted ? -8 : 0))
             .offset(x: isTilted ? 2 : 0, y: isTilted ? -4 : 0)
             .foregroundStyle(isAnimating ? Color.accentColor : .white)
