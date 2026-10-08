@@ -11,6 +11,10 @@ pub fn foreground_target() -> Option<Target> {
     None
 }
 
+pub fn window_frame(_target: &Target) -> Option<Rect> {
+    None
+}
+
 pub fn capture(_target: &Target) -> Snapshot {
     Snapshot::default()
 }

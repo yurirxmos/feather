@@ -25,6 +25,17 @@ enum AccessibilityContext {
         _ = AXIsProcessTrustedWithOptions(options)
     }
 
+    /// The focused window's frame, read on its own so the panel can open before the slower
+    /// text capture finishes.
+    static func windowFrame(pid: pid_t) -> CGRect? {
+        guard isTrusted else { return nil }
+        let app = AXUIElementCreateApplication(pid)
+        _ = AXUIElementSetMessagingTimeout(app, 0.3)
+        guard let window = element(app, kAXFocusedWindowAttribute),
+              let origin = point(window, kAXPositionAttribute), let size = size(window, kAXSizeAttribute) else { return nil }
+        return CGRect(origin: origin, size: size)
+    }
+
     static func capture(pid: pid_t) -> Snapshot {
         var snapshot = Snapshot()
         guard isTrusted else { return snapshot }
@@ -70,13 +81,15 @@ enum AccessibilityContext {
     private static func windowText(_ window: AXUIElement, deadline: Date) -> (text: String?, wasTruncated: Bool) {
         let maxCharacters = 24_000
         let maxElements = 1_200
+        // Web apps nest deeply: WhatsApp Web's messages sit 20 to 28 levels down.
+        let maxDepth = 32
         var parts: [String] = []
         var characters = 0
         var elements = 0
         var wasTruncated = false
 
         func visit(_ element: AXUIElement, depth: Int) {
-            guard Date() < deadline, depth < 18, elements < maxElements, characters < maxCharacters else {
+            guard Date() < deadline, depth < maxDepth, elements < maxElements, characters < maxCharacters else {
                 wasTruncated = true
                 return
             }

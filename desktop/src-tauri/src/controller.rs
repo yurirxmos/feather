@@ -396,9 +396,17 @@ impl PromptController {
         inner.captured = Some(captured);
         drop(inner);
 
+        // Open the panel as soon as the window's position is known; the field stays disabled while
+        // the window text is read. Where the screenshot must be taken before the panel covers the
+        // window, the panel still waits for it.
+        let shot_first = include_screenshot && platform::CAPTURES_SCREENSHOT_BEFORE_PANEL;
+        if !shot_first {
+            self.position_panel(platform::window_frame(&target));
+            self.present_panel();
+        }
+
         let controller = self.clone();
         let task = tauri::async_runtime::spawn(async move {
-            let shot_first = include_screenshot && platform::CAPTURES_SCREENSHOT_BEFORE_PANEL;
             let capture_target = target.clone();
             let Ok((snapshot, early_screenshot)) = tauri::async_runtime::spawn_blocking(move || {
                 let screenshot = shot_first.then(|| platform::screenshot_jpeg(&capture_target, None)).flatten();
@@ -425,8 +433,10 @@ impl PromptController {
                     let _ = captured.send(true);
                 }
             }
-            controller.position_panel(snapshot.window_frame);
-            controller.present_panel();
+            if shot_first {
+                controller.position_panel(snapshot.window_frame);
+                controller.present_panel();
+            }
 
             let mut inner = controller.lock();
             if inner.epoch != epoch {

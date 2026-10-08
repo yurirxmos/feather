@@ -48,9 +48,9 @@ struct PromptView: View {
                     .foregroundStyle(.white)
                     .lineLimit(1...5)
                     .focused($isFieldFocused)
-                    .disabled(session.isGenerating)
-                    .opacity(session.isGenerating ? 0.45 : 1)
-                    .animation(.easeOut(duration: 0.15), value: session.isGenerating)
+                    .disabled(isFieldDisabled)
+                    .opacity(isFieldDisabled ? 0.45 : 1)
+                    .animation(.easeOut(duration: 0.15), value: isFieldDisabled)
             }
 
             if session.isGenerating {
@@ -123,7 +123,7 @@ struct PromptView: View {
         .onChange(of: session.focusToken) {
             isFieldFocused = true
         }
-        .onChange(of: session.isGenerating) { _, value in
+        .onChange(of: isFieldDisabled) { _, value in
             if !value { isFieldFocused = true }
         }
         .onChange(of: session.instruction) { _, value in
@@ -132,6 +132,11 @@ struct PromptView: View {
         .onDisappear {
             typingStopTask?.cancel()
         }
+    }
+
+    /// The panel opens before the window text is read; typing waits for it.
+    private var isFieldDisabled: Bool {
+        session.isGenerating || session.captureStatus == .readingScreen
     }
 
     private var placeholder: String {
@@ -243,12 +248,12 @@ struct PromptView: View {
             // A window too large to read whole within the capture limits is read in part.
             let isPartial = session.context.windowTextWasTruncated
             ContextChip(
-                title: isPartial ? String(localized: "Partial screen", bundle: .app) : String(localized: "Screen", bundle: .app),
+                title: isPartial ? String(localized: "Partial window", bundle: .app) : String(localized: "Window", bundle: .app),
                 systemImage: "macwindow",
                 isOn: session.options.includeWindowText,
                 help: isPartial
                     ? String(localized: "This window is too large to read whole, so Feather read only part of it", bundle: .app)
-                    : String(localized: "Feather is reading what is on your screen", bundle: .app)
+                    : String(localized: "Feather is reading the window you are in", bundle: .app)
             ) { session.options.includeWindowText.toggle() }
         }
 
@@ -409,7 +414,7 @@ private struct CaptureIndicator: View {
     private var label: LocalizedStringKey {
         switch status {
         case .capturingWindow: "Capturing window…"
-        default: "Reading screen…"
+        default: "Reading window…"
         }
     }
 }

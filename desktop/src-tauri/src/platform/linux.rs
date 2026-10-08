@@ -132,6 +132,11 @@ pub fn foreground_target() -> Option<Target> {
     })
 }
 
+/// Wayland has no window frame to read.
+pub fn window_frame(target: &Target) -> Option<Rect> {
+    X11::connect()?.frame(target.window as Window)
+}
+
 pub fn capture(target: &Target) -> Snapshot {
     let mut snapshot = Snapshot::default();
     if let Some(x11) = X11::connect() {

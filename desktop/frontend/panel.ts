@@ -86,7 +86,8 @@ export async function startPanel(root: HTMLElement): Promise<void> {
     const canInsert = state.result !== "" && !state.isGenerating;
     const canCopyAnswer = state.result === "" && state.answer !== "" && !state.isGenerating;
     field.placeholder = hasResult ? t("Refine: shorter, more formal…") : t("What do you want to write?");
-    field.disabled = state.isGenerating;
+    // The panel opens before the window text is read; typing waits for it.
+    field.disabled = state.isGenerating || state.captureStatus === "readingScreen";
     panel.classList.toggle("generating", state.isGenerating);
 
     const blocks: (Node | null)[] = [];
@@ -136,8 +137,8 @@ export async function startPanel(root: HTMLElement): Promise<void> {
       // A window too large to read whole within the capture limits is read in part.
       chips.append(
         state.windowTextWasTruncated
-          ? chip(t("Partial screen"), state.options.includeWindowText, "windowText", t("This window is too large to read whole, so Feather read only part of it"))
-          : chip(t("Screen"), state.options.includeWindowText, "windowText", t("Feather is reading what is on your screen")),
+          ? chip(t("Partial window"), state.options.includeWindowText, "windowText", t("This window is too large to read whole, so Feather read only part of it"))
+          : chip(t("Window"), state.options.includeWindowText, "windowText", t("Feather is reading the window you are in")),
       );
     }
     if (state.isCapturing) {
@@ -146,7 +147,7 @@ export async function startPanel(root: HTMLElement): Promise<void> {
           "span",
           { class: "capturing" },
           h("span", { class: "spinner", "aria-hidden": "true" }),
-          state.captureStatus === "capturingWindow" ? t("Capturing window…") : t("Reading screen…"),
+          state.captureStatus === "capturingWindow" ? t("Capturing window…") : t("Reading window…"),
         ),
       );
     }
@@ -176,7 +177,7 @@ export async function startPanel(root: HTMLElement): Promise<void> {
     }
     footer.replaceChildren(...below, h("div", { class: "footer-row" }, chips, hints));
 
-    if (state.focusToken !== focusToken || (!state.isGenerating && document.activeElement !== field)) {
+    if (state.focusToken !== focusToken || (!field.disabled && document.activeElement !== field)) {
       focusToken = state.focusToken;
       field.focus();
     }

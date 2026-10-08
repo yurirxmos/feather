@@ -371,16 +371,6 @@
         }
       }
     },
-    "Reading screen…": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lendo a tela…"
-          }
-        }
-      }
-    },
     "Capturing window…": {
       "localizations": {
         "pt-BR": {
@@ -421,32 +411,12 @@
         }
       }
     },
-    "Screen": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tela"
-          }
-        }
-      }
-    },
     "Feather sees the text you selected": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "O Feather vê o texto que você selecionou"
-          }
-        }
-      }
-    },
-    "Feather is reading what is on your screen": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O Feather está lendo o que está na sua tela"
           }
         }
       }
@@ -1891,16 +1861,6 @@
         }
       }
     },
-    "Partial screen": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tela parcial"
-          }
-        }
-      }
-    },
     "This window is too large to read whole, so Feather read only part of it": {
       "localizations": {
         "pt-BR": {
@@ -1927,6 +1887,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "N"
+          }
+        }
+      }
+    },
+    "Window": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Janela"
+          }
+        }
+      }
+    },
+    "Partial window": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Janela parcial"
+          }
+        }
+      }
+    },
+    "Feather is reading the window you are in": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Feather está lendo a janela em que você está"
+          }
+        }
+      }
+    },
+    "Reading window…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lendo a janela…"
           }
         }
       }

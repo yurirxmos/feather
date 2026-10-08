@@ -266,15 +266,21 @@ final class PromptController: NSObject, NSWindowDelegate {
         session.captureStatus = .readingScreen
         let pid = app.processIdentifier
         captureTask = Task { [weak self] in
-            let snapshot = await Task.detached { AccessibilityContext.capture(pid: pid) }.value
+            // Open the panel as soon as the window's position is known; the field stays disabled
+            // while the window text is read, which can take up to the capture budget.
+            let frame = await Task.detached { AccessibilityContext.windowFrame(pid: pid) }.value
             guard let self, !Task.isCancelled else { return }
-            if let frame = snapshot.windowFrame, let primaryScreen {
+            if let frame, let primaryScreen {
                 let appKitFrame = PanelPlacement.appKitFrame(fromAccessibilityFrame: frame, primaryScreenFrame: primaryScreen.frame)
                 let screen = screen(intersecting: appKitFrame) ?? primaryScreen
                 panel.position(on: screen, windowFrame: appKitFrame)
             } else {
                 if let screen = screenUnderPointer() { panel.position(on: screen) }
             }
+            presentPanel()
+
+            let snapshot = await Task.detached { AccessibilityContext.capture(pid: pid) }.value
+            guard !Task.isCancelled else { return }
             session.context.windowTitle = snapshot.windowTitle ?? session.context.windowTitle
             session.context.focusedText = snapshot.focusedText ?? session.context.focusedText
             session.context.selectedText = snapshot.selectedText ?? session.context.selectedText
@@ -282,7 +288,6 @@ final class PromptController: NSObject, NSWindowDelegate {
             session.context.windowTextWasTruncated = session.context.windowTextWasTruncated || snapshot.windowTextWasTruncated
             session.context.focusIsInTextField = session.context.focusIsInTextField || snapshot.focusIsInTextField
             session.captureCount += 1
-            presentPanel()
             if includeScreenshot {
                 session.captureStatus = .capturingWindow
                 // A screenshot improves visual context but must not delay a submitted prompt.

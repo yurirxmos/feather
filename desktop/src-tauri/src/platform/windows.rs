@@ -54,8 +54,12 @@ pub fn foreground_target() -> Option<Target> {
     Some(Target { window: window.0 as usize as u64, pid, app_name, app_id })
 }
 
+pub fn window_frame(target: &Target) -> Option<Rect> {
+    visible_frame(hwnd(target))
+}
+
 pub fn capture(target: &Target) -> Snapshot {
-    let mut snapshot = Snapshot { window_title: window_title(hwnd(target)), window_frame: window_frame(hwnd(target)), ..Snapshot::default() };
+    let mut snapshot = Snapshot { window_title: window_title(hwnd(target)), window_frame: visible_frame(hwnd(target)), ..Snapshot::default() };
     let Ok(automation) = UIAutomation::new() else {
         return snapshot;
     };
@@ -197,7 +201,7 @@ fn window_title(window: HWND) -> Option<String> {
 }
 
 /// The visible frame, without the invisible resize borders `GetWindowRect` includes.
-fn window_frame(window: HWND) -> Option<Rect> {
+fn visible_frame(window: HWND) -> Option<Rect> {
     let mut rect = RECT::default();
     unsafe {
         DwmGetWindowAttribute(window, DWMWA_EXTENDED_FRAME_BOUNDS, &mut rect as *mut RECT as *mut c_void, std::mem::size_of::<RECT>() as u32)

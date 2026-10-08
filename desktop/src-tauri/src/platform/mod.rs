@@ -29,7 +29,8 @@ use serde::Serialize;
 pub const WINDOW_TEXT_BUDGET: Duration = Duration::from_millis(700);
 pub const MAX_WINDOW_TEXT_CHARACTERS: usize = 24_000;
 pub const MAX_WINDOW_ELEMENTS: usize = 1_200;
-pub const MAX_TREE_DEPTH: usize = 18;
+/// Web apps nest deeply: WhatsApp Web's messages sit 20 to 28 levels down.
+pub const MAX_TREE_DEPTH: usize = 32;
 /// Large documents can expose megabytes of text; the prompt keeps only the tail anyway.
 #[cfg_attr(not(any(windows, target_os = "linux")), allow(dead_code))]
 pub const MAX_FIELD_TEXT: i32 = 200_000;
@@ -106,6 +107,12 @@ pub fn prepare() {
 /// Returns the frontmost window unless it belongs to Feather itself.
 pub fn foreground_target() -> Option<Target> {
     imp::foreground_target().filter(|target| target.pid != std::process::id())
+}
+
+/// The target window's frame, read on its own so the panel can open before the slower text
+/// capture finishes. Blocking but quick.
+pub fn window_frame(target: &Target) -> Option<Rect> {
+    imp::window_frame(target)
 }
 
 /// Reads the focused field and window text. Blocking; call it off the main thread.
