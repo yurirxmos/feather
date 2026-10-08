@@ -33,7 +33,7 @@ final class AssistantReplyTests: XCTestCase {
         XCTAssertFalse(PromptBuilder.systemPrompt(customInstructions: "").contains("<answer>"))
         let assistant = PromptBuilder.systemPrompt(customInstructions: "No emojis", mode: .assistant)
         XCTAssertTrue(assistant.hasPrefix("You are Feather, a writing assistant"))
-        XCTAssertTrue(assistant.contains("always suggest text"))
+        XCTAssertTrue(assistant.contains("The suggestion, always"))
         XCTAssertTrue(assistant.contains("<writing-preferences>\nNo emojis\n</writing-preferences>"))
     }
 }
