@@ -217,6 +217,10 @@ struct PromptView: View {
 
     @ViewBuilder
     private var contextChips: some View {
+        if session.context.focusIsInTextField {
+            TextFieldBadge()
+        }
+
         if let app = session.context.appName {
             ContextChip(
                 title: app,
@@ -362,6 +366,21 @@ private struct ContextChip: View {
             .help(help)
             .onTapGesture(perform: action)
             .pointingHandCursor()
+    }
+}
+
+/// Shows that the shortcut was pressed while typing in a field, so Insert writes the reply there.
+private struct TextFieldBadge: View {
+    var body: some View {
+        Label(String(localized: "Typing in a field", bundle: .app), systemImage: "character.cursor.ibeam")
+            .font(.caption)
+            .lineLimit(1)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Color.accentColor.opacity(0.28), in: Capsule())
+            .overlay(Capsule().strokeBorder(Color.accentColor.opacity(0.55)))
+            .foregroundStyle(.white)
+            .help(String(localized: "Feather opened while you were typing; Insert writes the reply in that field", bundle: .app))
     }
 }
 

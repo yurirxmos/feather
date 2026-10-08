@@ -10,6 +10,8 @@ pub struct ScreenContext {
     pub selected_text: Option<String>,
     pub window_text: Option<String>,
     pub window_text_was_truncated: bool,
+    /// The shortcut was pressed while typing in a field, such as a message or email body.
+    pub focus_is_in_text_field: bool,
     pub screenshot_jpeg: Option<Vec<u8>>,
 }
 

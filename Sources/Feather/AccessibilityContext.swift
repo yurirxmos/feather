@@ -12,6 +12,8 @@ enum AccessibilityContext {
         var selectedText: String?
         var windowText: String?
         var windowTextWasTruncated = false
+        /// The focus was in a field the user types into, such as a message or email body.
+        var focusIsInTextField = false
         /// Global coordinates with a top-left origin, matching `SCWindow.frame`.
         var windowFrame: CGRect?
     }
@@ -38,6 +40,7 @@ enum AccessibilityContext {
         if let focused = element(app, kAXFocusedUIElementAttribute), !isSecure(focused) {
             snapshot.selectedText = string(focused, kAXSelectedTextAttribute)
             snapshot.focusedText = string(focused, kAXValueAttribute)
+            snapshot.focusIsInTextField = isTextField(focused)
         }
         if let window = element(app, kAXFocusedWindowAttribute) {
             snapshot.windowTitle = string(window, kAXTitleAttribute)
@@ -54,6 +57,14 @@ enum AccessibilityContext {
     private static func isSecure(_ element: AXUIElement) -> Bool {
         string(element, kAXSubroleAttribute) == (kAXSecureTextFieldSubrole as String)
             || string(element, kAXRoleAttribute) == "AXSecureTextField"
+    }
+
+    /// Native text fields report a text role; web editors (contenteditable) report an editable
+    /// ancestor. A settable value is not enough: sliders and checkboxes have one too.
+    private static func isTextField(_ element: AXUIElement) -> Bool {
+        let textRoles: Set<String> = [kAXTextFieldRole as String, kAXTextAreaRole as String, kAXComboBoxRole as String, "AXSearchField"]
+        if let role = string(element, kAXRoleAttribute), textRoles.contains(role) { return true }
+        return copy(element, "AXEditableAncestor") != nil
     }
 
     private static func windowText(_ window: AXUIElement, deadline: Date) -> (text: String?, wasTruncated: Bool) {

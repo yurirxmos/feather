@@ -37,7 +37,6 @@ const TRANSLATIONS: &[(&str, &str)] = &[
     ("Check for Updates…", "Procurar Atualizações…"),
     ("Check the email address, or leave it empty.", "Confira o endereço de e-mail ou deixe o campo vazio."),
     ("Couldn't send your feedback. Check your connection and try again.", "Não foi possível enviar seu feedback. Confira sua conexão e tente de novo."),
-    ("Closing in {seconds}…", "Fechando em {seconds}…"),
     ("Connected to ChatGPT", "Conectado ao ChatGPT"),
     ("Copied. Paste it with Ctrl+V.", "Copiado. Cole com Ctrl+V."),
     ("Copied. This session can't insert text automatically, so paste it with Ctrl+V.", "Copiado. Esta sessão não consegue inserir texto automaticamente, então cole com Ctrl+V."),

@@ -38,7 +38,8 @@ public enum PromptSubmission: Equatable, Sendable {
 
 /// Pure decisions for one prompt invocation. AppKit remains in the controller adapter.
 public enum PromptTurn {
-    public static let closingCountdownSeconds = [3, 2, 1]
+    /// How long "Copied to clipboard." stays up; copying never closes the panel.
+    public static let copiedNoticeDuration: Duration = .seconds(2)
 
     public static func mergeWindowText(_ newText: String?, with existing: String?) -> String? {
         guard let newText, !newText.isEmpty else { return existing }

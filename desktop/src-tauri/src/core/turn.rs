@@ -2,7 +2,8 @@
 
 use super::prompt::Exchange;
 
-pub const CLOSING_COUNTDOWN_SECONDS: [u32; 3] = [3, 2, 1];
+/// How long "Copied to clipboard." stays up; copying never closes the panel.
+pub const COPIED_NOTICE_DURATION: std::time::Duration = std::time::Duration::from_secs(2);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Submission {

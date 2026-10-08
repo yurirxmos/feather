@@ -63,6 +63,8 @@ pub struct Snapshot {
     pub selected_text: Option<String>,
     pub window_text: Option<String>,
     pub window_text_was_truncated: bool,
+    /// The focus was in a field the user types into, such as a message or email body.
+    pub focus_is_in_text_field: bool,
     pub window_frame: Option<Rect>,
 }
 

@@ -411,16 +411,6 @@
         }
       }
     },
-    "Closing in %d…": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fechando em %d…"
-          }
-        }
-      }
-    },
     "Copy": {
       "localizations": {
         "pt-BR": {
@@ -1887,6 +1877,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Para responder perguntas e dúvidas enquanto gera texto, assine o Feather Plus."
+          }
+        }
+      }
+    },
+    "Typing in a field": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digitando em um campo"
+          }
+        }
+      }
+    },
+    "Feather opened while you were typing; Insert writes the reply in that field": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Feather abriu enquanto você digitava; Inserir escreve a resposta nesse campo"
           }
         }
       }

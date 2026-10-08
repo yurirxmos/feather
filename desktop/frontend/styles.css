@@ -107,6 +107,10 @@ button:disabled { cursor: default; }
   color: #fff; background: rgb(255 255 255 / .18); font-size: 12px;
 }
 .chip.off { color: rgb(255 255 255 / .55); background: rgb(255 255 255 / .07); text-decoration: line-through; }
+.field-badge {
+  flex: none; padding: 3px 8px; border: 1px solid rgb(59 130 246 / .55); border-radius: 999px;
+  white-space: nowrap; color: #fff; background: rgb(59 130 246 / .28); font-size: 12px;
+}
 .capturing { display: inline-flex; align-items: center; gap: 5px; color: rgb(255 255 255 / .65); font-size: 11px; white-space: nowrap; }
 .capturing .spinner { width: 9px; height: 9px; border-width: 1.5px; }
 

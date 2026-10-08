@@ -5,7 +5,7 @@ use std::ffi::c_void;
 use std::path::Path;
 
 use uiautomation::patterns::{UITextPattern, UIValuePattern};
-use uiautomation::types::{Handle, UIProperty};
+use uiautomation::types::{ControlType, Handle, UIProperty};
 use uiautomation::variants::Value;
 use uiautomation::{UIAutomation, UIElement};
 use windows::core::{PCWSTR, PWSTR};
@@ -67,6 +67,7 @@ pub fn capture(target: &Target) -> Snapshot {
         if belongs_to_target && !focused.is_password().unwrap_or(true) {
             snapshot.selected_text = selected_text(&focused);
             snapshot.focused_text = field_text(&focused);
+            snapshot.focus_is_in_text_field = is_text_field(&focused);
         }
     }
 
@@ -88,6 +89,14 @@ fn selected_text(element: &UIElement) -> Option<String> {
         .filter(|text| !text.is_empty())
         .collect();
     non_empty(text.join("\n"))
+}
+
+/// Native and web text fields are Edit controls; other editors expose a writable value.
+fn is_text_field(element: &UIElement) -> bool {
+    if element.get_control_type().is_ok_and(|control| control == ControlType::Edit) {
+        return true;
+    }
+    element.get_pattern::<UIValuePattern>().ok().and_then(|pattern| pattern.is_readonly().ok()) == Some(false)
 }
 
 fn field_text(element: &UIElement) -> Option<String> {

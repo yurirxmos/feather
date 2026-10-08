@@ -92,7 +92,7 @@ final class PromptController: NSObject, NSWindowDelegate {
     private var captureTask: Task<Void, Never>?
     private var screenshotTask: Task<Void, Never>?
     private var generationTask: Task<Void, Never>?
-    private var closingTask: Task<Void, Never>?
+    private var noticeTask: Task<Void, Never>?
     private var keyMonitor: Any?
     private var isPresenting = false
 
@@ -134,11 +134,11 @@ final class PromptController: NSObject, NSWindowDelegate {
 
     /// Closes the panel and discards everything captured for this invocation.
     func close() {
-        closingTask?.cancel()
+        noticeTask?.cancel()
         generationTask?.cancel()
         captureTask?.cancel()
         screenshotTask?.cancel()
-        closingTask = nil
+        noticeTask = nil
         generationTask = nil
         captureTask = nil
         screenshotTask = nil
@@ -256,6 +256,7 @@ final class PromptController: NSObject, NSWindowDelegate {
             session.context.selectedText = snapshot.selectedText ?? session.context.selectedText
             session.context.windowText = PromptTurn.mergeWindowText(snapshot.windowText, with: session.context.windowText)
             session.context.windowTextWasTruncated = session.context.windowTextWasTruncated || snapshot.windowTextWasTruncated
+            session.context.focusIsInTextField = session.context.focusIsInTextField || snapshot.focusIsInTextField
             session.captureCount += 1
             presentPanel()
             if includeScreenshot {
@@ -470,7 +471,7 @@ final class PromptController: NSObject, NSWindowDelegate {
         }
         guard targetApp != nil, TextInserter.canPaste else {
             TextInserter.copy(text)
-            startClosingCountdown(explanation: TextInserter.canPaste
+            showCopiedNotice(explanation: TextInserter.canPaste
                 ? String(localized: "Copied. Paste it with ⌘V.", bundle: .app)
                 : String(localized: "Copied. To insert text, allow Feather in System Settings › Privacy & Security › Accessibility. For now, paste it with ⌘V.", bundle: .app))
             return
@@ -484,25 +485,24 @@ final class PromptController: NSObject, NSWindowDelegate {
         let text = PromptTurn.copyableText(result: session.result, answer: session.answer)
         guard !text.isEmpty else { return }
         TextInserter.copy(text)
-        startClosingCountdown()
+        showCopiedNotice()
     }
 
-    /// An explanation of why Insert copied instead stays up longer than the plain notice.
-    private func startClosingCountdown(explanation: String? = nil) {
-        closingTask?.cancel()
-        closingTask = Task { [weak self] in
-            guard let self else { return }
-            session.notice = explanation ?? String(localized: "Copied to clipboard.", bundle: .app)
-            try? await Task.sleep(for: explanation == nil ? .milliseconds(800) : .seconds(4))
-
-            for seconds in PromptTurn.closingCountdownSeconds {
-                guard !Task.isCancelled else { return }
-                let format = String(localized: "Closing in %d…", bundle: .app)
-                self.session.notice = String(format: format, locale: .current, seconds)
-                try? await Task.sleep(for: .seconds(1))
-            }
-            guard !Task.isCancelled else { return }
-            self.close()
+    /// Copying keeps the panel open, so the user can copy again, refine, or insert. The plain
+    /// notice fades after a moment; an explanation of why Insert copied instead stays up.
+    private func showCopiedNotice(explanation: String? = nil) {
+        noticeTask?.cancel()
+        noticeTask = nil
+        guard explanation == nil else {
+            session.notice = explanation
+            return
+        }
+        let notice = String(localized: "Copied to clipboard.", bundle: .app)
+        session.notice = notice
+        noticeTask = Task { [weak self] in
+            try? await Task.sleep(for: PromptTurn.copiedNoticeDuration)
+            guard let self, !Task.isCancelled, session.notice == notice else { return }
+            session.notice = nil
         }
     }
 

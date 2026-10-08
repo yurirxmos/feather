@@ -18,7 +18,7 @@ use crate::core::placement::{self, Anchor};
 use crate::core::prompt::{self, Exchange, Mode, RequestInput};
 use crate::core::recent::{self, Direction, SavedConversation};
 use crate::core::reply::Reply;
-use crate::core::turn::{self, Submission, CLOSING_COUNTDOWN_SECONDS};
+use crate::core::turn::{self, Submission, COPIED_NOTICE_DURATION};
 use crate::core::pkce;
 use crate::credentials;
 use crate::i18n::t;
@@ -50,6 +50,8 @@ pub struct PanelState {
     has_focused_text: bool,
     has_window_text: bool,
     window_text_was_truncated: bool,
+    /// The shortcut was pressed while typing in a field, such as a message or email body.
+    focus_is_in_text_field: bool,
     options: ContextOptions,
     is_capturing: bool,
     capture_status: Option<CaptureStatus>,
@@ -167,6 +169,7 @@ impl Session {
             has_focused_text: context.focused_text.is_some(),
             has_window_text: context.window_text.is_some(),
             window_text_was_truncated: context.window_text_was_truncated,
+            focus_is_in_text_field: context.focus_is_in_text_field,
             options: self.options,
             is_capturing: self.is_capturing,
             capture_status: self.capture_status,
@@ -205,7 +208,7 @@ struct Inner {
     capture_task: Option<JoinHandle<()>>,
     screenshot_task: Option<JoinHandle<()>>,
     generation_task: Option<JoinHandle<()>>,
-    closing_task: Option<JoinHandle<()>>,
+    notice_task: Option<JoinHandle<()>>,
     /// True once the text capture of this show has finished; generation waits for it.
     captured: Option<watch::Sender<bool>>,
     /// The last few conversations, newest first, and the file that keeps them on this computer.
@@ -232,13 +235,13 @@ impl Inner {
         }
     }
 
-    /// Stops capturing; `everything` also stops the generation and the closing countdown.
+    /// Stops capturing; `everything` also stops the generation and the copied notice timer.
     fn abort_tasks(&mut self, everything: bool) {
         for task in [self.capture_task.take(), self.screenshot_task.take()].into_iter().flatten() {
             task.abort();
         }
         if everything {
-            for task in [self.generation_task.take(), self.closing_task.take()].into_iter().flatten() {
+            for task in [self.generation_task.take(), self.notice_task.take()].into_iter().flatten() {
                 task.abort();
             }
         }
@@ -393,6 +396,7 @@ impl PromptController {
                 context.selected_text = snapshot.selected_text.clone().or(context.selected_text.take());
                 context.window_text = turn::merge_window_text(snapshot.window_text.clone(), context.window_text.take());
                 context.window_text_was_truncated |= snapshot.window_text_was_truncated;
+                context.focus_is_in_text_field |= snapshot.focus_is_in_text_field;
                 if let Some(captured) = inner.captured.take() {
                     let _ = captured.send(true);
                 }
@@ -725,7 +729,7 @@ impl PromptController {
         let can_paste = insert::can_paste();
         let Some(target) = target.filter(|_| can_paste) else {
             insert::copy(&text);
-            self.start_closing_countdown(Some(if can_paste {
+            self.show_copied_notice(Some(if can_paste {
                 t("Copied. Paste it with Ctrl+V.")
             } else {
                 t("Copied. This session can't insert text automatically, so paste it with Ctrl+V.")
@@ -745,33 +749,32 @@ impl PromptController {
             return;
         }
         insert::copy(&text);
-        self.start_closing_countdown(None);
+        self.show_copied_notice(None);
     }
 
-    /// An explanation of why Insert copied instead stays up longer than the plain notice.
-    fn start_closing_countdown(&self, explanation: Option<String>) {
+    /// Copying keeps the panel open, so the user can copy again, refine, or insert. The plain
+    /// notice fades after a moment; an explanation of why Insert copied instead stays up.
+    fn show_copied_notice(&self, explanation: Option<String>) {
         let controller = self.clone();
         let mut inner = self.lock();
-        if let Some(task) = inner.closing_task.take() {
+        if let Some(task) = inner.notice_task.take() {
             task.abort();
         }
-        let hold = if explanation.is_some() { Duration::from_secs(4) } else { Duration::from_millis(800) };
-        inner.session.notice = Some(explanation.unwrap_or_else(|| t("Copied to clipboard.")));
+        let fades = explanation.is_none();
+        let notice = explanation.unwrap_or_else(|| t("Copied to clipboard."));
+        inner.session.notice = Some(notice.clone());
         self.publish(&inner);
-        inner.closing_task = Some(tauri::async_runtime::spawn(async move {
-            tokio::time::sleep(hold).await;
-            for seconds in CLOSING_COUNTDOWN_SECONDS {
-                {
-                    let mut inner = controller.lock();
-                    inner.session.notice = Some(t("Closing in {seconds}…").replace("{seconds}", &seconds.to_string()));
+        if fades {
+            inner.notice_task = Some(tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(COPIED_NOTICE_DURATION).await;
+                let mut inner = controller.lock();
+                inner.notice_task = None;
+                if inner.session.notice.as_deref() == Some(notice.as_str()) {
+                    inner.session.notice = None;
                     controller.publish(&inner);
                 }
-                tokio::time::sleep(Duration::from_secs(1)).await;
-            }
-            // `close` aborts this task, so detach it first.
-            controller.lock().closing_task = None;
-            controller.close();
-        }));
+            }));
+        }
     }
 }
 

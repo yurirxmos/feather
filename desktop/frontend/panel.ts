@@ -20,6 +20,8 @@ type PanelState = {
   hasFocusedText: boolean;
   hasWindowText: boolean;
   windowTextWasTruncated: boolean;
+  /** The shortcut was pressed while typing in a field, such as a message or email body. */
+  focusIsInTextField: boolean;
   options: ContextOptions;
   isCapturing: boolean;
   captureStatus: "readingScreen" | "capturingWindow" | null;
@@ -126,6 +128,9 @@ export async function startPanel(root: HTMLElement): Promise<void> {
     }
 
     const chips = h("div", { class: "chips" });
+    if (state.focusIsInTextField) {
+      chips.append(h("span", { class: "field-badge", title: t("Feather opened while you were typing; Insert writes the reply in that field") }, t("Typing in a field")));
+    }
     if (state.appName) chips.append(chip(state.appName, state.options.includeApp, "app", t("Feather knows which app you are in")));
     if (state.selectedPreview !== null) chips.append(chip(t("Text selected"), state.options.includeSelection, "selection", t("Feather sees the text you selected")));
     if (state.hasWindowText) chips.append(chip(t("Screen"), state.options.includeWindowText, "windowText", t("Feather is reading what is on your screen")));
@@ -238,6 +243,7 @@ const EMPTY_STATE: PanelState = {
   hasFocusedText: false,
   hasWindowText: false,
   windowTextWasTruncated: false,
+  focusIsInTextField: false,
   options: { includeApp: true, includeFocusedText: true, includeSelection: true, includeWindowText: true, includeWindow: false },
   isCapturing: false,
   captureStatus: null,

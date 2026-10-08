@@ -10,6 +10,8 @@ public struct ScreenContext: Equatable, Sendable {
     public var selectedText: String?
     public var windowText: String?
     public var windowTextWasTruncated: Bool
+    /// The shortcut was pressed while typing in a field, such as a message or email body.
+    public var focusIsInTextField: Bool
     public var screenshotJPEG: Data?
 
     public init(
@@ -20,6 +22,7 @@ public struct ScreenContext: Equatable, Sendable {
         selectedText: String? = nil,
         windowText: String? = nil,
         windowTextWasTruncated: Bool = false,
+        focusIsInTextField: Bool = false,
         screenshotJPEG: Data? = nil
     ) {
         self.appName = appName
@@ -29,6 +32,7 @@ public struct ScreenContext: Equatable, Sendable {
         self.selectedText = selectedText
         self.windowText = windowText
         self.windowTextWasTruncated = windowTextWasTruncated
+        self.focusIsInTextField = focusIsInTextField
         self.screenshotJPEG = screenshotJPEG
     }
 }

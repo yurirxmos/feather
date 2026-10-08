@@ -2,10 +2,6 @@ import XCTest
 @testable import FeatherCore
 
 final class PromptTurnTests: XCTestCase {
-    func testClosingCountdownHasThreeTicks() {
-        XCTAssertEqual(PromptTurn.closingCountdownSeconds, [3, 2, 1])
-    }
-
     func testMergeAddsOnlyNewWindowTextLines() {
         XCTAssertEqual(PromptTurn.mergeWindowText("one\ntwo\nthree", with: "one\ntwo"), "one\ntwo\nthree")
         XCTAssertEqual(PromptTurn.mergeWindowText("one\ntwo", with: "one\ntwo"), "one\ntwo")

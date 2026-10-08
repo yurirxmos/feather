@@ -147,6 +147,7 @@ pub fn capture(target: &Target) -> Snapshot {
         snapshot.selected_text = text.selected;
         snapshot.window_text = text.window;
         snapshot.window_text_was_truncated = text.truncated;
+        snapshot.focus_is_in_text_field = text.in_text_field;
     }
     snapshot
 }
@@ -158,6 +159,7 @@ struct AccessibilityText {
     selected: Option<String>,
     window: Option<String>,
     truncated: bool,
+    in_text_field: bool,
 }
 
 async fn call<T, E>(future: impl Future<Output = Result<T, E>>) -> Option<T> {
@@ -182,6 +184,7 @@ async fn accessibility_text(pid: u32) -> AccessibilityText {
             let (text, selected) = text_and_selection(&focused).await;
             result.focused = text;
             result.selected = selected;
+            result.in_text_field = call(focused.get_state()).await.is_some_and(|state| state.contains(State::Editable));
         }
     }
 
