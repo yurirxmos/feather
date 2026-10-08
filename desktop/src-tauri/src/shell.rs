@@ -32,6 +32,7 @@ pub fn has_credentials(app: &AppHandle) -> bool {
     match app.state::<SettingsStore>().current().connection {
         Connection::OpenCodeGo => credentials::api_key().is_some(),
         Connection::ChatGpt => credentials::chatgpt_credentials().is_some(),
+        Connection::Claude => credentials::claude_api_key().is_some(),
         Connection::FeatherPlus => credentials::plus_token().is_some(),
     }
 }

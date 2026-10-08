@@ -120,6 +120,7 @@ pub fn set_setting(app: AppHandle, store: State<'_, SettingsStore>, name: String
 #[serde(rename_all = "camelCase")]
 pub struct CredentialStatus {
     api_key: Option<String>,
+    claude_api_key: Option<String>,
     chatgpt_connected: bool,
     plus_signed_in: bool,
 }
@@ -128,6 +129,7 @@ pub struct CredentialStatus {
 pub fn credential_status() -> CredentialStatus {
     CredentialStatus {
         api_key: credentials::api_key().map(|key| credentials::masked(&key)),
+        claude_api_key: credentials::claude_api_key().map(|key| credentials::masked(&key)),
         chatgpt_connected: credentials::chatgpt_credentials().is_some(),
         plus_signed_in: credentials::plus_token().is_some(),
     }
@@ -145,6 +147,9 @@ fn providers_set_up(settings: &Settings) -> Vec<Connection> {
     }
     if credentials::chatgpt_credentials().is_some() {
         set_up.push(Connection::ChatGpt);
+    }
+    if credentials::claude_api_key().is_some() {
+        set_up.push(Connection::Claude);
     }
     if settings.plus_provider_enabled && credentials::plus_token().is_some() {
         set_up.push(Connection::FeatherPlus);
@@ -184,6 +189,37 @@ pub fn delete_api_key(app: AppHandle, store: State<'_, SettingsStore>) -> Creden
 pub async fn opencode_models() -> Result<Vec<String>, String> {
     let api_key = credentials::api_key().ok_or_else(|| i18n::t("Add an API key in Settings."))?;
     catalog::fetch_opencode_models(&api_key).await.map_err(|error| error.message())
+}
+
+#[tauri::command]
+pub fn save_claude_api_key(app: AppHandle, store: State<'_, SettingsStore>, api_key: String) -> Result<CredentialStatus, String> {
+    credentials::set_claude_api_key(&api_key)?;
+    credentials_changed(&app, &store, Some(Connection::Claude));
+    Ok(credential_status())
+}
+
+#[tauri::command]
+pub fn delete_claude_api_key(app: AppHandle, store: State<'_, SettingsStore>) -> CredentialStatus {
+    credentials::delete_claude_api_key();
+    credentials_changed(&app, &store, None);
+    credential_status()
+}
+
+/// Loads the models the Anthropic key can use and, when Claude is in use, moves a selection the key
+/// lacks to the first one listed.
+#[tauri::command]
+pub async fn claude_models(app: AppHandle, store: State<'_, SettingsStore>) -> Result<Vec<String>, String> {
+    let api_key = credentials::claude_api_key().ok_or_else(|| i18n::t("Add an API key in Settings."))?;
+    let models = catalog::fetch_claude_models(&api_key).await.map_err(|error| error.message())?;
+    let settings = store.current();
+    if settings.connection == Connection::Claude && !models.contains(&settings.model) {
+        if let Some(first) = models.first() {
+            if store.set(key::MODEL, Value::String(first.clone())).is_ok() {
+                let _ = app.emit("settings-changed", ());
+            }
+        }
+    }
+    Ok(models)
 }
 
 /// Loads the models the ChatGPT account can use and, when ChatGPT is in use, moves a selection the

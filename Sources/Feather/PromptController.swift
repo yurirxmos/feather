@@ -379,6 +379,8 @@ final class PromptController: NSObject, NSWindowDelegate {
                     session.isGenerating = false
                     return
                 }
+            case .claude:
+                provider = settings.makeProvider(claudeAPIKey: credentialStore.claudeAPIKey() ?? "")
             case .featherPlus:
                 guard let token = credentialStore.plusToken() else {
                     session.errorMessage = String(localized: "Sign in to Feather Plus in Settings.", bundle: .app)

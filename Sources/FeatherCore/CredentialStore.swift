@@ -25,6 +25,9 @@ public protocol CredentialStore: Sendable {
     func plusToken() -> String?
     func setPlusToken(_ token: String) -> Bool
     func deletePlusToken()
+    func claudeAPIKey() -> String?
+    func setClaudeAPIKey(_ key: String) -> Bool
+    func deleteClaudeAPIKey()
 }
 
 /// In-memory adapter for tests and previews.
@@ -33,11 +36,13 @@ public final class MemoryCredentialStore: CredentialStore, @unchecked Sendable {
     private var storedAPIKey: String?
     private var storedChatGPTCredentials: ChatGPTCredentials?
     private var storedPlusToken: String?
+    private var storedClaudeAPIKey: String?
 
-    public init(apiKey: String? = nil, chatGPTCredentials: ChatGPTCredentials? = nil, plusToken: String? = nil) {
+    public init(apiKey: String? = nil, chatGPTCredentials: ChatGPTCredentials? = nil, plusToken: String? = nil, claudeAPIKey: String? = nil) {
         storedAPIKey = apiKey
         storedChatGPTCredentials = chatGPTCredentials
         storedPlusToken = plusToken
+        storedClaudeAPIKey = claudeAPIKey
     }
 
     public func apiKey() -> String? {
@@ -80,5 +85,21 @@ public final class MemoryCredentialStore: CredentialStore, @unchecked Sendable {
 
     public func deletePlusToken() {
         lock.withLock { storedPlusToken = nil }
+    }
+
+    public func claudeAPIKey() -> String? {
+        lock.withLock { storedClaudeAPIKey }
+    }
+
+    public func setClaudeAPIKey(_ key: String) -> Bool {
+        lock.withLock {
+            let value = key.trimmingCharacters(in: .whitespacesAndNewlines)
+            storedClaudeAPIKey = value.isEmpty ? nil : value
+        }
+        return true
+    }
+
+    public func deleteClaudeAPIKey() {
+        lock.withLock { storedClaudeAPIKey = nil }
     }
 }

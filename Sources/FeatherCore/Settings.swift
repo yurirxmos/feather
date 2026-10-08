@@ -96,6 +96,7 @@ public struct Settings: Equatable, Sendable {
         switch connection {
         case .openCodeGo: !(store.apiKey() ?? "").isEmpty
         case .chatGPT: store.chatGPTCredentials() != nil
+        case .claude: !(store.claudeAPIKey() ?? "").isEmpty
         case .featherPlus: !(store.plusToken() ?? "").isEmpty
         }
     }
@@ -104,11 +105,13 @@ public struct Settings: Equatable, Sendable {
         apiKey: String = "",
         accessToken: String? = nil,
         accountID: String? = nil,
-        plusToken: String? = nil
+        plusToken: String? = nil,
+        claudeAPIKey: String = ""
     ) -> any LLMProvider {
         switch connection {
         case .openCodeGo: OpenCodeGoProvider(apiKey: apiKey)
         case .chatGPT: ChatGPTProvider(accessToken: accessToken ?? "", accountID: accountID)
+        case .claude: ClaudeProvider(apiKey: claudeAPIKey)
         case .featherPlus: FeatherPlusProvider(token: plusToken ?? "", baseURL: plusBaseURL)
         }
     }
@@ -124,7 +127,7 @@ public struct Settings: Equatable, Sendable {
     }
 
     /// The order Settings lists providers in, and the order Feather falls back through.
-    public static let providerOrder: [ConnectionKind] = [.featherPlus, .chatGPT, .openCodeGo]
+    public static let providerOrder: [ConnectionKind] = [.featherPlus, .chatGPT, .claude, .openCodeGo]
 
     /// The provider to use after the set of providers that are set up changes. The one in use stays
     /// while it is still set up; otherwise the one just set up (`preferring`), else the first one
@@ -145,6 +148,7 @@ public struct Settings: Equatable, Sendable {
         var setUp: Set<ConnectionKind> = []
         if !(store.apiKey() ?? "").isEmpty { setUp.insert(.openCodeGo) }
         if store.chatGPTCredentials() != nil { setUp.insert(.chatGPT) }
+        if !(store.claudeAPIKey() ?? "").isEmpty { setUp.insert(.claude) }
         if plusAvailable, store.plusToken() != nil { setUp.insert(.featherPlus) }
         return setUp
     }

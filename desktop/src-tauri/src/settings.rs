@@ -41,15 +41,17 @@ pub enum Connection {
     OpenCodeGo,
     #[serde(rename = "chatGPT")]
     ChatGpt,
+    #[serde(rename = "claude")]
+    Claude,
     #[serde(rename = "featherPlus")]
     FeatherPlus,
 }
 
 impl Connection {
-    pub const ALL: [Connection; 3] = [Connection::OpenCodeGo, Connection::ChatGpt, Connection::FeatherPlus];
+    pub const ALL: [Connection; 4] = [Connection::OpenCodeGo, Connection::ChatGpt, Connection::Claude, Connection::FeatherPlus];
     /// The order Settings lists providers in and Feather falls back through, as
     /// `Settings.providerOrder` in the macOS app.
-    pub const ORDER: [Connection; 3] = [Connection::FeatherPlus, Connection::ChatGpt, Connection::OpenCodeGo];
+    pub const ORDER: [Connection; 4] = [Connection::FeatherPlus, Connection::ChatGpt, Connection::Claude, Connection::OpenCodeGo];
 }
 
 /// The provider to use after the set of providers that are set up changes. The one in use stays

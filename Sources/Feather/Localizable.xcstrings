@@ -1571,12 +1571,32 @@
         }
       }
     },
-    "Use your own ChatGPT account or OpenCode Go key. Credentials are stored in the macOS Keychain.": {
+    "Use your own ChatGPT account, Claude API key, or OpenCode Go key. Credentials are stored in the macOS Keychain.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Use a sua própria conta do ChatGPT ou chave do OpenCode Go. As credenciais ficam no Keychain do macOS."
+            "value": "Use a sua própria conta do ChatGPT, chave de API do Claude ou chave do OpenCode Go. As credenciais ficam no Keychain do macOS."
+          }
+        }
+      }
+    },
+    "Claude": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude"
+          }
+        }
+      }
+    },
+    "Paste an Anthropic API key from the Console.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cole uma chave de API da Anthropic, do Console."
           }
         }
       }

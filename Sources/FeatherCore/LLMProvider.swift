@@ -74,12 +74,14 @@ public enum LLMError: Error, Equatable, Sendable {
 public enum ConnectionKind: String, CaseIterable, Sendable {
     case openCodeGo
     case chatGPT
+    case claude
     case featherPlus
 
     public var defaultModel: String {
         switch self {
         case .openCodeGo: OpenCodeGoProvider.defaultModel
         case .chatGPT: ChatGPTModelCatalog.defaultModel
+        case .claude: ClaudeProvider.defaultModel
         case .featherPlus: FeatherPlusProvider.defaultModel
         }
     }

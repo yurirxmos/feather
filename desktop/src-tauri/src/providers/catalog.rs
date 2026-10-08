@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::stream::CLIENT;
-use super::OPENCODE_GO_BASE_URL;
+use super::{CLAUDE_API_VERSION, CLAUDE_BASE_URL, OPENCODE_GO_BASE_URL};
 use crate::core::error::{endpoint, error_message, LlmError};
 
 #[derive(Clone, Debug, Serialize)]
@@ -92,6 +92,39 @@ pub fn sorted_unique_models(mut models: Vec<String>, selected: Option<&str>) -> 
     models
 }
 
+/// Reads the ids from Anthropic's model list, keeping its order (newest first).
+pub fn parse_claude_models(body: &[u8]) -> Vec<String> {
+    let Ok(json) = serde_json::from_slice::<serde_json::Value>(body) else { return Vec::new() };
+    json.get("data")
+        .and_then(|value| value.as_array())
+        .into_iter()
+        .flatten()
+        .filter_map(|entry| entry.get("id").and_then(|id| id.as_str()).map(str::to_owned))
+        .collect()
+}
+
+/// Fetches the models available to an Anthropic API key.
+pub async fn fetch_claude_models(api_key: &str) -> Result<Vec<String>, LlmError> {
+    let response = CLIENT
+        .get(endpoint(CLAUDE_BASE_URL, "/models")?)
+        .query(&[("limit", "100")])
+        .header("x-api-key", api_key)
+        .header("anthropic-version", CLAUDE_API_VERSION)
+        .send()
+        .await
+        .map_err(|_| LlmError::Network)?;
+    let status = response.status().as_u16();
+    let body = response.bytes().await.map_err(|_| LlmError::Network)?;
+    if !(200..300).contains(&status) {
+        return Err(LlmError::Http { status, message: error_message(&body) });
+    }
+    let models = parse_claude_models(&body);
+    if models.is_empty() {
+        return Err(LlmError::Api("Anthropic returned no models for this key.".into()));
+    }
+    Ok(models)
+}
+
 /// Fetches the models available to an OpenCode Go API key.
 pub async fn fetch_opencode_models(api_key: &str) -> Result<Vec<String>, LlmError> {
     #[derive(Deserialize)]
@@ -157,6 +190,13 @@ mod tests {
         let without_default = parse_chatgpt_models(br#"{"models":[{"slug":"a"},{"slug":"b"}]}"#);
         assert_eq!(chatgpt_model_for_account(&without_default, "gpt-5.4-mini").as_deref(), Some("a"));
         assert_eq!(chatgpt_model_for_account(&[], "a"), None);
+    }
+
+    #[test]
+    fn reads_claude_models_in_the_servers_order() {
+        let body = br#"{"data":[{"id":"claude-b","display_name":"B"},{"id":"claude-a"}],"has_more":false}"#;
+        assert_eq!(parse_claude_models(body), vec!["claude-b", "claude-a"]);
+        assert!(parse_claude_models(b"not json").is_empty());
     }
 
     #[test]

@@ -678,6 +678,7 @@ impl PromptController {
     async fn provider(&self, connection: Connection, plus_base_url: &str) -> Result<Provider, String> {
         match connection {
             Connection::OpenCodeGo => Ok(Provider::OpenCodeGo { api_key: credentials::api_key().unwrap_or_default() }),
+            Connection::Claude => Ok(Provider::Claude { api_key: credentials::claude_api_key().unwrap_or_default() }),
             Connection::ChatGpt => {
                 let credentials = auth::chatgpt::valid_credentials().await?;
                 Ok(Provider::ChatGpt { access_token: credentials.access_token, account_id: credentials.account_id })
@@ -693,6 +694,7 @@ impl PromptController {
         Some(match connection {
             Connection::OpenCodeGo => Provider::OpenCodeGo { api_key: String::new() },
             Connection::ChatGpt => Provider::ChatGpt { access_token: String::new(), account_id: None },
+            Connection::Claude => Provider::Claude { api_key: String::new() },
             Connection::FeatherPlus => Provider::FeatherPlus { token: String::new(), base_url: plus_base_url.to_owned() },
         })
     }

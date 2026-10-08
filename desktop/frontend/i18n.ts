@@ -75,8 +75,10 @@ export const PT_BR: Record<string, string> = {
   Use: "Usar",
   "Remove Key": "Remover chave",
   "Free plan": "Plano grátis",
-  "Use your own ChatGPT account or OpenCode Go key. Credentials are stored in your system's secure credential storage.":
-    "Use a sua própria conta do ChatGPT ou chave do OpenCode Go. As credenciais ficam no armazenamento seguro do sistema.",
+  Claude: "Claude",
+  "Paste an Anthropic API key from the Console.": "Cole uma chave de API da Anthropic, do Console.",
+  "Use your own ChatGPT account, Claude API key, or OpenCode Go key. Credentials are stored in your system's secure credential storage.":
+    "Use a sua própria conta do ChatGPT, chave de API do Claude ou chave do OpenCode Go. As credenciais ficam no armazenamento seguro do sistema.",
   "Answers your questions": "Responde às suas perguntas",
   "No API key to manage": "Sem chave de API para gerenciar",
   "$4 a month or $36 a year": "US$ 4 por mês ou US$ 36 por ano",

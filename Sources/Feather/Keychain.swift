@@ -8,6 +8,7 @@ enum Keychain {
     private static let account = "opencode-go"
     private static let chatGPTAccount = "chatgpt-oauth"
     private static let plusAccount = "feather-plus"
+    private static let claudeAccount = "claude-api-key"
 
     static func apiKey() -> String? {
         guard let data = readOrMigrate(account: account) else { return nil }
@@ -59,6 +60,24 @@ enum Keychain {
 
     static func deletePlusToken() {
         delete(account: plusAccount)
+    }
+
+    static func claudeAPIKey() -> String? {
+        read(account: claudeAccount).flatMap { String(data: $0, encoding: .utf8) }
+    }
+
+    @discardableResult
+    static func setClaudeAPIKey(_ key: String) -> Bool {
+        let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            deleteClaudeAPIKey()
+            return true
+        }
+        return write(Data(trimmed.utf8), account: claudeAccount)
+    }
+
+    static func deleteClaudeAPIKey() {
+        delete(account: claudeAccount)
     }
 
     private static func read(account: String) -> Data? {
@@ -127,4 +146,7 @@ struct KeychainCredentialStore: CredentialStore {
     func plusToken() -> String? { Keychain.plusToken() }
     func setPlusToken(_ token: String) -> Bool { Keychain.setPlusToken(token) }
     func deletePlusToken() { Keychain.deletePlusToken() }
+    func claudeAPIKey() -> String? { Keychain.claudeAPIKey() }
+    func setClaudeAPIKey(_ key: String) -> Bool { Keychain.setClaudeAPIKey(key) }
+    func deleteClaudeAPIKey() { Keychain.deleteClaudeAPIKey() }
 }

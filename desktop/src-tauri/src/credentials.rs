@@ -8,6 +8,7 @@ use crate::i18n::t;
 
 const SERVICE: &str = "com.feather.desktop";
 const OPENCODE_GO_ACCOUNT: &str = "opencode-go-api-key";
+const CLAUDE_ACCOUNT: &str = "claude-api-key";
 const CHATGPT_ACCOUNT: &str = "chatgpt";
 const FEATHER_PLUS_ACCOUNT: &str = "feather-plus";
 
@@ -105,6 +106,22 @@ pub fn set_api_key(key: &str) -> Result<(), String> {
 
 pub fn delete_api_key() {
     delete(OPENCODE_GO_ACCOUNT);
+}
+
+pub fn claude_api_key() -> Option<String> {
+    read(CLAUDE_ACCOUNT).map(|key| key.trim().to_owned())
+}
+
+pub fn set_claude_api_key(key: &str) -> Result<(), String> {
+    let key = key.trim();
+    if key.is_empty() {
+        return Err(t("Enter an API key."));
+    }
+    write(CLAUDE_ACCOUNT, key)
+}
+
+pub fn delete_claude_api_key() {
+    delete(CLAUDE_ACCOUNT);
 }
 
 pub fn chatgpt_credentials() -> Option<ChatGptCredentials> {

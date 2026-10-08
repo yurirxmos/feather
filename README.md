@@ -61,7 +61,7 @@ use, shown in Settings as a percentage used. Feather never stores your instructi
 context, or replies; they pass through its server to the model provider, which handles them
 under its own data policy. Only your email, plan, and request, token, and cost counts are kept.
 
-Bringing your own OpenCode Go key or ChatGPT account stays free.
+Bringing your own OpenCode Go key, Claude API key, or ChatGPT account stays free.
 
 ### OpenCode Go
 
@@ -84,7 +84,7 @@ availability depend on your ChatGPT account.
 ## Setup
 
 1. Launch Feather from the menu bar.
-2. Open **Settings** and connect OpenCode Go or ChatGPT.
+2. Open **Settings** and connect OpenCode Go, Claude, or ChatGPT.
 3. Grant the required permissions:
    - **Accessibility** lets Feather read the focused field and paste a result.
    - **Screen Recording** lets Feather capture the active-window screenshot.
@@ -130,7 +130,7 @@ with a certificate from the [SignPath Foundation](https://signpath.org).
   [GitHub Actions workflow](.github/workflows/release-desktop.yml) from a `v*` tag, and signed
   only after it is approved.
 - **Privacy:** Feather reads your screen context only when you press the shortcut, and sends it
-  only to the provider you chose (OpenCode Go, ChatGPT, or Feather Plus) to generate the reply.
+  only to the provider you chose (OpenCode Go, Claude, ChatGPT, or Feather Plus) to generate the reply.
   It transfers no other information to other networked systems, except the update check against
   GitHub Releases and feedback you choose to send from the menu, which carries only your message,
   the optional email you type, and the Feather and system versions.

@@ -15,6 +15,9 @@ use crate::core::sse::SseEvent;
 pub const USER_AGENT: &str = "Feather/0.1.0";
 pub const OPENCODE_GO_BASE_URL: &str = "https://opencode.ai/zen/go/v1";
 pub const OPENCODE_GO_DEFAULT_MODEL: &str = "deepseek-v4.1-flash";
+pub const CLAUDE_BASE_URL: &str = "https://api.anthropic.com/v1";
+pub const CLAUDE_DEFAULT_MODEL: &str = "claude-haiku-5-5";
+pub const CLAUDE_API_VERSION: &str = "2023-06-01";
 pub const CHATGPT_ENDPOINT: &str = "https://chatgpt.com/backend-api/codex/responses";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -32,6 +35,8 @@ pub enum Provider {
     OpenCodeGo { api_key: String },
     /// ChatGPT account access through the Codex Responses API.
     ChatGpt { access_token: String, account_id: Option<String> },
+    /// Anthropic's Messages API, with an API key from the Anthropic Console.
+    Claude { api_key: String },
     /// Feather Plus's OpenAI-compatible endpoint. Every plan uses the server's model, so the model
     /// sent is a placeholder and the body is otherwise OpenCode Go's.
     FeatherPlus { token: String, base_url: String },
@@ -65,6 +70,11 @@ impl Provider {
                 }
                 (reqwest::Url::parse(CHATGPT_ENDPOINT).expect("valid endpoint"), access_token, responses_body(request))
             }
+            Provider::Claude { api_key } => {
+                headers.push(("x-api-key", api_key.clone()));
+                headers.push(("anthropic-version", CLAUDE_API_VERSION.to_owned()));
+                (endpoint(CLAUDE_BASE_URL, "/messages")?, api_key, claude_body(request))
+            }
             Provider::FeatherPlus { token, base_url } => {
                 (endpoint(base_url, "/v1/chat/completions")?, token, chat_completions_body(request))
             }
@@ -72,7 +82,10 @@ impl Provider {
         if token.is_empty() {
             return Err(LlmError::MissingApiKey);
         }
-        headers.push(("Authorization", format!("Bearer {token}")));
+        // Anthropic authenticates with `x-api-key`, not a bearer token.
+        if !matches!(self, Provider::Claude { .. }) {
+            headers.push(("Authorization", format!("Bearer {token}")));
+        }
         Ok(HttpRequest { url, headers, body })
     }
 
@@ -87,6 +100,7 @@ impl Provider {
         match self {
             Provider::OpenCodeGo { .. } => endpoint(OPENCODE_GO_BASE_URL, "/models").ok(),
             Provider::ChatGpt { .. } => reqwest::Url::parse(CHATGPT_ENDPOINT).ok(),
+            Provider::Claude { .. } => endpoint(CLAUDE_BASE_URL, "/models").ok(),
             Provider::FeatherPlus { base_url, .. } => endpoint(base_url, "/health").ok(),
         }
     }
@@ -95,6 +109,7 @@ impl Provider {
         match self {
             Provider::OpenCodeGo { .. } | Provider::FeatherPlus { .. } => parse_chat_completions(event),
             Provider::ChatGpt { .. } => parse_responses(event),
+            Provider::Claude { .. } => parse_claude(event),
         }
     }
 }
@@ -104,6 +119,7 @@ pub fn default_model_for(connection: crate::settings::Connection) -> &'static st
     match connection {
         Connection::OpenCodeGo => OPENCODE_GO_DEFAULT_MODEL,
         Connection::ChatGpt => catalog::CHATGPT_DEFAULT_MODEL,
+        Connection::Claude => CLAUDE_DEFAULT_MODEL,
         Connection::FeatherPlus => plus::DEFAULT_MODEL,
     }
 }
@@ -133,6 +149,31 @@ fn chat_completions_body(request: &GenerationRequest) -> Value {
         body["reasoning_effort"] = json!("none");
     }
     body
+}
+
+fn claude_body(request: &GenerationRequest) -> Value {
+    let messages: Vec<Value> = request
+        .turns
+        .iter()
+        .enumerate()
+        .map(|(index, turn)| match (&request.image_jpeg, index) {
+            (Some(image), 0) => json!({
+                "role": turn.role.as_str(),
+                "content": [
+                    { "type": "image", "source": { "type": "base64", "media_type": "image/jpeg", "data": STANDARD.encode(image) } },
+                    { "type": "text", "text": turn.text }
+                ]
+            }),
+            _ => json!({ "role": turn.role.as_str(), "content": turn.text }),
+        })
+        .collect();
+    json!({
+        "model": request.model,
+        "max_tokens": request.max_tokens,
+        "stream": true,
+        "system": request.system,
+        "messages": messages
+    })
 }
 
 fn responses_body(request: &GenerationRequest) -> Value {
@@ -178,6 +219,27 @@ fn parse_chat_completions(event: &SseEvent) -> Result<Chunk, LlmError> {
         return Ok(if text.is_empty() { Chunk::Done } else { Chunk::FinalText(text) });
     }
     Ok(if text.is_empty() { Chunk::Ignore } else { Chunk::Text(text) })
+}
+
+fn parse_claude(event: &SseEvent) -> Result<Chunk, LlmError> {
+    let Ok(json) = serde_json::from_str::<Value>(&event.data) else {
+        return Ok(Chunk::Ignore);
+    };
+    let kind = json.get("type").and_then(Value::as_str).or(event.event.as_deref()).unwrap_or_default();
+    match kind {
+        "content_block_delta" => {
+            let is_text = json.pointer("/delta/type").and_then(Value::as_str) == Some("text_delta");
+            let text = json.pointer("/delta/text").and_then(Value::as_str).filter(|text| !text.is_empty());
+            Ok(match (is_text, text) {
+                (true, Some(text)) => Chunk::Text(text.to_owned()),
+                _ => Chunk::Ignore,
+            })
+        }
+        "message_delta" if json.pointer("/delta/stop_reason").and_then(Value::as_str) == Some("refusal") => Err(LlmError::Refused),
+        "message_stop" => Ok(Chunk::Done),
+        "error" => Err(stream_error(&event.data)),
+        _ => Ok(Chunk::Ignore),
+    }
 }
 
 fn parse_responses(event: &SseEvent) -> Result<Chunk, LlmError> {
@@ -251,6 +313,39 @@ mod tests {
 
         let missing = Provider::OpenCodeGo { api_key: String::new() };
         assert_eq!(missing.http_request(&request(None)).err(), Some(LlmError::MissingApiKey));
+    }
+
+    #[test]
+    fn claude_uses_the_api_key_header_and_messages_body() {
+        let provider = Provider::Claude { api_key: "sk-ant".into() };
+        let http = provider.http_request(&request(Some(vec![1, 2, 3]))).unwrap();
+        assert_eq!(http.url.as_str(), "https://api.anthropic.com/v1/messages");
+        assert!(http.headers.contains(&("x-api-key", "sk-ant".into())));
+        assert!(http.headers.contains(&("anthropic-version", "2023-06-01".into())));
+        assert!(!http.headers.iter().any(|(name, _)| *name == "Authorization"));
+        assert_eq!(http.body["system"], "System");
+        assert_eq!(http.body["max_tokens"], 100);
+        assert_eq!(http.body["messages"][0]["content"][0]["source"]["data"], "AQID");
+        assert_eq!(http.body["messages"][2]["content"], "Shorter");
+
+        let missing = Provider::Claude { api_key: String::new() };
+        assert_eq!(missing.http_request(&request(None)).err(), Some(LlmError::MissingApiKey));
+    }
+
+    #[test]
+    fn parses_claude_events() {
+        let delta = r#"{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hi"}}"#;
+        assert_eq!(parse_claude(&event(Some("content_block_delta"), delta)), Ok(Chunk::Text("Hi".into())));
+        assert_eq!(parse_claude(&event(Some("ping"), r#"{"type":"ping"}"#)), Ok(Chunk::Ignore));
+        assert_eq!(parse_claude(&event(Some("message_stop"), r#"{"type":"message_stop"}"#)), Ok(Chunk::Done));
+        assert_eq!(
+            parse_claude(&event(Some("message_delta"), r#"{"type":"message_delta","delta":{"stop_reason":"refusal"}}"#)),
+            Err(LlmError::Refused)
+        );
+        assert_eq!(
+            parse_claude(&event(Some("error"), r#"{"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}"#)),
+            Err(LlmError::Api("Overloaded".into()))
+        );
     }
 
     #[test]
