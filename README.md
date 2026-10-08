@@ -1,23 +1,60 @@
-# Feather
+<p align="center">
+  <img src="Assets/feather-logo.png" width="96" alt="Feather logo">
+</p>
 
-**Press a shortcut. Tell your computer what to write.**
+<h1 align="center">Feather</h1>
 
-Feather is an AI writing assistant for Mac and Windows. While working in any app, press
-a global shortcut, describe what you want to write, and Feather generates a reply from the
-context around your cursor. Press `Return` (`Enter` on Windows) again to paste it into
-the field you were using.
+<p align="center">
+  <strong>Press a shortcut. Tell your computer what to write.</strong><br>
+  An AI writing assistant for Mac, Windows, and Linux that drafts replies from what's on your screen.
+</p>
 
-**[Download Feather](https://feather.rxmos.dev/download)** · [Website](https://feather.rxmos.dev)
+<p align="center">
+  <a href="https://feather.rxmos.dev/download"><strong>Download</strong></a> ·
+  <a href="https://feather.rxmos.dev">Website</a> ·
+  <a href="https://github.com/yurirxmos/feather/releases">Releases</a>
+</p>
 
-It lives in the menu bar on macOS and in the system tray on Windows. The macOS app is
-SwiftUI (`Sources/`); the Windows app is Tauri (`desktop/`), and the two stay in parity.
+<p align="center">
+  <a href="https://github.com/yurirxmos/feather/releases/latest"><img src="https://img.shields.io/github/v/release/yurirxmos/feather" alt="Latest release"></a>
+  <img src="https://img.shields.io/badge/platform-macOS%2014%2B%20%7C%20Windows%20%7C%20Linux-lightgrey" alt="Platforms">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/yurirxmos/feather" alt="MIT License"></a>
+</p>
 
-For example:
+<p align="center">
+  <img src="Assets/readme/chat-reply.gif" width="800" alt="Feather replying to a message in a team chat">
+</p>
+
+While working in any app, press `⌥ Space`, describe what you want to write, and Feather generates
+it from the context around your cursor. Press `Return` (`Enter` on Windows and Linux) again to
+paste it into the field you were using.
 
 > Reply that I can do tomorrow at 2 pm, in a formal tone.
 
-Feather can draft messages, rewrite text, translate, summarize, and refine a
-previous result with follow-up instructions such as “shorter” or “more casual.”
+- **Works in any app:** chat, email, docs, browser forms. No plugins or copy-paste.
+- **Reads the context for you:** the focused field, selected text, the window's text, and
+  optionally a screenshot.
+- **Refine as you go:** follow up with "shorter" or "more casual," regenerate, or copy instead.
+- **Private by design:** nothing is captured until you press the shortcut, and screen context is
+  discarded when the panel closes.
+- **Bring your own model, or don't:** use your Claude API key, ChatGPT account, or OpenCode Go key
+  for free, or Feather Plus with no key at all.
+- **Native and open source:** SwiftUI on macOS (`Sources/`), Tauri on Windows and Linux
+  (`desktop/`), MIT licensed.
+
+<table>
+  <tr>
+    <td><img src="Assets/readme/email-rewrite.gif" alt="Feather rewriting a rough email draft"></td>
+    <td><img src="Assets/readme/plus-answer.gif" alt="Feather Plus answering a question with suggested text"></td>
+  </tr>
+  <tr>
+    <td align="center">Rewrite a rough draft</td>
+    <td align="center">Answer with what's on screen</td>
+  </tr>
+</table>
+
+It lives in the menu bar on macOS and in the system tray on Windows and Linux. The two apps stay in
+parity.
 
 ## How it works
 
@@ -61,7 +98,15 @@ use, shown in Settings as a percentage used. Feather never stores your instructi
 context, or replies; they pass through its server to the model provider, which handles them
 under its own data policy. Only your email, plan, and request, token, and cost counts are kept.
 
-Bringing your own OpenCode Go key, Claude API key, or ChatGPT account stays free.
+Bringing your own Claude API key, ChatGPT account, or OpenCode Go key stays free.
+
+### Claude
+
+Claude uses the Anthropic Messages API. Paste a Claude API key from the
+[Claude Console](https://console.anthropic.com) in Settings, then select a model. The default
+model is `claude-haiku-5-5`.
+
+Your API key is stored in the macOS Keychain. Usage is billed to your Anthropic account.
 
 ### OpenCode Go
 
@@ -84,7 +129,7 @@ availability depend on your ChatGPT account.
 ## Setup
 
 1. Launch Feather from the menu bar.
-2. Open **Settings** and connect OpenCode Go, Claude, or ChatGPT.
+2. Open **Settings > Connection** and set up Feather Plus, Claude, ChatGPT, or OpenCode Go.
 3. Grant the required permissions:
    - **Accessibility** lets Feather read the focused field and paste a result.
    - **Screen Recording** lets Feather capture the active-window screenshot.
@@ -97,7 +142,7 @@ screenshot option is disabled. Relaunch Feather after granting it.
 ## Download
 
 [feather.rxmos.dev/download](https://feather.rxmos.dev/download) picks the right file for your
-system. Preview builds are also published on the
+system. Every build is also published on the
 [GitHub Releases](https://github.com/yurirxmos/feather/releases) page:
 
 - `Feather-<version>-arm64.dmg` for Apple Silicon Macs, macOS 14 or later
@@ -116,9 +161,6 @@ after granting Screen Recording.
 Feather checks for updates on launch and every hour. When a new version is out it
 asks before installing, and the permissions carry over. You can also choose
 **Check for Updates…** from the menu-bar icon.
-
-A future stable release will use a Developer ID signature and Apple
-notarization.
 
 ### Code signing policy
 
