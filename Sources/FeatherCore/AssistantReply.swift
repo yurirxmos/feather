@@ -21,7 +21,7 @@ public struct AssistantReply: Equatable, Sendable {
     public init(parsing text: String, mode: PromptMode) {
         let trimmed = { (value: Substring) in value.trimmingCharacters(in: .whitespacesAndNewlines) }
         guard mode == .assistant else {
-            self.init(suggestion: trimmed(text[...]))
+            self.init(suggestion: ReplyCleanup.unwrap(text))
             return
         }
         let body = text.drop(while: \.isWhitespace)
@@ -30,13 +30,13 @@ public struct AssistantReply: Equatable, Sendable {
             if !body.isEmpty, Self.answerOpen.hasPrefix(body) {
                 self.init()
             } else {
-                self.init(suggestion: trimmed(body))
+                self.init(suggestion: ReplyCleanup.unwrap(String(body)))
             }
             return
         }
         let rest = body.dropFirst(Self.answerOpen.count)
         if let close = rest.range(of: Self.answerClose) {
-            self.init(answer: trimmed(rest[..<close.lowerBound]), suggestion: trimmed(rest[close.upperBound...]))
+            self.init(answer: trimmed(rest[..<close.lowerBound]), suggestion: ReplyCleanup.unwrap(String(rest[close.upperBound...])))
         } else {
             // Still inside the answer; hide a half-streamed closing tag.
             let partial = (1..<Self.answerClose.count).reversed().first { rest.hasSuffix(Self.answerClose.prefix($0)) } ?? 0

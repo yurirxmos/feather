@@ -1,6 +1,7 @@
 //! Splits an assistant-mode response into the answer shown to the user and the suggestion that is
 //! inserted. Mirrors `AssistantReply` in the macOS app's `FeatherCore`.
 
+use super::cleanup;
 use super::prompt::Mode;
 
 pub const ANSWER_OPEN: &str = "<answer>";
@@ -19,7 +20,7 @@ impl Reply {
     /// is the suggestion.
     pub fn parse(text: &str, mode: Mode) -> Reply {
         if mode == Mode::TypeAssist {
-            return Reply { answer: String::new(), suggestion: text.trim().to_owned() };
+            return Reply { answer: String::new(), suggestion: cleanup::unwrap(text) };
         }
         let text = text.trim_start();
         let Some(rest) = text.strip_prefix(ANSWER_OPEN) else {
@@ -27,12 +28,12 @@ impl Reply {
             if !text.is_empty() && ANSWER_OPEN.starts_with(text) {
                 return Reply::default();
             }
-            return Reply { answer: String::new(), suggestion: text.trim().to_owned() };
+            return Reply { answer: String::new(), suggestion: cleanup::unwrap(text) };
         };
         match rest.find(ANSWER_CLOSE) {
             Some(end) => Reply {
                 answer: rest[..end].trim().to_owned(),
-                suggestion: rest[end + ANSWER_CLOSE.len()..].trim().to_owned(),
+                suggestion: cleanup::unwrap(&rest[end + ANSWER_CLOSE.len()..]),
             },
             None => {
                 // Still inside the answer; hide a half-streamed closing tag.
@@ -73,6 +74,14 @@ mod tests {
         let reply = Reply::parse("Sure, tomorrow works.", Mode::Assistant);
         assert_eq!(reply, Reply { answer: String::new(), suggestion: "Sure, tomorrow works.".into() });
         assert_eq!(reply.raw(), "Sure, tomorrow works.");
+    }
+
+    #[test]
+    fn replies_are_cleaned_in_both_modes() {
+        let wrapped = "Aqui está:\n\n---\n\nCombinado!\n\n---";
+        assert_eq!(Reply::parse(wrapped, Mode::TypeAssist).suggestion, "Combinado!");
+        assert_eq!(Reply::parse(wrapped, Mode::Assistant).suggestion, "Combinado!");
+        assert_eq!(Reply::parse(&format!("<answer>Sim.</answer>\n\n{wrapped}"), Mode::Assistant).suggestion, "Combinado!");
     }
 
     #[test]

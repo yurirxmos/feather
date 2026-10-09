@@ -1,6 +1,7 @@
 //! Pure logic shared by the app, mirroring `FeatherCore` in the macOS app. No Tauri or platform
 //! APIs here, so it can be unit tested anywhere.
 
+pub mod cleanup;
 pub mod context;
 pub mod error;
 pub mod feedback;
