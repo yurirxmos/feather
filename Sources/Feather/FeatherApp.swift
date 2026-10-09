@@ -19,7 +19,10 @@ enum FeatherMain {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private let credentialStore: any CredentialStore = KeychainCredentialStore.shared
-    private lazy var promptController = PromptController(credentialStore: credentialStore)
+    private lazy var promptController = PromptController(
+        credentialStore: credentialStore,
+        openSettings: { [weak self] in self?.showSettings() }
+    )
     private var settingsWindow: NSWindow?
     private var feedbackWindow: NSWindow?
     private var registeredHotkey: HotkeyPreset?
@@ -128,11 +131,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         registerHotkey()
     }
 
+    /// Without a provider, the panel says so and offers Settings instead of capturing anything.
     @objc private func openPrompt() {
-        guard FeatherCore.Settings.current().hasCredentials(using: credentialStore) else {
-            showSettings()
-            return
-        }
         promptController.toggle()
     }
 

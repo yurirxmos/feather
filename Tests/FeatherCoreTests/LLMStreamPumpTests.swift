@@ -34,7 +34,7 @@ final class LLMStreamPumpTests: XCTestCase {
         XCTAssertEqual(result, ["Hello", " world"])
     }
 
-    func testPumpFinishesWhenTheStreamGoesIdleAfterText() async throws {
+    func testPumpReportsAStallWhenTheStreamGoesIdleAfterText() async {
         let lines = AsyncStream<String> { continuation in
             continuation.yield("data: {\"choices\":[{\"delta\":{\"content\":\"Hello\"}}]}")
         }
@@ -42,7 +42,12 @@ final class LLMStreamPumpTests: XCTestCase {
             try OpenCodeGoProvider(apiKey: "key").parse(event)
         }
         var result: [String] = []
-        for try await text in output { result.append(text) }
+        do {
+            for try await text in output { result.append(text) }
+            XCTFail("Expected a stall")
+        } catch {
+            XCTAssertEqual(error as? LLMError, .stalled)
+        }
         XCTAssertEqual(result, ["Hello"])
     }
 

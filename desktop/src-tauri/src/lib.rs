@@ -57,8 +57,9 @@ pub fn run() {
         })
         .on_window_event(|window, event| match (window.label(), event) {
             (PANEL_LABEL, WindowEvent::Focused(false)) => {
-                if window.is_visible().unwrap_or(false) {
-                    window.state::<PromptController>().suspend_for_recapture();
+                let controller = window.state::<PromptController>();
+                if window.is_visible().unwrap_or(false) && !controller.is_confirming() {
+                    controller.suspend_for_recapture();
                 }
             }
             // Settings hides instead of closing, so Feather keeps running in the tray.
@@ -101,6 +102,8 @@ pub fn run() {
             commands::prompt_new_conversation,
             commands::prompt_toggle_option,
             commands::prompt_dismiss,
+            commands::prompt_insert,
+            commands::prompt_open_settings,
             commands::panel_resize,
         ])
         .build(tauri::generate_context!())

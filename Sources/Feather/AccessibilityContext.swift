@@ -14,6 +14,9 @@ enum AccessibilityContext {
         var windowTextWasTruncated = false
         /// The focus was in a field the user types into, such as a message or email body.
         var focusIsInTextField = false
+        /// Whether the focused field takes a password. Its text is never read, and Insert copies
+        /// instead of pasting into it.
+        var focusedFieldIsSecure = false
         /// Global coordinates with a top-left origin, matching `SCWindow.frame`.
         var windowFrame: CGRect?
     }
@@ -48,10 +51,14 @@ enum AccessibilityContext {
 
         // The selected text and field draft are the most useful context. Read them before
         // traversing the potentially large window tree.
-        if let focused = element(app, kAXFocusedUIElementAttribute), !isSecure(focused) {
-            snapshot.selectedText = string(focused, kAXSelectedTextAttribute)
-            snapshot.focusedText = string(focused, kAXValueAttribute)
-            snapshot.focusIsInTextField = isTextField(focused)
+        if let focused = element(app, kAXFocusedUIElementAttribute) {
+            if isSecure(focused) {
+                snapshot.focusedFieldIsSecure = true
+            } else {
+                snapshot.selectedText = string(focused, kAXSelectedTextAttribute)
+                snapshot.focusedText = string(focused, kAXValueAttribute)
+                snapshot.focusIsInTextField = isTextField(focused)
+            }
         }
         if let window = element(app, kAXFocusedWindowAttribute) {
             snapshot.windowTitle = string(window, kAXTitleAttribute)

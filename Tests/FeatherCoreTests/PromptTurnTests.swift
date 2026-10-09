@@ -2,6 +2,24 @@ import XCTest
 @testable import FeatherCore
 
 final class PromptTurnTests: XCTestCase {
+    func testOnlyTheSameAppSoonAfterResumesAHiddenSession() {
+        XCTAssertTrue(PromptTurn.resumesSuspendedSession(sameApp: true, suspendedFor: 5))
+        XCTAssertFalse(PromptTurn.resumesSuspendedSession(sameApp: false, suspendedFor: 5))
+        XCTAssertFalse(PromptTurn.resumesSuspendedSession(sameApp: true, suspendedFor: PromptTurn.resumeWindow))
+        XCTAssertFalse(PromptTurn.resumesSuspendedSession(sameApp: true, suspendedFor: -1))
+    }
+
+    func testInsertPastesOnlyIntoARunningAppWithPermissionAndANormalField() {
+        func route(target: Bool = true, running: Bool = true, canPaste: Bool = true, secure: Bool = false) -> InsertRoute {
+            PromptTurn.insertRoute(hasTarget: target, targetIsRunning: running, canPaste: canPaste, focusedFieldIsSecure: secure)
+        }
+        XCTAssertEqual(route(), .paste)
+        XCTAssertEqual(route(target: false), .copyWithoutTarget)
+        XCTAssertEqual(route(running: false, canPaste: false), .targetClosed)
+        XCTAssertEqual(route(canPaste: false), .copyWithoutPermission)
+        XCTAssertEqual(route(secure: true), .copyIntoSecureField)
+    }
+
     func testMergeAddsOnlyNewWindowTextLines() {
         XCTAssertEqual(PromptTurn.mergeWindowText("one\ntwo\nthree", with: "one\ntwo"), "one\ntwo\nthree")
         XCTAssertEqual(PromptTurn.mergeWindowText("one\ntwo", with: "one\ntwo"), "one\ntwo")

@@ -581,16 +581,6 @@
         }
       }
     },
-    "R": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "R"
-          }
-        }
-      }
-    },
     "Screen Recording": {
       "localizations": {
         "pt-BR": {
@@ -1781,16 +1771,6 @@
         }
       }
     },
-    "N": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "N"
-          }
-        }
-      }
-    },
     "Window": {
       "localizations": {
         "pt-BR": {
@@ -1857,6 +1837,236 @@
           "stringUnit": {
             "state": "translated",
             "value": "Use a sua própria chave de API da OpenAI, do Claude ou do OpenCode Go. As chaves ficam no Keychain do macOS."
+          }
+        }
+      }
+    },
+    "The provider rejected your sign-in or API key. Check it in Settings.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O provedor recusou seu login ou sua chave de API. Confira nos Ajustes."
+          }
+        }
+      }
+    },
+    "The provider is limiting requests right now. Wait a moment and try again.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O provedor está limitando as requisições agora. Espere um pouco e tente de novo."
+          }
+        }
+      }
+    },
+    "The provider is having trouble right now (error %lld). Try again in a moment.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O provedor está com problemas agora (erro %lld). Tente de novo em instantes."
+          }
+        }
+      }
+    },
+    "The reply stopped arriving. Try again.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A resposta parou de chegar. Tente de novo."
+          }
+        }
+      }
+    },
+    "Feather could not reach the provider. Check your connection and try again.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Feather não conseguiu falar com o provedor. Confira sua conexão e tente de novo."
+          }
+        }
+      }
+    },
+    "The reply stopped arriving and may be incomplete. Review it before inserting it.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A resposta parou de chegar e pode estar incompleta. Revise antes de inserir."
+          }
+        }
+      }
+    },
+    "Reply ready.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resposta pronta."
+          }
+        }
+      }
+    },
+    "That field takes a password, so Feather copied the reply instead of pasting it.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esse campo é de senha, então o Feather copiou a resposta em vez de colar."
+          }
+        }
+      }
+    },
+    "%@ is no longer open, so Feather can't insert the reply. Copy it instead.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ não está mais aberto, então o Feather não consegue inserir a resposta. Copie-a em vez disso."
+          }
+        }
+      }
+    },
+    "Pasted into %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Colado em %@"
+          }
+        }
+      }
+    },
+    "Pasted": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Colado"
+          }
+        }
+      }
+    },
+    "Another app is using this shortcut. Choose a different one.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Outro app está usando este atalho. Escolha outro."
+          }
+        }
+      }
+    },
+    "Connect a provider in Settings so Feather can write for you.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conecte um provedor nos Ajustes para o Feather escrever por você."
+          }
+        }
+      }
+    },
+    "Open Settings": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir Ajustes"
+          }
+        }
+      }
+    },
+    "Screenshot": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Captura de tela"
+          }
+        }
+      }
+    },
+    "Feather sends a picture of the window with your request": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Feather envia uma imagem da janela junto com o seu pedido"
+          }
+        }
+      }
+    },
+    "%d captures": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d capturas"
+          }
+        }
+      }
+    },
+    "You pressed the shortcut more than once in this app, so Feather combined what it read each time.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você apertou o atalho mais de uma vez neste app, então o Feather juntou o que leu em cada vez."
+          }
+        }
+      }
+    },
+    "Refine": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refinar"
+          }
+        }
+      }
+    },
+    "Insert into %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inserir em %@"
+          }
+        }
+      }
+    },
+    "Included": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incluído"
+          }
+        }
+      }
+    },
+    "Left out": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deixado de fora"
+          }
+        }
+      }
+    },
+    "Recent": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recentes"
           }
         }
       }

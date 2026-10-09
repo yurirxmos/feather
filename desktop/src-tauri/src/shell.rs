@@ -96,11 +96,8 @@ pub fn close_feedback(app: &AppHandle) {
 /// The command-line option that opens the prompt in the running Feather.
 pub const PROMPT_FLAG: &str = "--prompt";
 
+/// Without a provider, the panel says so and offers Settings instead of capturing anything.
 pub fn open_prompt(app: &AppHandle) {
-    if !has_credentials(app) {
-        show_settings(app);
-        return;
-    }
     app.state::<PromptController>().toggle();
 }
 

@@ -17,7 +17,7 @@ use crate::core::placement::{self, Anchor};
 use crate::core::prompt::{self, Exchange, Mode, RequestInput};
 use crate::core::recent::{self, Direction, SavedConversation};
 use crate::core::reply::Reply;
-use crate::core::turn::{self, Submission, COPIED_NOTICE_DURATION};
+use crate::core::turn::{self, InsertRoute, Submission, COPIED_NOTICE_DURATION};
 use crate::core::pkce;
 use crate::credentials;
 use crate::i18n::t;
@@ -25,7 +25,7 @@ use crate::insert;
 use crate::platform::{self, Rect, Target};
 use crate::providers::{stream, Provider};
 use crate::settings::{write_atomically, Connection, SettingsStore};
-use crate::shell::SETTINGS_LABEL;
+use crate::shell::{self, SETTINGS_LABEL};
 
 pub const PANEL_LABEL: &str = "panel";
 const PANEL_WIDTH: f64 = 600.0;
@@ -65,6 +65,19 @@ pub struct PanelState {
     generation_started_at: Option<u64>,
     error_message: Option<String>,
     notice: Option<String>,
+    /// Whether `notice` reports something done, such as a copy, rather than something to review.
+    notice_is_success: bool,
+    /// Shown alone, briefly, after a reply was pasted, while the target app has the keyboard.
+    confirmation: Option<String>,
+    /// No provider is connected yet, so the panel only offers to open Settings.
+    needs_setup: bool,
+    /// The app Insert pastes into; `None` when the reply goes to Feather's own window or nowhere.
+    insert_target: Option<String>,
+    /// How many times the shortcut has read the screen for this conversation.
+    capture_count: u32,
+    has_screenshot: bool,
+    /// How many recent conversations ↑ can bring back.
+    recent_count: usize,
     /// Bumped on every show so the view re-focuses its text field.
     focus_token: u64,
     /// An instruction to put back in the field, such as after cancelling.
@@ -98,6 +111,14 @@ struct Session {
     generation_started_at: Option<u64>,
     error_message: Option<String>,
     notice: Option<String>,
+    notice_is_success: bool,
+    confirmation: Option<String>,
+    needs_setup: bool,
+    insert_target: Option<String>,
+    capture_count: u32,
+    recent_count: usize,
+    /// Whether the target's focused field takes a password.
+    focused_field_is_secure: bool,
     is_capturing: bool,
     capture_status: Option<CaptureStatus>,
     focus_token: u64,
@@ -116,8 +137,18 @@ struct Session {
     restored_from: Option<SavedConversation>,
     session_id: String,
     is_suspended_for_recapture: bool,
+    /// When and over which app the panel was hidden for a recapture.
+    suspended_at: Option<Instant>,
+    suspended_app: Option<AppIdentity>,
     /// The last instruction was a question on a connection that only assists typing.
     suggests_plus: bool,
+}
+
+/// Tells apps apart for resuming a hidden session: the process, and its id where there is no pid.
+type AppIdentity = (u32, Option<String>);
+
+fn app_identity(target: Option<&Target>) -> Option<AppIdentity> {
+    target.map(|target| (target.pid, target.app_id.clone()))
 }
 
 impl Session {
@@ -144,6 +175,7 @@ impl Session {
         self.generation_started_at = None;
         self.error_message = None;
         self.notice = None;
+        self.notice_is_success = false;
         self.suggests_plus = false;
         self.history.clear();
         self.last_instruction.clear();
@@ -204,6 +236,13 @@ impl Session {
             generation_started_at: self.generation_started_at,
             error_message: self.error_message.clone(),
             notice: self.notice.clone(),
+            notice_is_success: self.notice_is_success,
+            confirmation: self.confirmation.clone(),
+            needs_setup: self.needs_setup,
+            insert_target: self.insert_target.clone(),
+            capture_count: self.capture_count,
+            has_screenshot: context.screenshot_jpeg.is_some(),
+            recent_count: self.recent_count,
             focus_token: self.focus_token,
             restore_instruction: self.restore_instruction.clone(),
             restore_token: self.restore_token,
@@ -228,10 +267,13 @@ struct Inner {
     epoch: u64,
     is_presenting: bool,
     anchor: Option<Anchor>,
+    /// The top of the work area the panel is on; a tall reply slides it down rather than past it.
+    work_area_top: Option<i32>,
     capture_task: Option<JoinHandle<()>>,
     screenshot_task: Option<JoinHandle<()>>,
     generation_task: Option<JoinHandle<()>>,
     notice_task: Option<JoinHandle<()>>,
+    confirmation_task: Option<JoinHandle<()>>,
     /// True once the text capture of this show has finished; generation waits for it.
     captured: Option<watch::Sender<bool>>,
     /// The last few conversations, newest first, and the file that keeps them on this computer.
@@ -310,30 +352,57 @@ impl PromptController {
 
     pub fn toggle(&self) {
         let visible = self.panel().and_then(|panel| panel.is_visible().ok()).unwrap_or(false);
-        if visible || self.lock().is_presenting {
+        let inner = self.lock();
+        let suspends = (visible && inner.session.confirmation.is_none()) || inner.is_presenting;
+        drop(inner);
+        if suspends {
             self.suspend_for_recapture();
         } else {
             self.show();
         }
     }
 
+    /// Whether the panel is only showing where a reply was pasted.
+    pub fn is_confirming(&self) -> bool {
+        self.lock().session.confirmation.is_some()
+    }
+
     // MARK: Showing
 
     fn show(&self) {
+        self.dismiss_confirmation();
         // Remember the target before the panel takes keyboard focus.
         let target = platform::foreground_target();
         let own_window = target.is_none()
             && self.app.get_webview_window(SETTINGS_LABEL).and_then(|window| window.is_focused().ok()).unwrap_or(false);
+        if !shell::has_credentials(&self.app) {
+            self.show_setup_needed();
+            return;
+        }
         let settings = self.settings();
         let provider = self.provider_for_preconnect(settings.connection, &settings.plus_base_url);
         {
             let mut inner = self.lock();
+            if inner.session.is_suspended_for_recapture {
+                let same_app = app_identity(target.as_ref()) == inner.session.suspended_app;
+                let hidden_for = inner.session.suspended_at.map(|at| at.elapsed()).unwrap_or(Duration::MAX);
+                if !turn::resumes_suspended_session(same_app, hidden_for) {
+                    // A reply still running for the other app is dropped rather than shown here.
+                    if let Some(task) = inner.generation_task.take() {
+                        task.abort();
+                    }
+                    inner.session.roll_back_generation();
+                    inner.session.is_suspended_for_recapture = false;
+                }
+            }
             if inner.session.is_suspended_for_recapture {
                 inner.session.options.include_window = settings.include_screenshot;
             } else {
                 inner.save_conversation();
                 inner.session.reset(settings.include_screenshot);
             }
+            inner.session.insert_target = target.as_ref().and_then(|target| target.app_name.clone());
+            inner.session.recent_count = inner.recent.len();
             inner.target = target;
             inner.own_window = own_window;
             inner.is_presenting = true;
@@ -345,19 +414,49 @@ impl PromptController {
         self.start_capture(settings.include_screenshot);
     }
 
+    /// Without a provider there is nothing to generate with, so nothing is captured: the panel
+    /// says what is missing and Enter opens Settings.
+    fn show_setup_needed(&self) {
+        let mut inner = self.lock();
+        inner.abort_tasks(true);
+        inner.epoch += 1;
+        inner.session.roll_back_generation();
+        inner.save_conversation();
+        inner.session.reset(false);
+        inner.session.needs_setup = true;
+        inner.target = None;
+        inner.own_window = false;
+        inner.is_presenting = true;
+        drop(inner);
+        self.position_panel(None);
+        self.present_panel();
+    }
+
     /// Hides the panel without discarding the session, so the user can scroll and capture again.
     /// A running generation keeps going, so clicking away to reread the conversation loses nothing.
+    /// Only the same app, within `turn::RESUME_WINDOW`, picks the session up again.
     pub fn suspend_for_recapture(&self) {
         let mut inner = self.lock();
         inner.abort_tasks(false);
         inner.epoch += 1;
         inner.session.is_capturing = false;
         inner.session.capture_status = None;
-        inner.session.is_suspended_for_recapture = true;
+        inner.session.is_suspended_for_recapture = !inner.session.needs_setup;
+        inner.session.suspended_at = Some(Instant::now());
+        inner.session.suspended_app = app_identity(inner.target.as_ref());
         inner.is_presenting = false;
         drop(inner);
         if let Some(panel) = self.panel() {
             let _ = panel.hide();
+        }
+    }
+
+    /// Esc stops a running reply; otherwise it closes, and ↑ brings the conversation back.
+    pub fn dismiss(&self) {
+        if self.lock().session.is_generating {
+            self.cancel_generation();
+        } else {
+            self.close();
         }
     }
 
@@ -369,6 +468,7 @@ impl PromptController {
         inner.is_presenting = false;
         inner.target = None;
         inner.own_window = false;
+        inner.session.roll_back_generation();
         inner.save_conversation();
         inner.session.reset(false);
         self.publish(&inner);
@@ -376,6 +476,11 @@ impl PromptController {
         if let Some(panel) = self.panel() {
             let _ = panel.hide();
         }
+    }
+
+    pub fn open_settings(&self) {
+        self.close();
+        shell::show_settings(&self.app);
     }
 
     fn start_capture(&self, include_screenshot: bool) {
@@ -428,6 +533,8 @@ impl PromptController {
                 context.window_text = turn::merge_window_text(snapshot.window_text.clone(), context.window_text.take());
                 context.window_text_was_truncated |= snapshot.window_text_was_truncated;
                 context.focus_is_in_text_field |= snapshot.focus_is_in_text_field;
+                inner.session.focused_field_is_secure = snapshot.focused_field_is_secure;
+                inner.session.capture_count += 1;
                 if let Some(captured) = inner.captured.take() {
                     let _ = captured.send(true);
                 }
@@ -491,7 +598,11 @@ impl PromptController {
         let work_area = Rect { x: area.position.x, y: area.position.y, width: area.size.width, height: area.size.height };
         let width = (PANEL_WIDTH * scale).round() as u32;
         let anchor = placement::anchor(width, window_frame, work_area, (PANEL_INSET * scale).round() as i32);
-        self.lock().anchor = Some(anchor);
+        {
+            let mut inner = self.lock();
+            inner.anchor = Some(anchor);
+            inner.work_area_top = Some(work_area.y);
+        }
         let height = panel.outer_size().map(|size| size.height).unwrap_or(80);
         let _ = panel.set_position(PhysicalPosition::new(anchor.x, anchor.bottom - height as i32));
     }
@@ -502,9 +613,13 @@ impl PromptController {
         let scale = panel.scale_factor().unwrap_or(1.0);
         let size = PhysicalSize::new((PANEL_WIDTH * scale).round() as u32, (height.max(40.0) * scale).round() as u32);
         let _ = panel.set_size(size);
-        let anchor = self.lock().anchor;
+        let (anchor, top) = {
+            let inner = self.lock();
+            (inner.anchor, inner.work_area_top)
+        };
         if let Some(anchor) = anchor {
-            let _ = panel.set_position(PhysicalPosition::new(anchor.x, anchor.bottom - size.height as i32));
+            let y = anchor.bottom - size.height as i32;
+            let _ = panel.set_position(PhysicalPosition::new(anchor.x, top.map_or(y, |top| y.max(top))));
         }
     }
 
@@ -519,6 +634,7 @@ impl PromptController {
         self.publish(&inner);
         drop(inner);
         if let Some(panel) = self.panel() {
+            let _ = panel.set_focusable(true);
             let _ = panel.show();
             let _ = panel.set_focus();
         }
@@ -529,6 +645,11 @@ impl PromptController {
     pub fn submit(&self, instruction: &str) {
         let submission = {
             let inner = self.lock();
+            if inner.session.needs_setup {
+                drop(inner);
+                self.open_settings();
+                return;
+            }
             turn::submission(instruction, &inner.session.result, &inner.session.answer, inner.session.is_generating)
         };
         match submission {
@@ -580,12 +701,16 @@ impl PromptController {
     /// Ctrl+N: saves this conversation for ↑ and starts a new one on the same screen.
     pub fn start_new_conversation(&self) {
         let mut inner = self.lock();
+        if inner.session.needs_setup {
+            return;
+        }
         for task in [inner.generation_task.take(), inner.notice_task.take()].into_iter().flatten() {
             task.abort();
         }
         inner.session.roll_back_generation();
         inner.save_conversation();
         inner.session.start_new_conversation();
+        inner.session.recent_count = inner.recent.len();
         self.publish(&inner);
     }
 
@@ -626,6 +751,7 @@ impl PromptController {
             "app" => options.include_app = !options.include_app,
             "selection" => options.include_selection = !options.include_selection,
             "windowText" => options.include_window_text = !options.include_window_text,
+            "window" => options.include_window = !options.include_window,
             _ => return,
         }
         self.publish(&inner);
@@ -659,8 +785,7 @@ impl PromptController {
                 Ok(provider) => provider,
                 Err(message) => {
                     let mut inner = controller.lock();
-                    inner.session.error_message = Some(message);
-                    inner.session.is_generating = false;
+                    Self::fail(&mut inner.session, message);
                     controller.publish(&inner);
                     return;
                 }
@@ -701,20 +826,27 @@ impl PromptController {
 
             let mut inner = controller.lock();
             let partial = Reply::parse(&text, mode);
+            let has_text = !partial.suggestion.is_empty() || !partial.answer.is_empty();
             let label = match outcome {
                 Ok(()) => {
                     inner.session.result = partial.suggestion;
                     inner.session.answer = partial.answer;
                     "completed"
                 }
-                Err(LlmError::TimedOut) if !partial.suggestion.is_empty() || !partial.answer.is_empty() => {
+                Err(error @ (LlmError::TimedOut | LlmError::Stalled)) if has_text => {
                     inner.session.result = partial.suggestion;
                     inner.session.answer = partial.answer;
-                    inner.session.notice = Some(t("Stopped after 1 minute. Review the text before inserting it."));
-                    "timed_out_with_text"
+                    inner.session.notice_is_success = false;
+                    if error == LlmError::TimedOut {
+                        inner.session.notice = Some(t("Stopped after 1 minute. Review the text before inserting it."));
+                        "timed_out_with_text"
+                    } else {
+                        inner.session.notice = Some(t("The reply stopped arriving and may be incomplete. Review it before inserting it."));
+                        "stalled_with_text"
+                    }
                 }
                 Err(error) => {
-                    inner.session.error_message = Some(error.message());
+                    Self::fail(&mut inner.session, error.message());
                     "failed"
                 }
             };
@@ -754,12 +886,28 @@ impl PromptController {
         })
     }
 
-    fn insert(&self) {
-        let (text, target, own_window) = {
+    /// A failed generation leaves the panel as it was before, with the instruction back in the
+    /// field, so Enter tries again.
+    fn fail(session: &mut Session, message: String) {
+        session.roll_back_generation();
+        session.suggests_plus = false;
+        session.error_message = Some(message);
+    }
+
+    pub fn insert(&self) {
+        let (text, target, own_window, is_generating, is_secure, app_name) = {
             let inner = self.lock();
-            (inner.session.result.clone(), inner.target.clone(), inner.own_window)
+            let session = &inner.session;
+            (
+                session.result.clone(),
+                inner.target.clone(),
+                inner.own_window,
+                session.is_generating,
+                session.focused_field_is_secure,
+                session.insert_target.clone().or_else(|| session.context.app_name.clone()),
+            )
         };
-        if text.is_empty() {
+        if text.is_empty() || is_generating {
             return;
         }
         if let Some(settings) = self.app.get_webview_window(SETTINGS_LABEL).filter(|_| own_window) {
@@ -768,26 +916,50 @@ impl PromptController {
             let _ = self.app.emit_to(SETTINGS_LABEL, "insert-text", text);
             return;
         }
-        let can_paste = insert::can_paste();
-        let Some(target) = target.filter(|_| can_paste) else {
-            insert::copy(&text);
-            self.show_copied_notice(Some(if can_paste {
-                t("Copied. Paste it with Ctrl+V.")
-            } else {
-                t("Copied. This session can't insert text automatically, so paste it with Ctrl+V.")
-            }));
-            return;
-        };
-        self.close();
-        tauri::async_runtime::spawn_blocking(move || insert::paste(&text, &target));
+        let route = turn::insert_route(
+            target.is_some(),
+            target.as_ref().is_some_and(platform::is_open),
+            insert::can_paste(),
+            is_secure,
+        );
+        match (route, target) {
+            (InsertRoute::Paste, Some(target)) => {
+                self.close();
+                let controller = self.clone();
+                tauri::async_runtime::spawn_blocking(move || {
+                    insert::paste(&text, &target);
+                    controller.confirm_insert(app_name);
+                });
+            }
+            (InsertRoute::CopyWithoutPermission, _) => {
+                insert::copy(&text);
+                self.show_copied_notice(Some(t("Copied. This session can't insert text automatically, so paste it with Ctrl+V.")));
+            }
+            (InsertRoute::CopyIntoSecureField, _) => {
+                insert::copy(&text);
+                self.show_copied_notice(Some(t("That field takes a password, so Feather copied the reply instead of pasting it.")));
+            }
+            (InsertRoute::TargetClosed, _) => {
+                let mut inner = self.lock();
+                inner.session.error_message = Some(
+                    t("{app} is no longer open, so Feather can't insert the reply. Copy it instead.")
+                        .replace("{app}", app_name.as_deref().unwrap_or_default()),
+                );
+                self.publish(&inner);
+            }
+            _ => {
+                insert::copy(&text);
+                self.show_copied_notice(Some(t("Copied. Paste it with Ctrl+V.")));
+            }
+        }
     }
 
     pub fn copy_result(&self) {
-        let text = {
+        let (text, is_generating) = {
             let inner = self.lock();
-            turn::copyable_text(&inner.session.result, &inner.session.answer).to_owned()
+            (turn::copyable_text(&inner.session.result, &inner.session.answer).to_owned(), inner.session.is_generating)
         };
-        if text.is_empty() {
+        if text.is_empty() || is_generating {
             return;
         }
         insert::copy(&text);
@@ -804,6 +976,8 @@ impl PromptController {
         }
         let fades = explanation.is_none();
         let notice = explanation.unwrap_or_else(|| t("Copied to clipboard."));
+        inner.session.error_message = None;
+        inner.session.notice_is_success = true;
         inner.session.notice = Some(notice.clone());
         self.publish(&inner);
         if fades {
@@ -816,6 +990,48 @@ impl PromptController {
                     controller.publish(&inner);
                 }
             }));
+        }
+    }
+
+    /// Shows where the reply went without taking the keyboard back from the target app.
+    fn confirm_insert(&self, app_name: Option<String>) {
+        let visible = self.panel().and_then(|panel| panel.is_visible().ok()).unwrap_or(false);
+        let mut inner = self.lock();
+        if visible || inner.is_presenting {
+            return;
+        }
+        inner.session.confirmation = Some(match app_name {
+            Some(name) => t("Pasted into {app}").replace("{app}", &name),
+            None => t("Pasted"),
+        });
+        self.publish(&inner);
+        let controller = self.clone();
+        inner.confirmation_task = Some(tauri::async_runtime::spawn(async move {
+            tokio::time::sleep(Duration::from_millis(1400)).await;
+            // `dismiss_confirmation` aborts this task, so detach it first.
+            controller.lock().confirmation_task = None;
+            controller.dismiss_confirmation();
+        }));
+        drop(inner);
+        if let Some(panel) = self.panel() {
+            let _ = panel.set_focusable(false);
+            let _ = panel.show();
+        }
+    }
+
+    fn dismiss_confirmation(&self) {
+        let mut inner = self.lock();
+        if let Some(task) = inner.confirmation_task.take() {
+            task.abort();
+        }
+        if inner.session.confirmation.take().is_none() {
+            return;
+        }
+        self.publish(&inner);
+        drop(inner);
+        if let Some(panel) = self.panel() {
+            let _ = panel.hide();
+            let _ = panel.set_focusable(true);
         }
     }
 }

@@ -63,6 +63,17 @@ export const PT_BR: Record<string, string> = {
   Insert: "Inserir",
   Generate: "Gerar",
   "Previous conversation {current} of {total}": "Conversa anterior {current} de {total}",
+  Refine: "Refinar",
+  Recent: "Recentes",
+  "Insert into {app}": "Inserir em {app}",
+  Screenshot: "Captura de tela",
+  "Feather sends a picture of the window with your request": "O Feather envia uma imagem da janela junto com o seu pedido",
+  "{count} captures": "{count} capturas",
+  "You pressed the shortcut more than once in this app, so Feather combined what it read each time.":
+    "Você apertou o atalho mais de uma vez neste app, então o Feather juntou o que leu em cada vez.",
+  "Reply ready.": "Resposta pronta.",
+  "Connect a provider in Settings so Feather can write for you.": "Conecte um provedor nas Configurações para o Feather escrever por você.",
+  "Open Settings": "Abrir Configurações",
 
   // Settings
   "Feather Settings": "Configurações do Feather",

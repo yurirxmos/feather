@@ -5,6 +5,9 @@ use super::prompt::Exchange;
 /// How long "Copied to clipboard." stays up; copying never closes the panel.
 pub const COPIED_NOTICE_DURATION: std::time::Duration = std::time::Duration::from_secs(2);
 
+/// How long a panel hidden by the shortcut or a click elsewhere can be picked up again.
+pub const RESUME_WINDOW: std::time::Duration = std::time::Duration::from_secs(60);
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Submission {
     Generate(String),
@@ -12,6 +15,42 @@ pub enum Submission {
     /// Only an answer came back, so there is nothing to insert; Enter copies the answer.
     Copy,
     None,
+}
+
+/// How Insert delivers the reply.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum InsertRoute {
+    /// Bring the target app back and paste into its focused field.
+    Paste,
+    /// There is no app to paste into, such as when the shortcut was pressed over the desktop.
+    CopyWithoutTarget,
+    /// Pasting needs a permission Feather does not have, or this session cannot do it.
+    CopyWithoutPermission,
+    /// The focused field takes a password; a reply never goes into one.
+    CopyIntoSecureField,
+    /// The target app closed after the shortcut, so a paste would land in whatever app is in front.
+    TargetClosed,
+}
+
+/// Whether showing the panel resumes the hidden session, adding a new capture to it, instead of
+/// saving it to recent conversations and starting fresh. Only the same app, soon after, resumes,
+/// so one app's context and conversation never shape a reply meant for another.
+pub fn resumes_suspended_session(same_app: bool, suspended_for: std::time::Duration) -> bool {
+    same_app && suspended_for < RESUME_WINDOW
+}
+
+pub fn insert_route(has_target: bool, target_is_open: bool, can_paste: bool, focused_field_is_secure: bool) -> InsertRoute {
+    if !has_target {
+        InsertRoute::CopyWithoutTarget
+    } else if !target_is_open {
+        InsertRoute::TargetClosed
+    } else if !can_paste {
+        InsertRoute::CopyWithoutPermission
+    } else if focused_field_is_secure {
+        InsertRoute::CopyIntoSecureField
+    } else {
+        InsertRoute::Paste
+    }
 }
 
 /// Adds lines from a new capture that the earlier captures did not have.
@@ -128,6 +167,23 @@ mod tests {
         let updated = history(&[], "Reply", "Sure!", false);
         assert_eq!(updated, vec![Exchange { instruction: "Reply".into(), result: "Sure!".into() }]);
         assert!(history(&[], "Reply", "Sure!", true).is_empty());
+    }
+
+    #[test]
+    fn only_the_same_app_soon_after_resumes_a_hidden_session() {
+        use std::time::Duration;
+        assert!(resumes_suspended_session(true, Duration::from_secs(5)));
+        assert!(!resumes_suspended_session(false, Duration::from_secs(5)));
+        assert!(!resumes_suspended_session(true, RESUME_WINDOW));
+    }
+
+    #[test]
+    fn insert_pastes_only_into_an_open_app_with_permission_and_a_normal_field() {
+        assert_eq!(insert_route(true, true, true, false), InsertRoute::Paste);
+        assert_eq!(insert_route(false, true, true, false), InsertRoute::CopyWithoutTarget);
+        assert_eq!(insert_route(true, false, false, false), InsertRoute::TargetClosed);
+        assert_eq!(insert_route(true, true, false, false), InsertRoute::CopyWithoutPermission);
+        assert_eq!(insert_route(true, true, true, true), InsertRoute::CopyIntoSecureField);
     }
 
     #[test]

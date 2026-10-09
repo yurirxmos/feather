@@ -69,6 +69,10 @@ public enum LLMError: Error, Equatable, Sendable {
     case api(message: String)
     case refused
     case timedOut
+    /// The stream stopped sending text before it said it was done.
+    case stalled
+    /// The request never reached the provider.
+    case network
 }
 
 public enum ConnectionKind: String, CaseIterable, Sendable {
@@ -148,6 +152,8 @@ extension LLMProvider {
                         continuation.yield(text)
                     }
                     continuation.finish()
+                } catch let error as URLError where error.code != .cancelled {
+                    continuation.finish(throwing: LLMError.network)
                 } catch {
                     continuation.finish(throwing: error)
                 }

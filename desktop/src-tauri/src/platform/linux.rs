@@ -153,6 +153,7 @@ pub fn capture(target: &Target) -> Snapshot {
         snapshot.window_text = text.window;
         snapshot.window_text_was_truncated = text.truncated;
         snapshot.focus_is_in_text_field = text.in_text_field;
+        snapshot.focused_field_is_secure = text.secure;
     }
     snapshot
 }
@@ -165,6 +166,7 @@ struct AccessibilityText {
     window: Option<String>,
     truncated: bool,
     in_text_field: bool,
+    secure: bool,
 }
 
 async fn call<T, E>(future: impl Future<Output = Result<T, E>>) -> Option<T> {
@@ -185,7 +187,9 @@ async fn accessibility_text(pid: u32) -> AccessibilityText {
     // The selected text and field draft are the most useful context. Read them before traversing
     // the potentially large window tree.
     if let Some(focused) = focused_element(bus, &window).await {
-        if call(focused.get_role()).await != Some(Role::PasswordText) {
+        if call(focused.get_role()).await == Some(Role::PasswordText) {
+            result.secure = true;
+        } else {
             let (text, selected) = text_and_selection(&focused).await;
             result.focused = text;
             result.selected = selected;
@@ -358,6 +362,15 @@ pub fn screenshot(target: &Target, frame: Option<Rect>) -> Option<RgbaImage> {
     // 24- and 32-bit visuals store pixels as little-endian BGRX.
     let rgba = reply.data.as_chunks::<4>().0.iter().flat_map(|pixel| [pixel[2], pixel[1], pixel[0], 255]).collect();
     RgbaImage::from_raw(width, height, rgba)
+}
+
+/// Wayland gives no window handle, so the process is checked instead; without either, assume
+/// the window is still there.
+pub fn is_open(target: &Target) -> bool {
+    if target.pid != 0 {
+        return std::path::Path::new(&format!("/proc/{}", target.pid)).exists();
+    }
+    true
 }
 
 pub fn activate(target: &Target) {

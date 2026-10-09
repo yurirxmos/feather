@@ -19,8 +19,9 @@ public enum LLMStreamPump {
         .http(status: statusCode, message: provider.errorMessage(fromBody: body))
     }
 
-    /// How long the stream may stay silent after its first text before it is treated as
-    /// finished. Guards against servers that never close the connection.
+    /// How long the stream may stay silent after its first text before it ends with
+    /// `LLMError.stalled`. Guards against servers that never close the connection; the caller
+    /// keeps the text so far, but it may be incomplete.
     public static let defaultIdleTimeout: Duration = .seconds(10)
 
     /// The longest one generation may take, from sending the request to its last text. A typing
@@ -89,7 +90,7 @@ public enum LLMStreamPump {
                     try? await Task.sleep(for: min(idleTimeout, .milliseconds(500)))
                     if let last = activity.lastText, clock.now - last >= idleTimeout {
                         reader.cancel()
-                        continuation.finish()
+                        continuation.finish(throwing: LLMError.stalled)
                         return
                     }
                 }

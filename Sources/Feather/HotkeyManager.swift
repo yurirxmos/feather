@@ -1,5 +1,6 @@
 import Carbon.HIToolbox
 import FeatherCore
+import Combine
 import Foundation
 
 /// Carbon's `RegisterEventHotKey` needs no Accessibility permission and swallows the keystroke.
@@ -31,10 +32,12 @@ extension HotkeyPreset {
 }
 
 @MainActor
-final class HotkeyManager {
+final class HotkeyManager: ObservableObject {
     static let shared = HotkeyManager()
 
     var onPress: (() -> Void)?
+    /// False when another app already owns the chosen shortcut; Settings then says so.
+    @Published private(set) var isRegistered = true
     private var hotKeyRef: EventHotKeyRef?
     private var handlerRef: EventHandlerRef?
 
@@ -46,7 +49,8 @@ final class HotkeyManager {
         unregister()
         let id = EventHotKeyID(signature: OSType(0x4354_4241), id: 1) // 'CTBA'
         let status = RegisterEventHotKey(preset.keyCode, preset.carbonModifiers, id, GetApplicationEventTarget(), 0, &hotKeyRef)
-        return status == noErr
+        isRegistered = status == noErr
+        return isRegistered
     }
 
     func unregister() {

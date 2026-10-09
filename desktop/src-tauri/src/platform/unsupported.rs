@@ -23,6 +23,10 @@ pub fn screenshot(_target: &Target, _frame: Option<Rect>) -> Option<image::RgbaI
     None
 }
 
+pub fn is_open(_target: &Target) -> bool {
+    true
+}
+
 pub fn activate(_target: &Target) {}
 
 pub fn send_paste_shortcut() {}

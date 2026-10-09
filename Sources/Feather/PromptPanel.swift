@@ -37,6 +37,10 @@ final class PromptPanel: NSPanel {
     override func setFrame(_ frameRect: NSRect, display flag: Bool) {
         var rect = frameRect
         if let anchorBottom { rect.origin.y = anchorBottom }
+        // A tall reply on a small screen slides the panel down rather than past the top edge.
+        if let visible = (screen ?? NSScreen.main)?.visibleFrame, rect.maxY > visible.maxY {
+            rect.origin.y = max(visible.minY, visible.maxY - rect.height)
+        }
         super.setFrame(rect, display: flag)
     }
 

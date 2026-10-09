@@ -413,10 +413,20 @@ pub fn prompt_toggle_option(controller: State<'_, PromptController>, option: Str
     controller.toggle_option(&option);
 }
 
-/// Escape hides the panel and keeps the session for a recapture.
+/// Escape stops a running reply, or closes the panel and keeps the conversation for ↑.
 #[tauri::command]
 pub fn prompt_dismiss(controller: State<'_, PromptController>) {
-    controller.suspend_for_recapture();
+    controller.dismiss();
+}
+
+#[tauri::command]
+pub fn prompt_insert(controller: State<'_, PromptController>) {
+    controller.insert();
+}
+
+#[tauri::command]
+pub fn prompt_open_settings(controller: State<'_, PromptController>) {
+    controller.open_settings();
 }
 
 #[tauri::command]

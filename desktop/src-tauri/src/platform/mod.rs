@@ -66,6 +66,9 @@ pub struct Snapshot {
     pub window_text_was_truncated: bool,
     /// The focus was in a field the user types into, such as a message or email body.
     pub focus_is_in_text_field: bool,
+    /// Whether the focused field takes a password. Its text is never read, and Insert copies
+    /// instead of pasting into it.
+    pub focused_field_is_secure: bool,
     pub window_frame: Option<Rect>,
 }
 
@@ -127,6 +130,11 @@ pub const CAPTURES_SCREENSHOT_BEFORE_PANEL: bool = imp::CAPTURES_SCREENSHOT_BEFO
 /// A JPEG of the target window. Blocking; call it off the main thread.
 pub fn screenshot_jpeg(target: &Target, frame: Option<Rect>) -> Option<Vec<u8>> {
     imp::screenshot(target, frame).and_then(encode_jpeg)
+}
+
+/// Whether the target window still exists, so a paste cannot land in whatever app replaced it.
+pub fn is_open(target: &Target) -> bool {
+    imp::is_open(target)
 }
 
 /// Brings the target window back to the front.

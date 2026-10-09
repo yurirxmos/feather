@@ -4,11 +4,14 @@ import SwiftUI
 
 struct PromptView: View {
     @ObservedObject var session: PromptSession
+    let submit: () -> Void
     let insertResult: () -> Void
     let copyResult: () -> Void
     let retryResult: () -> Void
     let newConversation: () -> Void
     let cancelGeneration: () -> Void
+    let openSettings: () -> Void
+    let showRecent: () -> Void
     @FocusState private var isFieldFocused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isTyping = false
@@ -17,98 +20,22 @@ struct PromptView: View {
 
     private var hasResult: Bool { !session.result.isEmpty || !session.answer.isEmpty || session.isGenerating }
 
+    /// Once a new reply starts arriving it takes the place of the previous one, so there is only
+    /// ever one reply on screen, always in the same spot above the field.
+    private var isStreaming: Bool {
+        session.isGenerating && (!session.streamingAnswer.isEmpty || !session.streamingResult.isEmpty)
+    }
+    private var shownAnswer: String { isStreaming ? session.streamingAnswer : session.answer }
+    private var shownResult: String { isStreaming ? session.streamingResult : session.result }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if hasContextPreview {
-                contextPreview
-            }
-
-            if let index = session.browsingIndex {
-                browsingCaption(index: index)
-            }
-
-            // Paid plans answer questions; the answer is for reading and only the suggestion is inserted.
-            if !session.answer.isEmpty {
-                blockLabel(String(localized: "Answer", bundle: .app))
-                answerBlock(session.answer, muted: false)
-            }
-            if !session.answer.isEmpty, !session.result.isEmpty {
-                blockLabel(String(localized: "Suggested text", bundle: .app))
-            }
-            if !session.result.isEmpty {
-                responseBlock(session.result, muted: session.isGenerating)
-            }
-
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                FeatherIcon(isAnimating: isTyping, strokes: strokes, reduceMotion: reduceMotion)
-                    .frame(width: 20, height: 20)
-                TextField(placeholder, text: $session.instruction, axis: .vertical)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 17, design: .serif))
-                    .foregroundStyle(.white)
-                    .lineLimit(1...5)
-                    .focused($isFieldFocused)
-                    .disabled(isFieldDisabled)
-                    .opacity(isFieldDisabled ? 0.45 : 1)
-                    .animation(.easeOut(duration: 0.15), value: isFieldDisabled)
-            }
-
-            if session.isGenerating {
-                Divider()
-                GeneratingIndicator(startedAt: session.generationStartedAt ?? .now, cancel: cancelGeneration)
-                if !session.streamingAnswer.isEmpty {
-                    answerBlock(session.streamingAnswer, muted: true)
-                }
-                if !session.streamingResult.isEmpty {
-                    responseBlock(session.streamingResult, muted: true)
-                }
-            }
-
-            if let error = session.errorMessage {
-                Label(error, systemImage: "exclamationmark.triangle.fill")
-                    .font(.callout)
-                    .foregroundStyle(.red.opacity(0.95))
-            }
-            if let notice = session.notice {
-                Label(notice, systemImage: "xmark.circle")
-                    .font(.callout)
-                    .foregroundStyle(.white.opacity(0.65))
-            }
-            if session.suggestsPlus, !session.isGenerating, !session.result.isEmpty {
-                Text("To get answers to your questions while Feather writes, subscribe to Feather Plus.", bundle: .app)
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.6))
-            }
-
-            if session.showScreenshot, session.options.includeWindow,
-               let data = session.context.screenshotJPEG, let image = NSImage(data: data) {
-                Image(nsImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(maxHeight: 220)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-            }
-
-            HStack(spacing: 12) {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 6) {
-                        contextChips
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                HStack(spacing: 10) {
-                    if canStartNewConversation {
-                        KeyHint(key: "⌘ \(newKey)", label: String(localized: "New", bundle: .app), action: newConversation)
-                    }
-                    primaryKeyHint
-                    if canInsert {
-                        secondaryKeyHints
-                    } else if canCopyAnswer {
-                        retryKeyHint
-                    }
-                }
-                .fixedSize()
+        Group {
+            if let confirmation = session.confirmation {
+                confirmationView(confirmation)
+            } else if session.needsSetup {
+                setupView
+            } else {
+                promptView
             }
         }
         .padding(16)
@@ -132,6 +59,112 @@ struct PromptView: View {
         .onDisappear {
             typingStopTask?.cancel()
         }
+    }
+
+    private var promptView: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if hasContextPreview {
+                contextPreview
+            }
+
+            if let index = session.browsingIndex {
+                browsingCaption(index: index)
+            }
+
+            // Paid plans answer questions; the answer is for reading and only the suggestion is inserted.
+            if !shownAnswer.isEmpty {
+                blockLabel(String(localized: "Answer", bundle: .app))
+                answerBlock(shownAnswer, muted: session.isGenerating)
+            }
+            if !shownAnswer.isEmpty, !shownResult.isEmpty {
+                blockLabel(String(localized: "Suggested text", bundle: .app))
+            }
+            if !shownResult.isEmpty {
+                responseBlock(shownResult, muted: session.isGenerating)
+            }
+
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                FeatherIcon(isAnimating: isTyping, strokes: strokes, reduceMotion: reduceMotion)
+                    .frame(width: 20, height: 20)
+                TextField(placeholder, text: $session.instruction, axis: .vertical)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 17, design: .serif))
+                    .foregroundStyle(.white)
+                    .lineLimit(1...5)
+                    .focused($isFieldFocused)
+                    .disabled(isFieldDisabled)
+                    .opacity(isFieldDisabled ? 0.45 : 1)
+                    .animation(.easeOut(duration: 0.15), value: isFieldDisabled)
+            }
+
+            if session.isGenerating {
+                GeneratingIndicator(startedAt: session.generationStartedAt ?? .now, cancel: cancelGeneration)
+            }
+
+            if let error = session.errorMessage {
+                Label(error, systemImage: "exclamationmark.triangle.fill")
+                    .font(.callout)
+                    .foregroundStyle(.red.opacity(0.95))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if let notice = session.notice {
+                Label(notice, systemImage: session.noticeIsSuccess ? "checkmark.circle" : "info.circle")
+                    .font(.callout)
+                    .foregroundStyle(.white.opacity(0.75))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if session.suggestsPlus, !session.isGenerating, !session.result.isEmpty {
+                Text("To get answers to your questions while Feather writes, subscribe to Feather Plus.", bundle: .app)
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.6))
+            }
+
+            HStack(spacing: 12) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        contextChips
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                HStack(spacing: 10) {
+                    if canStartNewConversation {
+                        KeyHint(key: "⌘ N", label: String(localized: "New", bundle: .app), action: newConversation)
+                    }
+                    primaryKeyHint
+                    if canInsert {
+                        secondaryKeyHints
+                    } else if canCopyAnswer {
+                        retryKeyHint
+                    }
+                }
+                .fixedSize()
+            }
+        }
+    }
+
+    /// Shown when the shortcut is pressed before any provider is connected.
+    private var setupView: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                FeatherIcon(isAnimating: false, strokes: 0, reduceMotion: reduceMotion)
+                    .frame(width: 20, height: 20)
+                Text("Connect a provider in Settings so Feather can write for you.", bundle: .app)
+                    .font(.system(size: 17, design: .serif))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            HStack {
+                Spacer()
+                KeyHint(showsReturn: true, label: String(localized: "Open Settings", bundle: .app), isHighlighted: true, action: openSettings)
+            }
+        }
+    }
+
+    private func confirmationView(_ text: String) -> some View {
+        Label(text, systemImage: "checkmark.circle.fill")
+            .font(.system(size: 15, design: .serif))
+            .lineLimit(1)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     /// The panel opens before the window text is read; typing waits for it.
@@ -168,7 +201,7 @@ struct PromptView: View {
                     .font(.system(size: 11, design: .monospaced))
             }
             .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(.white.opacity(0.55))
+            .foregroundStyle(.white.opacity(0.6))
             if !session.lastInstruction.isEmpty {
                 Text(session.lastInstruction)
                     .font(.system(size: 12, design: .serif))
@@ -182,7 +215,7 @@ struct PromptView: View {
         Text(text.uppercased())
             .font(.system(size: 11, weight: .semibold))
             .tracking(0.4)
-            .foregroundStyle(.white.opacity(0.55))
+            .foregroundStyle(.white.opacity(0.6))
     }
 
     private func answerBlock(_ text: String, muted: Bool) -> some View {
@@ -257,6 +290,23 @@ struct PromptView: View {
             ) { session.options.includeWindowText.toggle() }
         }
 
+        if session.context.screenshotJPEG != nil {
+            ContextChip(
+                title: String(localized: "Screenshot", bundle: .app),
+                systemImage: "camera.viewfinder",
+                isOn: session.options.includeWindow,
+                help: String(localized: "Feather sends a picture of the window with your request", bundle: .app)
+            ) { session.options.includeWindow.toggle() }
+        }
+
+        if session.captureCount > 1 {
+            ChipCaption(
+                title: String(format: String(localized: "%d captures", bundle: .app), locale: .current, session.captureCount),
+                systemImage: "square.stack",
+                help: String(localized: "You pressed the shortcut more than once in this app, so Feather combined what it read each time.", bundle: .app)
+            )
+        }
+
         if session.isCapturing {
             CaptureIndicator(status: session.captureStatus)
         }
@@ -275,18 +325,21 @@ struct PromptView: View {
     }
 
     private var retryKeyHint: some View {
-        KeyHint(key: "⌘ \(retryKey)", label: String(localized: "Retry", bundle: .app), action: retryResult)
+        KeyHint(key: "⌘ R", label: String(localized: "Retry", bundle: .app), action: retryResult)
     }
 
+    /// Return refines or generates while there is an instruction, and inserts once the field is
+    /// empty and a reply is ready; the hint always names what Return will do.
     @ViewBuilder
     private var primaryKeyHint: some View {
-        if canInsert {
+        if !session.instruction.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, !session.isGenerating {
             KeyHint(
                 showsReturn: true,
-                label: String(localized: "Insert", bundle: .app),
-                isHighlighted: true,
-                action: insertResult
+                label: hasResult ? String(localized: "Refine", bundle: .app) : String(localized: "Generate", bundle: .app),
+                action: submit
             )
+        } else if canInsert {
+            KeyHint(showsReturn: true, label: insertLabel, isHighlighted: true, action: insertResult)
         } else if canCopyAnswer {
             // Only an answer came back, so there is nothing to insert.
             KeyHint(
@@ -295,13 +348,15 @@ struct PromptView: View {
                 isHighlighted: true,
                 action: copyResult
             )
-        } else {
-            KeyHint(showsReturn: true, label: String(localized: "Generate", bundle: .app))
+        } else if session.instruction.isEmpty, !hasResult, session.browsingIndex == nil, session.recentCount > 0 {
+            KeyHint(key: "↑", label: String(localized: "Recent", bundle: .app), action: showRecent)
         }
     }
 
-    private var retryKey: String { String(localized: "R", bundle: .app) }
-    private var newKey: String { String(localized: "N", bundle: .app) }
+    private var insertLabel: String {
+        guard let app = session.insertTarget else { return String(localized: "Insert", bundle: .app) }
+        return String(format: String(localized: "Insert into %@", bundle: .app), locale: .current, app)
+    }
 
     /// ⌘N works at any time; the hint shows once there is a conversation to leave.
     private var canStartNewConversation: Bool {
@@ -357,9 +412,12 @@ private struct FeatherIcon: View {
             .offset(x: isWriting ? (isUpstroke ? 1 : -0.5) : 0, y: isWriting ? (isUpstroke ? -1 : 0.5) : 0)
             .foregroundStyle(isAnimating ? Color.accentColor : .white)
             .animation(.easeOut(duration: 0.28), value: isAnimating)
+            .accessibilityHidden(true)
     }
 }
 
+/// A context source the user can leave out of this request. Off is shown by a dimmer, struck
+/// through label and read by VoiceOver as the switch's value.
 private struct ContextChip: View {
     let title: String
     let systemImage: String
@@ -368,18 +426,42 @@ private struct ContextChip: View {
     let action: () -> Void
 
     var body: some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(.caption)
+                .lineLimit(1)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(isOn ? Color.white.opacity(0.18) : Color.white.opacity(0.07), in: Capsule())
+                .foregroundStyle(isOn ? Color.white : Color.white.opacity(0.6))
+                .strikethrough(!isOn)
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .help(help)
+        .accessibilityLabel(title)
+        .accessibilityHint(help)
+        .accessibilityValue(isOn ? String(localized: "Included", bundle: .app) : String(localized: "Left out", bundle: .app))
+        .accessibilityAddTraits(.isToggle)
+        .pointingHandCursor()
+    }
+}
+
+/// Information next to the chips that cannot be switched off.
+private struct ChipCaption: View {
+    let title: String
+    let systemImage: String
+    let help: String
+
+    var body: some View {
         Label(title, systemImage: systemImage)
-            .font(.caption)
+            .font(.caption2)
             .lineLimit(1)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(isOn ? Color.white.opacity(0.18) : Color.white.opacity(0.07), in: Capsule())
-            .foregroundStyle(isOn ? Color.white : Color.white.opacity(0.55))
-            .strikethrough(!isOn)
-            .contentShape(Capsule())
+            .foregroundStyle(.white.opacity(0.6))
             .help(help)
-            .onTapGesture(perform: action)
-            .pointingHandCursor()
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(title)
+            .accessibilityHint(help)
     }
 }
 
@@ -434,19 +516,26 @@ private struct GeneratingIndicator: View {
                 Text(ElapsedTime.string(timeline.date.timeIntervalSince(startedAt)))
                     .font(.system(size: 11, design: .monospaced))
                     .monospacedDigit()
-                    .foregroundStyle(.white.opacity(0.4))
+                    .foregroundStyle(.white.opacity(0.6))
                     .contentTransition(.identity)
             }
+            .accessibilityHidden(true)
             Button(action: cancel) {
-                Text("Cancel", bundle: .app)
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.75))
-                    .padding(.horizontal, 8)
-                    .frame(minHeight: 20)
-                    .background(Color.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 5, style: .continuous))
-                    .contentShape(Rectangle())
+                HStack(spacing: 4) {
+                    Text("Cancel", bundle: .app)
+                    Text(verbatim: "esc")
+                        .font(.caption2.monospaced())
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.75))
+                .padding(.horizontal, 8)
+                .frame(minHeight: 20)
+                .background(Color.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 5, style: .continuous))
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(String(localized: "Cancel", bundle: .app))
             .pointingHandCursor()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -493,6 +582,9 @@ private struct KeyHint: View {
             )
             Text(label)
                 .font(.caption)
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .frame(maxWidth: 200, alignment: .leading)
                 .foregroundStyle(
                     isHighlighted ? Color.blue.opacity(0.9) : Color.white.opacity(0.75)
                 )

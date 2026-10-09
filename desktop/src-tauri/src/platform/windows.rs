@@ -18,7 +18,8 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
     SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYBD_EVENT_FLAGS, KEYEVENTF_KEYUP, VIRTUAL_KEY, VK_CONTROL,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
-    GetForegroundWindow, GetWindowTextW, GetWindowThreadProcessId, IsIconic, SetForegroundWindow, ShowWindow, SW_RESTORE,
+    GetForegroundWindow, GetWindowTextW, GetWindowThreadProcessId, IsIconic, IsWindow, SetForegroundWindow, ShowWindow,
+    SW_RESTORE,
 };
 
 use super::{non_empty, Capability, Rect, Snapshot, Target, TextCollector, MAX_FIELD_TEXT};
@@ -68,7 +69,11 @@ pub fn capture(target: &Target) -> Snapshot {
     // the potentially large window tree.
     if let Ok(focused) = automation.get_focused_element() {
         let belongs_to_target = focused.get_process_id().map(|pid| pid == target.pid).unwrap_or(false);
-        if belongs_to_target && !focused.is_password().unwrap_or(true) {
+        // Unknown counts as a password for reading, but only a known one stops Insert from pasting.
+        let is_password = focused.is_password().ok();
+        if belongs_to_target && is_password == Some(true) {
+            snapshot.focused_field_is_secure = true;
+        } else if belongs_to_target && is_password == Some(false) {
             snapshot.selected_text = selected_text(&focused);
             snapshot.focused_text = field_text(&focused);
             snapshot.focus_is_in_text_field = is_text_field(&focused);
@@ -157,6 +162,10 @@ pub fn screenshot(target: &Target, _frame: Option<Rect>) -> Option<image::RgbaIm
     let id = target.window as u32;
     let window = xcap::Window::all().ok()?.into_iter().find(|window| window.id().ok() == Some(id))?;
     window.capture_image().ok()
+}
+
+pub fn is_open(target: &Target) -> bool {
+    unsafe { IsWindow(Some(hwnd(target))).as_bool() }
 }
 
 pub fn activate(target: &Target) {

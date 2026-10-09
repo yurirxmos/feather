@@ -193,12 +193,20 @@ The default shortcut is `⌥ Space`. Choose one of these presets in Settings:
 
 | Key | Action |
 | --- | --- |
-| `Return` | Generate a result, then insert it into the focused field |
+| `Return` | Generate a result, refine it with a new instruction, or insert it into the focused field when the field is empty |
 | `⌘ Return` | Copy the result |
 | `⌘ R` | Regenerate the result |
-| `Esc` | Hide Feather so you can adjust the source window and capture again |
+| `⌘ N` | Save this conversation and start a new one on the same screen |
+| `↑` / `↓` | With an empty field, bring back one of the last 5 conversations |
+| `Esc` | Stop a running reply, or close Feather (`↑` brings the conversation back) |
 
-If Feather cannot paste into the target field, it copies the result instead.
+To add more of the same window, press the shortcut (or click the window) to hide Feather, scroll,
+and press the shortcut again within a minute: Feather reads the screen again and keeps the
+conversation. In another app, or after a minute, it saves the conversation for `↑` and starts fresh.
+
+Feather never pastes into a password field: it copies the result instead and says why, as it does
+when it lacks permission to paste. If the app has closed since you pressed the shortcut, it keeps
+the panel open so you can copy the result.
 
 ## Build from source
 

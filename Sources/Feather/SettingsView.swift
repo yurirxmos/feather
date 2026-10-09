@@ -42,6 +42,7 @@ struct SettingsView: View {
     private let credentialStore: any CredentialStore
     @State private var selectedSection: SettingsSection? = .general
     @StateObject private var permissions = PermissionMonitor()
+    @ObservedObject private var hotkeyManager = HotkeyManager.shared
     @AppStorage(SettingsKey.connection) private var connection: ConnectionKind = .openCodeGo
     @AppStorage(SettingsKey.hotkey) private var hotkey: HotkeyPreset = .optionSpace
     @AppStorage(SettingsKey.includeScreenshot) private var includeScreenshot = true
@@ -242,6 +243,12 @@ struct SettingsView: View {
                 .pointingHandCursor()
             } header: {
                 Text("Shortcut", bundle: .app)
+            } footer: {
+                if !hotkeyManager.isRegistered {
+                    Label(String(localized: "Another app is using this shortcut. Choose a different one.", bundle: .app), systemImage: "exclamationmark.triangle.fill")
+                        .font(.callout)
+                        .foregroundStyle(.red)
+                }
             }
 
             Section {

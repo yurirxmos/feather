@@ -84,6 +84,15 @@ const TRANSLATIONS: &[(&str, &str)] = &[
     ("You can close this window and return to Feather.", "Você pode fechar esta janela e voltar ao Feather."),
     ("You've sent a lot of feedback today. Try again tomorrow.", "Você já enviou muitos feedbacks hoje. Tente de novo amanhã."),
     ("Your session expired. Sign in again.", "Sua sessão expirou. Entre novamente."),
+    ("The provider rejected your sign-in or API key. Check it in Settings.", "O provedor recusou seu login ou sua chave de API. Confira nas Configurações."),
+    ("The provider is limiting requests right now. Wait a moment and try again.", "O provedor está limitando as requisições agora. Espere um pouco e tente de novo."),
+    ("The provider is having trouble right now (error {status}). Try again in a moment.", "O provedor está com problemas agora (erro {status}). Tente de novo em instantes."),
+    ("The reply stopped arriving. Try again.", "A resposta parou de chegar. Tente de novo."),
+    ("The reply stopped arriving and may be incomplete. Review it before inserting it.", "A resposta parou de chegar e pode estar incompleta. Revise antes de inserir."),
+    ("That field takes a password, so Feather copied the reply instead of pasting it.", "Esse campo é de senha, então o Feather copiou a resposta em vez de colar."),
+    ("{app} is no longer open, so Feather can't insert the reply. Copy it instead.", "{app} não está mais aberto, então o Feather não consegue inserir a resposta. Copie-a em vez disso."),
+    ("Pasted into {app}", "Colado em {app}"),
+    ("Pasted", "Colado"),
 ];
 
 #[cfg(test)]
@@ -93,7 +102,7 @@ mod tests {
     #[test]
     fn every_translation_keeps_its_placeholders() {
         for (english, portuguese) in TRANSLATIONS {
-            for placeholder in ["{status}", "{seconds}", "{shortcut}", "{version}", "{error}"] {
+            for placeholder in ["{status}", "{seconds}", "{shortcut}", "{version}", "{error}", "{app}"] {
                 assert_eq!(english.contains(placeholder), portuguese.contains(placeholder), "{english}");
             }
         }

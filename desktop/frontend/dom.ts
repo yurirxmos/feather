@@ -95,9 +95,12 @@ export function moreIcon(): SVGSVGElement {
 /**
  * The provider row icons, on a 20x20 grid, like the SF Symbols the macOS app uses: `check`
  * (checkmark.circle.fill), `circle`, `plus` (plus.circle), `plusFilled` (plus.circle.fill),
- * `card` (creditcard), `cancel` (xmark.circle), and `signOut` (rectangle.portrait.and.arrow.right).
+ * `card` (creditcard), `cancel` (xmark.circle), `signOut` (rectangle.portrait.and.arrow.right),
+ * `success` (checkmark.circle), and `info` (info.circle).
  */
-export function rowIcon(name: "check" | "circle" | "plus" | "plusFilled" | "card" | "cancel" | "signOut"): SVGSVGElement {
+export function rowIcon(
+  name: "check" | "circle" | "plus" | "plusFilled" | "card" | "cancel" | "signOut" | "success" | "info",
+): SVGSVGElement {
   const svg = document.createElementNS(SVG, "svg");
   svg.setAttribute("viewBox", "0 0 20 20");
   svg.setAttribute("class", `row-icon ${name}`);
@@ -138,6 +141,15 @@ export function rowIcon(name: "check" | "circle" | "plus" | "plusFilled" | "card
     case "signOut":
       add("path", { d: "M8 3.75H5.5a1.75 1.75 0 0 0-1.75 1.75v9A1.75 1.75 0 0 0 5.5 16.25H8", ...stroke });
       add("path", { d: "M8.5 10h8M13.5 6.75L16.75 10l-3.25 3.25", ...stroke });
+      break;
+    case "success":
+      ring();
+      add("path", { d: "M6.6 10.2l2.3 2.3 4.6-4.9", ...stroke });
+      break;
+    case "info":
+      ring();
+      add("path", { d: "M10 9v5", ...stroke });
+      add("circle", { cx: "10", cy: "6.4", r: "0.9", fill: "currentColor" });
       break;
   }
   return svg;

@@ -3,7 +3,7 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { h, featherIcon, returnKeyIcon } from "./dom";
+import { h, featherIcon, returnKeyIcon, rowIcon } from "./dom";
 import { t } from "./i18n";
 
 type ContextOptions = {
@@ -33,6 +33,18 @@ type PanelState = {
   generationStartedAt: number | null;
   errorMessage: string | null;
   notice: string | null;
+  /** Whether `notice` reports something done, such as a copy, rather than something to review. */
+  noticeIsSuccess: boolean;
+  /** Shown alone, briefly, after a reply was pasted. */
+  confirmation: string | null;
+  /** No provider is connected yet, so the panel only offers to open Settings. */
+  needsSetup: boolean;
+  /** The app Insert pastes into. */
+  insertTarget: string | null;
+  captureCount: number;
+  hasScreenshot: boolean;
+  /** How many recent conversations ↑ can bring back. */
+  recentCount: number;
   focusToken: number;
   restoreInstruction: string | null;
   restoreToken: number;
@@ -58,15 +70,13 @@ export async function startPanel(root: HTMLElement): Promise<void> {
   const field = h("textarea", { class: "instruction", rows: "1", spellcheck: "true", "aria-label": t("What do you want to write?") });
   const icon = featherIcon();
   const content = h("div", { class: "panel-content" });
+  const inputRow = h("div", { class: "input-row" }, icon, field);
   const footer = h("div", { class: "panel-footer" });
-  const panel = h(
-    "section",
-    { class: "panel", "data-tauri-drag-region": true },
-    content,
-    h("div", { class: "input-row" }, icon, field),
-    footer,
-  );
-  root.replaceChildren(panel);
+  // Status changes the panel shows only visually are read out from here. It stays in the page,
+  // because screen readers only announce changes to a live region that already exists.
+  const announcer = h("p", { class: "sr-only", "aria-live": "polite" });
+  const panel = h("section", { class: "panel", "data-tauri-drag-region": true }, content, inputRow, footer);
+  root.replaceChildren(panel, announcer);
 
   // Drawn, wired, and sized before asking Rust for anything, so the panel stays usable and shows
   // the reason if the state cannot be loaded.
@@ -75,54 +85,140 @@ export async function startPanel(root: HTMLElement): Promise<void> {
   let restoreToken = state.restoreToken;
   let timer: number | undefined;
   let typingTimer: number | undefined;
+  let hints = h("div", { class: "hints" });
 
   const autosize = () => {
     field.style.height = "auto";
     field.style.height = `${Math.min(field.scrollHeight, 5 * 24)}px`;
   };
 
+  const announce = (message: string | null) => {
+    if (!message) return;
+    announcer.textContent = "";
+    // Setting the text after a frame makes a repeated message announce again.
+    window.requestAnimationFrame(() => (announcer.textContent = message));
+  };
+
+  const submit = () => {
+    const instruction = field.value;
+    void invoke("prompt_submit", { instruction });
+    if (instruction.trim() !== "" && !state.needsSetup) {
+      field.value = "";
+      autosize();
+      renderHints();
+    }
+  };
+
+  const newConversation = () => {
+    field.value = "";
+    autosize();
+    void invoke("prompt_new_conversation");
+  };
+
+  const hasResult = () => state.result !== "" || state.answer !== "" || state.isGenerating;
+  const canInsert = () => state.result !== "" && !state.isGenerating;
+  const canCopyAnswer = () => state.result === "" && state.answer !== "" && !state.isGenerating;
+
+  /** Enter refines or generates while there is an instruction, and inserts once the field is
+   * empty and a reply is ready; the hint always names what Enter will do. */
+  const renderHints = () => {
+    const next = h("div", { class: "hints" });
+    // Ctrl+N works at any time; the hint shows once there is a conversation to leave.
+    if (hasResult()) next.append(keyHint(["Ctrl N"], t("New"), false, newConversation));
+    if (field.value.trim() !== "" && !state.isGenerating) {
+      next.append(keyHint([returnKeyIcon()], hasResult() ? t("Refine") : t("Generate"), false, submit));
+    } else if (canInsert()) {
+      const label = state.insertTarget ? t("Insert into {app}", { app: state.insertTarget }) : t("Insert");
+      next.append(keyHint([returnKeyIcon()], label, true, () => void invoke("prompt_insert")));
+    } else if (canCopyAnswer()) {
+      // Only an answer came back, so there is nothing to insert.
+      next.append(keyHint([returnKeyIcon()], t("Copy"), true, () => void invoke("prompt_copy")));
+    } else if (field.value === "" && !hasResult() && !state.browsing && state.recentCount > 0) {
+      next.append(keyHint(["↑"], t("Recent"), false, () => void invoke("prompt_browse", { direction: "older" })));
+    }
+    if (canInsert()) next.append(keyHint(["Ctrl", returnKeyIcon()], t("Copy"), false, () => void invoke("prompt_copy")));
+    if (canInsert() || canCopyAnswer()) next.append(keyHint(["Ctrl R"], t("Retry"), false, () => void invoke("prompt_regenerate")));
+    hints.replaceWith(next);
+    hints = next;
+  };
+
+  const renderSetup = () => {
+    inputRow.hidden = true;
+    content.replaceChildren(
+      h("div", { class: "setup" }, featherIcon(), h("p", { class: "setup-text" }, t("Connect a provider in Settings so Feather can write for you."))),
+    );
+    footer.replaceChildren(
+      h("div", { class: "footer-row end" }, keyHint([returnKeyIcon()], t("Open Settings"), true, () => void invoke("prompt_open_settings"))),
+    );
+  };
+
+  const renderConfirmation = (text: string) => {
+    inputRow.hidden = true;
+    footer.replaceChildren();
+    const check = rowIcon("success");
+    check.classList.add("confirmation-icon");
+    content.replaceChildren(h("p", { class: "confirmation" }, check, h("span", {}, text)));
+  };
+
   const render = () => {
-    const hasResult = state.result !== "" || state.answer !== "" || state.isGenerating;
-    const canInsert = state.result !== "" && !state.isGenerating;
-    const canCopyAnswer = state.result === "" && state.answer !== "" && !state.isGenerating;
-    field.placeholder = hasResult ? t("Refine: shorter, more formal…") : t("What do you want to write?");
+    window.clearInterval(timer);
+    panel.classList.toggle("generating", state.isGenerating);
+    if (state.confirmation) return renderConfirmation(state.confirmation);
+    if (state.needsSetup) return renderSetup();
+    inputRow.hidden = false;
+
+    field.placeholder = hasResult() ? t("Refine: shorter, more formal…") : t("What do you want to write?");
     // The panel opens before the window text is read; typing waits for it.
     field.disabled = state.isGenerating || state.captureStatus === "readingScreen";
-    panel.classList.toggle("generating", state.isGenerating);
+
+    // Once a new reply starts arriving it takes the place of the previous one, so there is only
+    // ever one reply on screen, always in the same spot above the field.
+    const isStreaming = state.isGenerating && (state.streamingAnswer !== "" || state.streamingResult !== "");
+    const answer = isStreaming ? state.streamingAnswer : state.answer;
+    const result = isStreaming ? state.streamingResult : state.result;
 
     const blocks: (Node | null)[] = [];
     if (state.selectedPreview) blocks.push(h("p", { class: "selection-preview" }, state.selectedPreview));
     if (state.browsing) blocks.push(browsingCaption(state.browsing));
     // Paid plans answer questions; the answer is for reading and only the suggestion is inserted.
-    if (state.answer) blocks.push(h("p", { class: "block-label" }, t("Answer")), h("p", { class: "answer" }, state.answer));
-    if (state.answer && state.result) blocks.push(h("p", { class: "block-label" }, t("Suggested text")));
-    if (state.result) blocks.push(responseBlock(state.result, state.isGenerating));
+    if (answer) blocks.push(h("p", { class: "block-label" }, t("Answer")), h("p", { class: state.isGenerating ? "answer muted" : "answer" }, answer));
+    if (answer && result) blocks.push(h("p", { class: "block-label" }, t("Suggested text")));
+    if (result) blocks.push(responseBlock(result, state.isGenerating));
     content.replaceChildren(...blocks.filter((block): block is Node => block !== null));
 
     const below: Node[] = [];
-    window.clearInterval(timer);
     if (state.isGenerating) {
-      const clock = h("span", { class: "elapsed" });
+      const clock = h("span", { class: "elapsed", "aria-hidden": "true" });
       const tick = () => {
         clock.textContent = elapsed((Date.now() - (state.generationStartedAt ?? Date.now())) / 1000);
       };
       tick();
       timer = window.setInterval(tick, 1000);
       below.push(
-        h("hr"),
         h(
           "div",
           { class: "generating-row" },
           h("span", { class: "generating-label" }, t("Generating…")),
           clock,
-          h("button", { class: "small-button", type: "button", onclick: () => void invoke("prompt_cancel_generation") }, t("Cancel")),
+          h(
+            "button",
+            { class: "small-button", type: "button", "aria-label": t("Cancel"), onclick: () => void invoke("prompt_cancel_generation") },
+            t("Cancel"),
+            h("kbd", {}, "Esc"),
+          ),
         ),
       );
-      if (state.streamingAnswer) below.push(h("p", { class: "answer muted" }, state.streamingAnswer));
-      if (state.streamingResult) below.push(responseBlock(state.streamingResult, true));
     }
-    if (state.errorMessage) below.push(h("p", { class: "error", role: "alert" }, `⚠ ${state.errorMessage}`));
-    if (state.notice) below.push(h("p", { class: "notice", role: "status" }, state.notice));
+    if (state.errorMessage) {
+      const warning = rowIcon("info");
+      warning.classList.add("status-icon");
+      below.push(h("p", { class: "error" }, warning, h("span", {}, state.errorMessage)));
+    }
+    if (state.notice) {
+      const glyph = rowIcon(state.noticeIsSuccess ? "success" : "info");
+      glyph.classList.add("status-icon");
+      below.push(h("p", { class: "notice" }, glyph, h("span", {}, state.notice)));
+    }
     if (state.suggestsPlus && !state.isGenerating && state.result) {
       below.push(h("p", { class: "caption" }, t("To get answers to your questions while Feather writes, subscribe to Feather Plus.")));
     }
@@ -141,6 +237,15 @@ export async function startPanel(root: HTMLElement): Promise<void> {
           : chip(t("Window"), state.options.includeWindowText, "windowText", t("Feather is reading the window you are in")),
       );
     }
+    if (state.hasScreenshot) chips.append(chip(t("Screenshot"), state.options.includeWindow, "window", t("Feather sends a picture of the window with your request")));
+    if (state.captureCount > 1) {
+      chips.append(
+        chipCaption(
+          t("{count} captures", { count: state.captureCount }),
+          t("You pressed the shortcut more than once in this app, so Feather combined what it read each time."),
+        ),
+      );
+    }
     if (state.isCapturing) {
       chips.append(
         h(
@@ -155,43 +260,41 @@ export async function startPanel(root: HTMLElement): Promise<void> {
       chips.append(h("span", { class: "caption" }, t("No app context")));
     }
 
-    const hints = h("div", { class: "hints" });
-    // Ctrl+N works at any time; the hint shows once there is a conversation to leave.
-    if (state.result || state.answer || state.isGenerating) {
-      hints.append(keyHint(["Ctrl N"], t("New"), false, newConversation));
-    }
-    if (canInsert) {
-      hints.append(
-        keyHint([returnKeyIcon()], t("Insert"), true, () => void invoke("prompt_submit", { instruction: "" })),
-        keyHint(["Ctrl", returnKeyIcon()], t("Copy"), false, () => void invoke("prompt_copy")),
-        keyHint(["Ctrl R"], t("Retry"), false, () => void invoke("prompt_regenerate")),
-      );
-    } else if (canCopyAnswer) {
-      // Only an answer came back, so there is nothing to insert.
-      hints.append(
-        keyHint([returnKeyIcon()], t("Copy"), true, () => void invoke("prompt_copy")),
-        keyHint(["Ctrl R"], t("Retry"), false, () => void invoke("prompt_regenerate")),
-      );
-    } else {
-      hints.append(keyHint([returnKeyIcon()], t("Generate")));
-    }
     footer.replaceChildren(...below, h("div", { class: "footer-row" }, chips, hints));
+    renderHints();
+  };
 
-    if (state.focusToken !== focusToken || (!field.disabled && document.activeElement !== field)) {
+  const apply = (next: PanelState) => {
+    const previous = state;
+    state = next;
+    render();
+
+    // Focus goes back to the field when the panel shows and once it can be typed in again, never
+    // on every update, so Tab can reach the chips and hints.
+    const finished = previous.isGenerating && !state.isGenerating;
+    const unlocked = previous.captureStatus === "readingScreen" && state.captureStatus !== "readingScreen";
+    if (state.focusToken !== focusToken || finished || unlocked) {
       focusToken = state.focusToken;
-      field.focus();
+      if (!state.needsSetup && !state.confirmation) field.focus();
     }
     if (state.restoreToken !== restoreToken) {
       restoreToken = state.restoreToken;
       if (state.restoreInstruction && field.value === "") {
         field.value = state.restoreInstruction;
         autosize();
+        renderHints();
       }
     }
+
+    if (state.errorMessage && state.errorMessage !== previous.errorMessage) announce(state.errorMessage);
+    else if (state.confirmation && state.confirmation !== previous.confirmation) announce(state.confirmation);
+    else if (state.notice && state.notice !== previous.notice) announce(state.notice);
+    else if (finished && (state.result || state.answer)) announce(t("Reply ready."));
   };
 
   field.addEventListener("input", () => {
     autosize();
+    renderHints();
     icon.classList.toggle("typing", field.value !== "");
     // Each keystroke swings the feather the other way around its nib, like writing.
     icon.classList.toggle("upstroke");
@@ -199,32 +302,24 @@ export async function startPanel(root: HTMLElement): Promise<void> {
     typingTimer = window.setTimeout(() => icon.classList.remove("typing"), 420);
   });
 
-  const newConversation = () => {
-    field.value = "";
-    autosize();
-    void invoke("prompt_new_conversation");
-  };
-
   window.addEventListener("keydown", (event) => {
     const control = event.ctrlKey || event.metaKey;
     if (event.key === "Escape") {
+      // Esc stops a running reply; otherwise it closes, and ↑ brings the conversation back.
       event.preventDefault();
       void invoke("prompt_dismiss");
     } else if (event.key === "Enter" && control && !event.shiftKey && !event.altKey) {
       event.preventDefault();
       void invoke("prompt_copy");
     } else if (event.key === "Enter" && !control && !event.shiftKey && !event.altKey) {
+      // Enter on a focused hint or chip activates it instead.
+      if (event.target instanceof HTMLButtonElement) return;
       event.preventDefault();
-      const instruction = field.value;
-      void invoke("prompt_submit", { instruction });
-      if (instruction.trim() !== "") {
-        field.value = "";
-        autosize();
-      }
+      submit();
     } else if (
       (event.key === "ArrowUp" || event.key === "ArrowDown") &&
       !control && !event.shiftKey && !event.altKey &&
-      field.value === "" && !state.isGenerating
+      field.value === "" && !state.isGenerating && !state.needsSetup
     ) {
       // With an empty field, ↑ and ↓ move through recent conversations.
       event.preventDefault();
@@ -245,16 +340,13 @@ export async function startPanel(root: HTMLElement): Promise<void> {
 
   render();
   try {
-    await listen<PanelState>("prompt-state", (event) => {
-      state = event.payload;
-      render();
-    });
-    state = await invoke<PanelState>("prompt_state");
-    restoreToken = state.restoreToken;
+    await listen<PanelState>("prompt-state", (event) => apply(event.payload));
+    const initial = await invoke<PanelState>("prompt_state");
+    restoreToken = initial.restoreToken;
+    apply(initial);
   } catch (error) {
-    state = { ...state, errorMessage: String(error) };
+    apply({ ...state, errorMessage: String(error) });
   }
-  render();
 }
 
 const EMPTY_STATE: PanelState = {
@@ -275,6 +367,13 @@ const EMPTY_STATE: PanelState = {
   generationStartedAt: null,
   errorMessage: null,
   notice: null,
+  noticeIsSuccess: false,
+  confirmation: null,
+  needsSetup: false,
+  insertTarget: null,
+  captureCount: 0,
+  hasScreenshot: false,
+  recentCount: 0,
   focusToken: 0,
   restoreInstruction: null,
   restoreToken: 0,
@@ -300,6 +399,7 @@ function responseBlock(text: string, muted: boolean): HTMLElement {
   return h("div", { class: muted ? "response muted" : "response" }, text);
 }
 
+/** A context source the user can leave out of this request. */
 function chip(title: string, isOn: boolean, option: string, hint: string): HTMLElement {
   return h(
     "button",
@@ -308,16 +408,22 @@ function chip(title: string, isOn: boolean, option: string, hint: string): HTMLE
       type: "button",
       title: hint,
       "aria-pressed": String(isOn),
+      "aria-description": hint,
       onclick: () => void invoke("prompt_toggle_option", { option }),
     },
     title,
   );
 }
 
+/** Information next to the chips that cannot be switched off. */
+function chipCaption(title: string, hint: string): HTMLElement {
+  return h("span", { class: "chip-caption", title: hint, "aria-description": hint }, title);
+}
+
 function keyHint(keys: (string | Node)[], label: string, highlighted = false, action?: () => void): HTMLElement {
-  const content = [h("kbd", {}, ...keys), h("span", {}, label)];
+  const content = [h("kbd", {}, ...keys), h("span", { class: "key-label" }, label)];
   const className = highlighted ? "key-hint highlighted" : "key-hint";
   return action
-    ? h("button", { class: className, type: "button", "aria-label": label, onclick: action }, ...content)
+    ? h("button", { class: className, type: "button", "aria-label": label, title: label, onclick: action }, ...content)
     : h("span", { class: className }, ...content);
 }

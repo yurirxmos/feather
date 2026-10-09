@@ -13,8 +13,9 @@ use crate::core::sse::SseParser;
 /// assistant that needs longer is stuck, not thinking.
 pub const RESPONSE_DEADLINE: Duration = Duration::from_secs(60);
 
-/// How long the stream may stay silent after its first text before it is treated as finished.
-/// Guards against servers that never close the connection.
+/// How long the stream may stay silent after its first text before it ends with
+/// `LlmError::Stalled`. Guards against servers that never close the connection; the caller keeps
+/// the text so far, but it may be incomplete.
 const IDLE_TIMEOUT: Duration = Duration::from_secs(10);
 
 const MAX_ERROR_BODY_BYTES: usize = 64_000;
@@ -80,7 +81,7 @@ async fn run(provider: &Provider, mut request: GenerationRequest, mut on_text: i
         let next = if saw_text {
             match tokio::time::timeout(IDLE_TIMEOUT, bytes.next()).await {
                 Ok(next) => next,
-                Err(_) => return Ok(()),
+                Err(_) => return Err(LlmError::Stalled),
             }
         } else {
             bytes.next().await

@@ -9,6 +9,8 @@ pub enum LlmError {
     Api(String),
     Refused,
     TimedOut,
+    /// The stream stopped sending text before it said it was done.
+    Stalled,
     /// The request never reached the provider.
     Network,
 }
@@ -19,6 +21,13 @@ impl LlmError {
             LlmError::MissingApiKey => t("Add an API key in Settings."),
             LlmError::MissingModel => t("Set a model in Settings."),
             LlmError::InvalidBaseUrl => t("The base URL in Settings is not valid."),
+            LlmError::Http { status: 401, .. } => t("The provider rejected your sign-in or API key. Check it in Settings."),
+            LlmError::Http { status: 429, message: None } => {
+                t("The provider is limiting requests right now. Wait a moment and try again.")
+            }
+            LlmError::Http { status: status @ 500..=599, .. } => {
+                t("The provider is having trouble right now (error {status}). Try again in a moment.").replace("{status}", &status.to_string())
+            }
             LlmError::Http { status, message: Some(message) } => format!("{status}: {message}"),
             LlmError::Http { status, message: None } => {
                 t("Request failed with status {status}.").replace("{status}", &status.to_string())
@@ -28,6 +37,7 @@ impl LlmError {
             LlmError::TimedOut => {
                 t("The model took more than 1 minute to respond. Try again or choose a faster model in Settings.")
             }
+            LlmError::Stalled => t("The reply stopped arriving. Try again."),
             LlmError::Network => t("Feather could not reach the provider. Check your connection and try again."),
         }
     }
@@ -70,6 +80,14 @@ mod tests {
         assert_eq!(endpoint("http://localhost:11434/v1/ ", "/models").unwrap().as_str(), "http://localhost:11434/v1/models");
         assert_eq!(endpoint("ftp://example.com", "/models"), Err(LlmError::InvalidBaseUrl));
         assert_eq!(endpoint("not a url", "/models"), Err(LlmError::InvalidBaseUrl));
+    }
+
+    #[test]
+    fn common_http_failures_say_what_to_do() {
+        assert!(LlmError::Http { status: 401, message: Some("bad key".into()) }.message().contains("Settings"));
+        assert!(LlmError::Http { status: 503, message: None }.message().contains("503"));
+        assert_eq!(LlmError::Http { status: 429, message: Some("Monthly allowance spent".into()) }.message(), "429: Monthly allowance spent");
+        assert_eq!(LlmError::Http { status: 400, message: Some("Bad model".into()) }.message(), "400: Bad model");
     }
 
     #[test]

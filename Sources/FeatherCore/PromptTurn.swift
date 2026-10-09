@@ -38,10 +38,46 @@ public enum PromptSubmission: Equatable, Sendable {
     case none
 }
 
+/// How Insert delivers the reply.
+public enum InsertRoute: Equatable, Sendable {
+    /// Bring the target app back and paste into its focused field.
+    case paste
+    /// There is no app to paste into, such as when the shortcut was pressed over the desktop.
+    case copyWithoutTarget
+    /// Pasting needs a permission Feather does not have, or this session cannot do it.
+    case copyWithoutPermission
+    /// The focused field takes a password; a reply never goes into one.
+    case copyIntoSecureField
+    /// The target app quit after the shortcut, so a paste would land in whatever app is in front.
+    case targetClosed
+}
+
 /// Pure decisions for one prompt invocation. AppKit remains in the controller adapter.
 public enum PromptTurn {
     /// How long "Copied to clipboard." stays up; copying never closes the panel.
     public static let copiedNoticeDuration: Duration = .seconds(2)
+
+    /// How long a panel hidden by the shortcut or a click elsewhere can be picked up again.
+    public static let resumeWindow: TimeInterval = 60
+
+    /// Whether showing the panel resumes the hidden session, adding a new capture to it, instead
+    /// of saving it to recent conversations and starting fresh. Only the same app, soon after,
+    /// resumes, so one app's context and conversation never shape a reply meant for another.
+    public static func resumesSuspendedSession(sameApp: Bool, suspendedFor seconds: TimeInterval) -> Bool {
+        sameApp && seconds >= 0 && seconds < resumeWindow
+    }
+
+    public static func insertRoute(
+        hasTarget: Bool,
+        targetIsRunning: Bool,
+        canPaste: Bool,
+        focusedFieldIsSecure: Bool
+    ) -> InsertRoute {
+        guard hasTarget else { return .copyWithoutTarget }
+        guard targetIsRunning else { return .targetClosed }
+        guard canPaste else { return .copyWithoutPermission }
+        return focusedFieldIsSecure ? .copyIntoSecureField : .paste
+    }
 
     public static func mergeWindowText(_ newText: String?, with existing: String?) -> String? {
         guard let newText, !newText.isEmpty else { return existing }

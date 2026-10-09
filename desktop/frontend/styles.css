@@ -67,6 +67,7 @@ button:disabled { cursor: default; }
 .block-label { margin: 0; color: rgb(255 255 255 / .55); font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
 
 .input-row { display: flex; align-items: flex-start; gap: 10px; }
+.input-row[hidden] { display: none; }
 .feather-icon {
   width: 20px; height: 20px; flex: none; margin-top: 3px;
   fill: currentColor;
@@ -90,31 +91,37 @@ button:disabled { cursor: default; }
 .panel hr { width: 100%; margin: 0; border: 0; border-top: 1px solid rgb(255 255 255 / .14); }
 .generating-row { display: flex; align-items: baseline; gap: 10px; }
 .generating-label { flex: 1; color: rgb(255 255 255 / .6); font: 14px var(--serif); }
-.elapsed { color: rgb(255 255 255 / .4); font: 11px var(--mono); font-variant-numeric: tabular-nums; }
+.elapsed { color: rgb(255 255 255 / .6); font: 11px var(--mono); font-variant-numeric: tabular-nums; }
 .small-button {
+  display: inline-flex; align-items: center; gap: 4px;
   min-height: 20px; padding: 0 8px; border: 0; border-radius: 5px;
   color: rgb(255 255 255 / .75); background: rgb(255 255 255 / .12); font-size: 12px;
 }
-.error, .notice { margin: 0; font-size: 13px; }
+.small-button kbd { color: rgb(255 255 255 / .6); font: 10px var(--mono); }
+.error, .notice { display: flex; align-items: flex-start; gap: 6px; margin: 0; font-size: 13px; line-height: 1.4; }
 .error { color: rgb(248 113 113 / .95); }
-.notice { color: rgb(255 255 255 / .65); }
+.notice { flex: 1; color: rgb(255 255 255 / .75); }
+.status-icon { width: 15px; height: 15px; flex: none; margin-top: 1px; }
 
 .footer-row { display: flex; align-items: center; gap: 12px; }
+.footer-row.end { justify-content: flex-end; }
 .chips { flex: 1; display: flex; align-items: center; gap: 6px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
 .chip {
   flex: none; max-width: 200px; padding: 4px 8px; border: 0; border-radius: 999px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   color: #fff; background: rgb(255 255 255 / .18); font-size: 12px;
 }
-.chip.off { color: rgb(255 255 255 / .55); background: rgb(255 255 255 / .07); text-decoration: line-through; }
+.chip.off { color: rgb(255 255 255 / .6); background: rgb(255 255 255 / .07); text-decoration: line-through; }
 .field-badge {
   flex: none; padding: 3px 8px; border: 1px solid rgb(59 130 246 / .55); border-radius: 999px;
   white-space: nowrap; color: #fff; background: rgb(59 130 246 / .28); font-size: 12px;
 }
+.chip-caption { flex: none; color: rgb(255 255 255 / .6); font-size: 11px; white-space: nowrap; cursor: help; }
 .capturing { display: inline-flex; align-items: center; gap: 5px; color: rgb(255 255 255 / .65); font-size: 11px; white-space: nowrap; }
 .capturing .spinner { width: 9px; height: 9px; border-width: 1.5px; }
 
 .hints { display: flex; gap: 10px; flex: none; }
+.key-label { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .key-hint { display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; background: none; color: rgb(255 255 255 / .75); font-size: 12px; }
 .key-hint kbd {
   display: inline-flex; align-items: center; justify-content: center; gap: 4px;
@@ -125,6 +132,14 @@ button:disabled { cursor: default; }
 .key-hint.highlighted { color: rgb(59 130 246 / .95); }
 .key-hint.highlighted kbd { background: rgb(37 99 235 / .9); color: #fff; }
 .chip:focus-visible, .key-hint:focus-visible, .small-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.setup { display: flex; align-items: flex-start; gap: 10px; }
+.setup .feather-icon { margin-top: 3px; }
+.setup-text { margin: 0; font: 17px/24px var(--serif); }
+.confirmation { display: flex; align-items: center; gap: 8px; margin: 0; font: 15px/1.4 var(--serif); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.confirmation span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.confirmation-icon { width: 17px; height: 17px; flex: none; }
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
 /* Settings ----------------------------------------------------------------------------------- */
 
