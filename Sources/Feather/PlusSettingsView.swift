@@ -264,10 +264,11 @@ private struct UsageRow: View {
 }
 
 private extension PlusAccount.Plan {
+    /// Monthly and yearly are the same Feather Plus, so the name says how it is billed.
     var displayName: String {
         switch self {
-        case .monthly: String(localized: "Plus Monthly", bundle: .app)
-        case .yearly: String(localized: "Plus Yearly", bundle: .app)
+        case .monthly: String(localized: "Feather Plus · Monthly", bundle: .app)
+        case .yearly: String(localized: "Feather Plus · Yearly", bundle: .app)
         }
     }
 }

@@ -1431,22 +1431,22 @@
         }
       }
     },
-    "Plus Monthly": {
+    "Feather Plus · Monthly": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Plus Mensal"
+            "value": "Feather Plus · Mensal"
           }
         }
       }
     },
-    "Plus Yearly": {
+    "Feather Plus · Yearly": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Plus Anual"
+            "value": "Feather Plus · Anual"
           }
         }
       }

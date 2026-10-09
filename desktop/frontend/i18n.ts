@@ -170,8 +170,8 @@ export const PT_BR: Record<string, string> = {
   "Not signed in": "Não conectado",
   "Sign in to see your plan and usage.": "Entre para ver seu plano e uso.",
   "See Feather Plus plans on the website": "Ver os planos do Feather Plus no site",
-  "Plus Monthly": "Plus Mensal",
-  "Plus Yearly": "Plus Anual",
+  "Feather Plus · Monthly": "Feather Plus · Mensal",
+  "Feather Plus · Yearly": "Feather Plus · Anual",
   Answer: "Resposta",
   "Suggested text": "Texto sugerido",
   "To get answers to your questions while Feather writes, subscribe to Feather Plus.":

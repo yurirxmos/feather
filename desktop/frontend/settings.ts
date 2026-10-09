@@ -764,7 +764,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
 
   /** Who is signed in, with the plan under the address and the actions as icons, like the provider rows. */
   function profileRow(account: PlusAccount | null): HTMLElement {
-    const plan = account?.plan ? badge(account.plan === "yearly" ? t("Plus Yearly") : t("Plus Monthly")) : account ? h("span", { class: "secondary" }, t("No plan")) : h("span");
+    const plan = account?.plan ? badge(account.plan === "yearly" ? t("Feather Plus · Yearly") : t("Feather Plus · Monthly")) : account ? h("span", { class: "secondary" }, t("No plan")) : h("span");
     return h(
       "div",
       { class: "row profile" },
