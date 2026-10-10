@@ -89,8 +89,10 @@ public enum LLMStreamPump {
                 while !Task.isCancelled {
                     try? await Task.sleep(for: min(idleTimeout, .milliseconds(500)))
                     if let last = activity.lastText, clock.now - last >= idleTimeout {
-                        reader.cancel()
+                        // Finish first: a cancelled reader ends its loop and would finish the
+                        // stream normally, hiding the stall.
                         continuation.finish(throwing: LLMError.stalled)
+                        reader.cancel()
                         return
                     }
                 }
