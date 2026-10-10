@@ -93,6 +93,8 @@ const TRANSLATIONS: &[(&str, &str)] = &[
     ("{app} is no longer open, so Feather can't insert the reply. Copy it instead.", "{app} não está mais aberto, então o Feather não consegue inserir a resposta. Copie-a em vez disso."),
     ("Pasted into {app}", "Colado em {app}"),
     ("Pasted", "Colado"),
+    ("A new version of Feather is being published. Try again in a few minutes.", "Uma nova versão do Feather está sendo publicada. Tente de novo em alguns minutos."),
+    ("Feather could not reach the update server. Check your connection and try again.", "O Feather não conseguiu falar com o servidor de atualizações. Confira sua conexão e tente de novo."),
 ];
 
 #[cfg(test)]

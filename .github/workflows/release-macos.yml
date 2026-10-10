@@ -179,7 +179,15 @@ jobs:
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             gh release upload "$RELEASE_TAG" $assets --clobber
           else
-            gh release create "$RELEASE_TAG" $assets \
+            # Windows and Linux installs read latest-desktop.json from the latest release, and the
+            # desktop workflow attaches the new one (with --clobber) minutes after this. Until then,
+            # carry over the previous release's manifest, so their update checks keep finding the
+            # version they have instead of failing with a 404.
+            carried=""
+            if gh release download --pattern latest-desktop.json --dir carried-manifest; then
+              carried="carried-manifest/latest-desktop.json"
+            fi
+            gh release create "$RELEASE_TAG" $assets $carried \
               --title "Feather ${RELEASE_TAG#v}" \
               --notes "Download Feather-${RELEASE_TAG#v}-arm64.dmg for Apple silicon or Feather-${RELEASE_TAG#v}-x86_64.dmg for Intel, then drag Feather into Applications. Later versions install from Feather itself." \
               --generate-notes

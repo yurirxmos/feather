@@ -200,8 +200,19 @@ pub fn check_for_updates(app: AppHandle, interactive: bool) {
                 app.dialog().message(t("Feather is up to date.")).title("Feather").show(|_| {});
             }
             Err(error) if interactive => {
+                let message = match error {
+                    // The latest release has no update manifest yet: a new version is still being
+                    // published, which takes a few minutes.
+                    tauri_plugin_updater::Error::ReleaseNotFound => {
+                        t("A new version of Feather is being published. Try again in a few minutes.")
+                    }
+                    tauri_plugin_updater::Error::Reqwest(_) | tauri_plugin_updater::Error::Network(_) => {
+                        t("Feather could not reach the update server. Check your connection and try again.")
+                    }
+                    error => t("Feather could not check for updates: {error}").replace("{error}", &error.to_string()),
+                };
                 app.dialog()
-                    .message(t("Feather could not check for updates: {error}").replace("{error}", &error.to_string()))
+                    .message(message)
                     .kind(MessageDialogKind::Error)
                     .title("Feather")
                     .show(|_| {});
