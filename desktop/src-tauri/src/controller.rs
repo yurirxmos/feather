@@ -371,6 +371,8 @@ impl PromptController {
 
     fn show(&self) {
         self.dismiss_confirmation();
+        // Settings > Replies changed on another computer reach this one by the next reply.
+        crate::reply_sync::pull(&self.app, true);
         // Remember the target before the panel takes keyboard focus.
         let target = platform::foreground_target();
         let own_window = target.is_none()

@@ -53,6 +53,8 @@ struct SettingsView: View {
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     /// Whether the signed-in account has a Feather Plus plan; until it does, the sidebar offers Upgrade.
     @State private var hasPlusPlan = false
+    /// Whether a Feather account is signed in, which keeps Settings > Replies on every computer.
+    @State private var isSignedIn = false
 
     init(credentialStore: any CredentialStore = KeychainCredentialStore.shared) {
         self.credentialStore = credentialStore
@@ -81,6 +83,7 @@ struct SettingsView: View {
         .onAppear {
             refreshProviders()
             refreshPlan()
+            ReplySettingsSync.shared.pull()
             if !isConnected {
                 selectedSection = .connection
             } else if !permissions.allGranted {
@@ -94,6 +97,7 @@ struct SettingsView: View {
         // Plans are bought in the browser, so check again on returning to the app.
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             refreshPlan()
+            ReplySettingsSync.shared.pull()
         }
     }
 
@@ -171,6 +175,7 @@ struct SettingsView: View {
 
     private func refreshProviders() {
         providersSetUp = Settings.providersSetUp(in: credentialStore, plusAvailable: FeatherPlus.isProviderEnabled())
+        isSignedIn = credentialStore.plusToken() != nil
     }
 
     private func refreshPlan() {
@@ -303,6 +308,10 @@ struct SettingsView: View {
             }
 
             ReplyStyleSection()
+
+            if FeatherPlus.isEnabled() {
+                ReplySyncSection(isSignedIn: isSignedIn) { selectedSection = .general }
+            }
         }
         .formStyle(.grouped)
     }
@@ -405,6 +414,45 @@ private struct ReplyStyleSection: View {
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .sectionFooter()
+        }
+    }
+}
+
+/// Whether these settings follow the user to other computers (`ReplySettingsSync`). Signed out, it
+/// offers the sign-in, which lives with the account at the top of General.
+private struct ReplySyncSection: View {
+    let isSignedIn: Bool
+    let showAccount: () -> Void
+
+    var body: some View {
+        Section {
+            HStack(spacing: 12) {
+                Image(systemName: isSignedIn ? "checkmark.icloud" : "icloud")
+                    .imageScale(.large)
+                    .foregroundStyle(isSignedIn ? Color.accentColor : .secondary)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 2) {
+                    if isSignedIn {
+                        Text("Saved to your account", bundle: .app)
+                        Text("Every computer signed in to your Feather account uses these settings.", bundle: .app)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("Use these settings on every computer", bundle: .app)
+                        Text("Sign in to a free Feather account to keep them in sync.", bundle: .app)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Spacer(minLength: 12)
+                if !isSignedIn {
+                    Button(String(localized: "Go to Account", bundle: .app), action: showAccount)
+                        .pointingHandCursor()
+                }
+            }
+            .padding(.vertical, 2)
+        } header: {
+            Text("Sync", bundle: .app)
         }
     }
 }

@@ -104,6 +104,28 @@ public enum FeatherPlus {
         return request
     }
 
+    /// Reads the Replies settings saved to the account; see `ReplySettings`.
+    public static func replySettingsRequest(base: String, token: String) throws -> URLRequest {
+        var request = URLRequest(url: try .endpoint(base: base, path: "/v1/reply-settings"))
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        return request
+    }
+
+    /// Saves the Replies settings to the account.
+    public static func saveReplySettingsRequest(base: String, token: String, settings: ReplySettings) throws -> URLRequest {
+        var request = try replySettingsRequest(base: base, token: token)
+        request.httpMethod = "PUT"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(settings)
+        return request
+    }
+
+    /// The account's Replies settings, or nil when it has none saved yet.
+    public static func decodeReplySettings(_ data: Data) throws -> ReplySettings? {
+        struct Response: Decodable { let settings: ReplySettings? }
+        return try JSONDecoder().decode(Response.self, from: data).settings
+    }
+
     /// Asks for a single-use code that signs the website in to the same account.
     public static func webCodeRequest(base: String, token: String) throws -> URLRequest {
         var request = URLRequest(url: try .endpoint(base: base, path: "/v1/auth/web"))

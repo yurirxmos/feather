@@ -69,7 +69,7 @@ struct PlusSettingsView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Not signed in", bundle: .app)
                     .font(.headline)
-                Text("Sign in to see your plan and usage.", bundle: .app)
+                Text("Free. Keeps your reply settings on every computer.", bundle: .app)
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 12)
@@ -107,7 +107,7 @@ struct PlusSettingsView: View {
                     if let plan = account.plan {
                         StatusBadge(text: plan.displayName, color: .green)
                     } else {
-                        Text("No plan", bundle: .app)
+                        Text("Free account", bundle: .app)
                             .foregroundStyle(.secondary)
                     }
                 } else if isLoadingAccount {

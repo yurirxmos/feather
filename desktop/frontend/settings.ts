@@ -294,7 +294,22 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
         footnote(t("Nothing is captured until you press the shortcut, and the context is discarded when the panel closes.")),
       ),
       replyStyle(),
+      ...(settings.plusEnabled ? [replySync()] : []),
     ];
+  }
+
+  /**
+   * Whether these settings follow the user to other computers (`reply_sync` in Rust), mirroring
+   * `ReplySyncSection` in the macOS app. Signed out, it points to the sign-in under General.
+   */
+  function replySync(): HTMLElement {
+    const status = credentials.plusSignedIn
+      ? h("span", { class: "label" }, t("Saved to your account"), h("small", {}, t("Every computer signed in to your Feather account uses these settings.")))
+      : h("span", { class: "label" }, t("Use these settings on every computer"), h("small", {}, t("Sign in to a free Feather account to keep them in sync.")));
+    const action = credentials.plusSignedIn
+      ? null
+      : h("button", { type: "button", onclick: () => ((section = "general"), render()) }, t("Go to Account"));
+    return group(t("Sync"), [h("div", { class: "row" }, status, action)]);
   }
 
   /** How replies read: tone, length, and language, mirroring `ReplyStyleSection` in the macOS app. */
@@ -764,7 +779,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
 
   /** Who is signed in, with the plan under the address and the actions as icons, like the provider rows. */
   function profileRow(account: PlusAccount | null): HTMLElement {
-    const plan = account?.plan ? badge(account.plan === "yearly" ? t("Feather Plus · Yearly") : t("Feather Plus · Monthly")) : account ? h("span", { class: "secondary" }, t("No plan")) : h("span");
+    const plan = account?.plan ? badge(account.plan === "yearly" ? t("Feather Plus · Yearly") : t("Feather Plus · Monthly")) : account ? h("span", { class: "secondary" }, t("Free account")) : h("span");
     return h(
       "div",
       { class: "row profile" },
@@ -802,7 +817,7 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
         "div",
         { class: "row profile" },
         h("span", { class: "avatar signed-out", "aria-hidden": "true" }, personIcon()),
-        h("span", { class: "label" }, h("strong", {}, t("Not signed in")), h("span", { class: "secondary" }, t("Sign in to see your plan and usage."))),
+        h("span", { class: "label" }, h("strong", {}, t("Not signed in")), h("span", { class: "secondary" }, t("Free. Keeps your reply settings on every computer."))),
         h("span", { class: "inline row-actions" }, ...actions),
       );
       return group(t("Account"), [row], plusError ? error(plusError) : footnote(t("Sign-in continues in your browser.")));
@@ -1051,8 +1066,11 @@ export async function startSettings(root: HTMLElement, info: AppInfo): Promise<v
     field.dispatchEvent(new Event("input", { bubbles: true }));
   });
   // Plans change in the browser (checkout, the portal), so refresh when the window regains focus.
+  // Replies settings changed on another computer arrive the same way, through "settings-changed".
   await getCurrentWindow().onFocusChanged(({ payload: focused }) => {
-    if (focused) void refreshCredentials();
+    if (!focused) return;
+    void refreshCredentials();
+    void invoke("sync_reply_settings");
   });
 
   render();

@@ -76,6 +76,15 @@ with ↑, Feather keeps your last 5 instructions and replies in a file on this
 computer only; it never saves screen context there. Feather logs generation
 timings only; it does not log screen contents, instructions, or responses.
 
+## Feather account
+
+An account is free and optional. Sign in under **Settings > General > Account** with a one-time
+email link, and everything in **Settings > Replies** (instructions, screenshot, tone, length, and
+language) is saved to it, so every computer signed in to the same account replies the same way.
+Signing in takes the account's settings, or saves this computer's when the account has none yet;
+changes are saved as you make them. Signed out, the settings stay on this computer only. The same
+account is where Feather Plus lives.
+
 ## Providers
 
 Set up a provider in **Feather > Settings > Connection**. Providers you have set up are listed
@@ -85,8 +94,8 @@ away, and removing the one in use switches to another that is set up.
 ### Feather Plus
 
 Feather Plus is the hosted option: no API key needed. Click **Set Up…** next to Feather Plus in
-**Settings > Connection**, sign in with a one-time email link, and pick a plan. The account and
-usage are in **Settings > Feather Plus**.
+**Settings > Connection**, sign in with a one-time email link (or use the account you already
+signed in with), and pick a plan. The plan and usage are in **Settings > General > Account**.
 
 | Plan | Price | Includes |
 | --- | --- | --- |
@@ -94,9 +103,10 @@ usage are in **Settings > Feather Plus**.
 | Plus Yearly | $36/year | Hundreds of replies a month, renewed every month |
 
 Both are the same Feather Plus, billed differently. Each month includes a set amount of model
-use, shown in Settings as a percentage used. Feather never stores your instructions, screen
+use, shown in Settings as a percentage used. Feather never stores what you ask it, screen
 context, or replies; they pass through its server to the model provider, which handles them
-under its own data policy. Only your email, plan, and request, token, and cost counts are kept.
+under its own data policy. Only your email, your Replies settings, your plan, and request,
+token, and cost counts are kept.
 
 Bringing your own OpenAI, Claude, or OpenCode Go API key stays free.
 

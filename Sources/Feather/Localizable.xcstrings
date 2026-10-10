@@ -921,42 +921,12 @@
         }
       }
     },
-    "Feather Plus returned an error (%lld).": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O Feather Plus retornou um erro (%lld)."
-          }
-        }
-      }
-    },
     "Couldn't save your session in the Keychain.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Não foi possível salvar sua sessão nas Chaves."
-          }
-        }
-      }
-    },
-    "Couldn't reach Feather Plus. Check your connection.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Não foi possível acessar o Feather Plus. Verifique sua conexão."
-          }
-        }
-      }
-    },
-    "Signed in to Feather Plus": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Você entrou no Feather Plus"
           }
         }
       }
@@ -987,16 +957,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Feather Plus"
-          }
-        }
-      }
-    },
-    "No plan": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sem plano"
           }
         }
       }
@@ -1507,16 +1467,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Não conectado"
-          }
-        }
-      }
-    },
-    "Sign in to see your plan and usage.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Entre para ver seu plano e uso."
           }
         }
       }
@@ -2067,6 +2017,116 @@
           "stringUnit": {
             "state": "translated",
             "value": "Recentes"
+          }
+        }
+      }
+    },
+    "Free. Keeps your reply settings on every computer.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grátis. Mantém seus ajustes de resposta em todos os computadores."
+          }
+        }
+      }
+    },
+    "Free account": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conta grátis"
+          }
+        }
+      }
+    },
+    "Signed in to Feather": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você entrou no Feather"
+          }
+        }
+      }
+    },
+    "Couldn't reach your Feather account. Check your connection.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível acessar a sua conta do Feather. Verifique sua conexão."
+          }
+        }
+      }
+    },
+    "Your Feather account returned an error (%lld).": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A sua conta do Feather retornou um erro (%lld)."
+          }
+        }
+      }
+    },
+    "Saved to your account": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salvos na sua conta"
+          }
+        }
+      }
+    },
+    "Every computer signed in to your Feather account uses these settings.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todo computador conectado à sua conta do Feather usa estes ajustes."
+          }
+        }
+      }
+    },
+    "Use these settings on every computer": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use estes ajustes em todos os computadores"
+          }
+        }
+      }
+    },
+    "Sign in to a free Feather account to keep them in sync.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entre numa conta grátis do Feather para mantê-los sincronizados."
+          }
+        }
+      }
+    },
+    "Go to Account": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ir para a Conta"
+          }
+        }
+      }
+    },
+    "Sync": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronização"
           }
         }
       }

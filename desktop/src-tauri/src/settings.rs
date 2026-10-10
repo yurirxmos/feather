@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use crate::core::plus;
+use crate::core::reply_settings::ReplySettings;
 use crate::core::reply_style::{Language, Length, ReplyStyle, Tone};
 use crate::providers::default_model_for;
 
@@ -21,6 +22,9 @@ pub mod key {
     pub const REPLY_TONE: &str = "replyTone";
     pub const REPLY_LENGTH: &str = "replyLength";
     pub const REPLY_LANGUAGE: &str = "replyLanguage";
+    /// Whether a change to Settings > Replies made while signed in hasn't reached the account yet,
+    /// so it is saved instead of being replaced by the account's. Not shown in Settings.
+    pub const REPLY_SETTINGS_CHANGE_PENDING: &str = "replySettingsChangePending";
     /// Whether the first-run welcome guide has been finished or dismissed. Absent until the guide has
     /// run once; `onboarding_completed` treats an absent value as not done.
     pub const ONBOARDING_COMPLETED: &str = "onboardingCompleted";
@@ -252,6 +256,42 @@ impl SettingsStore {
         Ok(Settings::resolve(&values))
     }
 
+    /// Settings > Replies as stored, with the same defaults as `Settings::resolve`. Mirrors
+    /// `ReplySettings.stored(in:)` in the macOS app.
+    pub fn reply_settings(&self) -> ReplySettings {
+        let values = self.values.lock().expect("settings lock");
+        let string = |key: &str, default: &str| values.get(key).and_then(Value::as_str).unwrap_or(default).to_owned();
+        ReplySettings {
+            custom_instructions: string(key::CUSTOM_INSTRUCTIONS, ""),
+            include_screenshot: values.get(key::INCLUDE_SCREENSHOT).and_then(Value::as_bool).unwrap_or(true),
+            reply_tone: string(key::REPLY_TONE, "natural"),
+            reply_length: string(key::REPLY_LENGTH, "matchRequest"),
+            reply_language: string(key::REPLY_LANGUAGE, "conversation"),
+        }
+    }
+
+    /// Stores the account's Replies settings. Choice ids this version doesn't know are kept, and read
+    /// as the default.
+    pub fn store_reply_settings(&self, settings: &ReplySettings) -> Result<(), String> {
+        let mut values = self.values.lock().expect("settings lock");
+        values.insert(key::CUSTOM_INSTRUCTIONS.into(), Value::String(settings.custom_instructions.clone()));
+        values.insert(key::INCLUDE_SCREENSHOT.into(), Value::Bool(settings.include_screenshot));
+        values.insert(key::REPLY_TONE.into(), Value::String(settings.reply_tone.clone()));
+        values.insert(key::REPLY_LENGTH.into(), Value::String(settings.reply_length.clone()));
+        values.insert(key::REPLY_LANGUAGE.into(), Value::String(settings.reply_language.clone()));
+        self.save(&values)
+    }
+
+    /// Sets a flag Settings doesn't show, such as `REPLY_SETTINGS_CHANGE_PENDING`.
+    pub fn set_flag(&self, name: &str, value: bool) -> Result<(), String> {
+        let mut values = self.values.lock().expect("settings lock");
+        if values.get(name).and_then(Value::as_bool) == Some(value) {
+            return Ok(());
+        }
+        values.insert(name.to_owned(), Value::Bool(value));
+        self.save(&values)
+    }
+
     fn save(&self, values: &Map<String, Value>) -> Result<(), String> {
         serde_json::to_vec_pretty(values)
             .map_err(std::io::Error::from)
@@ -361,6 +401,32 @@ mod tests {
         assert_eq!(reloaded.connection, Connection::OpenAi);
         assert_eq!(reloaded.model, "gpt-5.4-mini");
         assert!(!reloaded.include_screenshot);
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn reply_settings_round_trip_and_keep_choices_from_newer_apps() {
+        let path = std::env::temp_dir().join(format!("feather-settings-{}.json", crate::core::pkce::random_string(8)));
+        let store = SettingsStore::load(path.clone());
+        let defaults = store.reply_settings();
+        assert_eq!((defaults.include_screenshot, defaults.reply_tone.as_str(), defaults.reply_length.as_str()), (true, "natural", "matchRequest"));
+
+        let synced = ReplySettings {
+            custom_instructions: "Do not use emojis.".into(),
+            include_screenshot: false,
+            reply_tone: "poetic".into(),
+            reply_length: "short".into(),
+            reply_language: "portuguese".into(),
+        };
+        store.store_reply_settings(&synced).unwrap();
+        let reloaded = SettingsStore::load(path.clone());
+        assert_eq!(reloaded.reply_settings(), synced);
+        let current = reloaded.current();
+        assert_eq!(current.reply_style(), ReplyStyle { tone: Tone::default(), length: Length::Short, language: Language::Portuguese });
+        assert!(!current.include_screenshot);
+
+        reloaded.set_flag(key::REPLY_SETTINGS_CHANGE_PENDING, true).unwrap();
+        assert_eq!(SettingsStore::load(path.clone()).flag(key::REPLY_SETTINGS_CHANGE_PENDING), Some(true));
         let _ = std::fs::remove_file(path);
     }
 }

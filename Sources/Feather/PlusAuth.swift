@@ -13,15 +13,15 @@ enum PlusAuthError: LocalizedError {
         switch self {
         case .timedOut: String(localized: "Sign-in timed out. Try again.", bundle: .app)
         case .unauthorized: String(localized: "Your session expired. Sign in again.", bundle: .app)
-        case .server(let status): String(localized: "Feather Plus returned an error (\(status)).", bundle: .app)
+        case .server(let status): String(localized: "Your Feather account returned an error (\(status)).", bundle: .app)
         case .keychain: String(localized: "Couldn't save your session in the Keychain.", bundle: .app)
         }
     }
 
-    /// A readable message for any error raised while talking to Feather Plus.
+    /// A readable message for any error raised while talking to the Feather account server.
     static func message(for error: Error) -> String {
         if error is URLError {
-            return String(localized: "Couldn't reach Feather Plus. Check your connection.", bundle: .app)
+            return String(localized: "Couldn't reach your Feather account. Check your connection.", bundle: .app)
         }
         return (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
     }
@@ -55,8 +55,9 @@ enum PlusAuth {
             guard let uri = redirectURI.value else { throw LLMError.invalidBaseURL }
             let token = try await exchange(base: base, code: callback.code, verifier: verifier, redirectURI: uri)
             guard store.setPlusToken(token) else { throw PlusAuthError.keychain }
+            await ReplySettingsSync.shared.signedIn()
             callback.respond(html: page(
-                title: String(localized: "Signed in to Feather Plus", bundle: .app),
+                title: String(localized: "Signed in to Feather", bundle: .app),
                 message: String(localized: "You can close this window and return to Feather.", bundle: .app),
                 succeeded: true
             ))
@@ -99,6 +100,7 @@ enum PlusAuth {
     static func signOut(store: any CredentialStore = KeychainCredentialStore.shared, base: String = FeatherPlus.baseURL()) {
         guard let token = store.plusToken() else { return }
         store.deletePlusToken()
+        Task { @MainActor in ReplySettingsSync.shared.signedOut() }
         guard var request = try? FeatherPlus.revokeRequest(base: base, token: token) else { return }
         request.timeoutInterval = 10
         Task.detached { [request] in _ = try? await URLSession.shared.data(for: request) }

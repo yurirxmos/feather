@@ -9,6 +9,7 @@ mod insert;
 #[cfg_attr(not(any(windows, target_os = "linux")), allow(dead_code))]
 mod platform;
 mod providers;
+mod reply_sync;
 mod settings;
 mod shell;
 
@@ -43,6 +44,7 @@ pub fn run() {
             credentials::delete_legacy_chatgpt_session();
             app.manage(PromptController::new(app.handle().clone()));
             app.manage(commands::SignIn::default());
+            reply_sync::pull(app.handle(), false);
             platform::prepare();
             shell::build_tray(app.handle())?;
             shell::enable_launch_at_login_by_default(app.handle());
@@ -87,6 +89,7 @@ pub fn run() {
             commands::cancel_sign_in,
             commands::plus_account,
             commands::plus_sign_out,
+            commands::sync_reply_settings,
             commands::open_plus_page,
             commands::capabilities,
             commands::send_feedback,

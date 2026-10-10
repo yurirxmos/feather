@@ -161,6 +161,8 @@ final class PromptController: NSObject, NSWindowDelegate {
 
     private func show() {
         dismissConfirmation()
+        // Settings > Replies changed on another computer reach this one by the next reply.
+        ReplySettingsSync.shared.pull(throttled: true)
         // Remember the target before the panel takes keyboard focus.
         let front = NSWorkspace.shared.frontmostApplication
         let isFeather = front?.processIdentifier == ProcessInfo.processInfo.processIdentifier

@@ -68,6 +68,10 @@ platform. When a change cannot be mirrored, say so and explain why.
   shortcut and is discarded when the panel closes. Do not add background capture. The only thing
   kept afterwards is the last 5 conversations (instructions and replies, never screen context) in
   a local file, so ↑ in the panel can bring them back (`RecentConversations`).
+- Signing in to a Feather account is free and keeps Settings > Replies on every computer:
+  `ReplySettings` (FeatherCore) and `ReplySettingsSync` (app), mirrored by `core/reply_settings.rs`
+  and `reply_sync.rs` on desktop, through `/v1/reply-settings` on feather-api. Feather Plus is a
+  plan on the same account.
 - Feather Plus is the paid, hosted option. Its backend is the private `feather-api` repository
   (a Cloudflare Worker, cloned next to this one); its README is the contract the app follows.
   Never add backend code here: this repository is public. Its web pages (landing, sign-in,

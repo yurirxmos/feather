@@ -22,6 +22,7 @@ use crate::i18n;
 use crate::platform::{self, Capability};
 use crate::providers::catalog::{self, OPENAI_FALLBACK_MODELS};
 use crate::providers::stream::CLIENT;
+use crate::reply_sync;
 use crate::settings::{connection_after_setup_change, key, Connection, HotkeyPreset, Settings, SettingsStore};
 use crate::shell::{self, ShellState};
 
@@ -108,6 +109,9 @@ pub fn set_setting(app: AppHandle, store: State<'_, SettingsStore>, name: String
         return Ok(settings_view(&app, store.current()));
     }
     let settings = store.set(&name, value)?;
+    if reply_sync::is_reply_setting(&name) {
+        reply_sync::changed(&app);
+    }
     if name == key::HOTKEY {
         shell::register_hotkey(&app);
     } else {
@@ -271,6 +275,7 @@ fn open_in_browser(app: &AppHandle) -> impl FnOnce(&str) + '_ {
 pub async fn sign_in_plus(app: AppHandle, store: State<'_, SettingsStore>, sign_in: State<'_, SignIn>) -> Result<CredentialStatus, String> {
     let base = store.current().plus_base_url;
     cancellable(&sign_in, async { auth::plus::sign_in(&base, open_in_browser(&app)).await.map_err(|error| error.message()) }).await?;
+    reply_sync::signed_in(&app);
     credentials_changed(&app, &store, Some(Connection::FeatherPlus));
     Ok(credential_status())
 }
@@ -309,8 +314,15 @@ pub async fn plus_account(app: AppHandle, store: State<'_, SettingsStore>) -> Re
 pub fn plus_sign_out(app: AppHandle, store: State<'_, SettingsStore>) -> CredentialStatus {
     SWITCHING_PLUS_ACCOUNTS.store(store.current().connection == Connection::FeatherPlus, Ordering::Relaxed);
     auth::plus::sign_out(&store.current().plus_base_url);
+    reply_sync::signed_out(&app);
     credentials_changed(&app, &store, None);
     credential_status()
+}
+
+/// Takes the Replies settings saved to the account, when Settings opens or regains focus.
+#[tauri::command]
+pub fn sync_reply_settings(app: AppHandle) {
+    reply_sync::pull(&app, false);
 }
 
 /// Opens the website's plans (`pricing`) or account page (`account`), signed in to the app's

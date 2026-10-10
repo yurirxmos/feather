@@ -37,6 +37,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         registerHotkey()
         setUpStatusItem()
         enableLaunchAtLoginByDefault()
+        ReplySettingsSync.shared.start()
         NotificationCenter.default.addObserver(
             self, selector: #selector(defaultsChanged), name: UserDefaults.didChangeNotification, object: nil
         )

@@ -10,6 +10,9 @@ public enum SettingsKey {
     public static let replyTone = "replyTone"
     public static let replyLength = "replyLength"
     public static let replyLanguage = "replyLanguage"
+    /// Whether a change to Settings > Replies made while signed in hasn't reached the account yet,
+    /// so it is saved instead of being replaced by the account's. Not shown in Settings.
+    public static let replySettingsChangePending = "replySettingsChangePending"
     /// Whether the first-run welcome guide has been finished or dismissed. Absent until the guide has
     /// run once; `Settings.onboardingCompleted(stored:)` treats an absent value as not done.
     public static let onboardingCompleted = "onboardingCompleted"

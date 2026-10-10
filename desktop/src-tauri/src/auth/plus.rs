@@ -26,11 +26,11 @@ impl PlusError {
 }
 
 fn unreachable() -> PlusError {
-    PlusError::Other(t("Couldn't reach Feather Plus. Check your connection."))
+    PlusError::Other(t("Couldn't reach your Feather account. Check your connection."))
 }
 
 fn server_error(status: u16) -> PlusError {
-    PlusError::Other(t("Feather Plus returned an error ({status}).").replace("{status}", &status.to_string()))
+    PlusError::Other(t("Your Feather account returned an error ({status}).").replace("{status}", &status.to_string()))
 }
 
 /// Runs the browser sign-in and stores the account token. Drop the future to cancel it; the
@@ -53,7 +53,7 @@ pub async fn sign_in(base: &str, open_url: impl FnOnce(&str)) -> Result<(), Plus
         credentials::set_plus_token(&token).map_err(|_| PlusError::Other(t("Couldn't save your session in secure storage.")))
     });
     let page = match &result {
-        Ok(()) => loopback::page(&t("Signed in to Feather Plus"), &t("You can close this window and return to Feather."), true),
+        Ok(()) => loopback::page(&t("Signed in to Feather"), &t("You can close this window and return to Feather."), true),
         Err(error) => loopback::page(&t("Sign-in failed"), &error.message(), false),
     };
     callback.respond(&page).await;
